@@ -32,6 +32,11 @@ cp .env.example .env
 docker compose up
 ```
 
+Then open:
+
+- Frontend: http://localhost:4200
+- GraphQL API: http://localhost:3000/graphql
+
 ## 📁 Project Structure
 
 ```
@@ -39,7 +44,7 @@ smart-novel/
 ├── apps/
 │   ├── backend/              # NestJS GraphQL API
 │   │   ├── data/             # Novel markdown files
-│   └── frontend/             # React UI (placeholder)
+│   └── frontend/             # React UI
 ├── compose.yml               # Docker Compose configuration
 ├── .env.example              # Environment variables template
 ├── .husky/                   # Git hooks
