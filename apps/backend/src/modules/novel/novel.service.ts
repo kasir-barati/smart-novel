@@ -1,7 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 
 import { NovelFiltersInput } from './dto';
-import { INovelRepository, NOVEL_REPOSITORY } from './repositories';
+import {
+  type INovelRepository,
+  NOVEL_REPOSITORY,
+} from './repositories';
 import {
   Chapter,
   Novel,
