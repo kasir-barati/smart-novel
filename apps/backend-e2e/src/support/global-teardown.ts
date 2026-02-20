@@ -9,11 +9,11 @@ module.exports = async function () {
   // Put clean up logic here (e.g. stopping services, docker-compose, etc.).
   // Hint: `globalThis` is shared between setup and teardown.
   const workspaceRoot = path.resolve(__dirname, '../../../../');
-  execSync('docker compose logs backend', {
+  execSync('docker compose --profile backend-e2e logs backend-e2e', {
     cwd: workspaceRoot,
     stdio: 'inherit',
   });
-  execSync('docker compose down', {
+  execSync('docker compose --profile backend-e2e down', {
     cwd: workspaceRoot,
     stdio: 'inherit',
   });

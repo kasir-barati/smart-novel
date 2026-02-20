@@ -1,5 +1,5 @@
 services:
-  backend:
+  backend: &backend
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
@@ -33,6 +33,17 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  backend-e2e:
+    <<: *backend
+    profiles:
+      - backend-e2e
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      target: production
+      args:
+        PORT: $PORT
 
   ollama:
     image: ollama/ollama:latest

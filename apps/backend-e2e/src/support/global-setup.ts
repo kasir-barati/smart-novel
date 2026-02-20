@@ -10,10 +10,13 @@ module.exports = async function () {
   console.log('\nSetting up...\n');
 
   const workspaceRoot = path.resolve(__dirname, '../../../../');
-  execSync('docker compose up -d --build --wait backend', {
-    cwd: workspaceRoot,
-    stdio: 'inherit',
-  });
+  execSync(
+    'docker compose --profile backend-e2e up -d --build --wait backend-e2e',
+    {
+      cwd: workspaceRoot,
+      stdio: 'inherit',
+    },
+  );
 
   // Hint: Use `globalThis` to pass variables to global teardown.
   globalThis.__TEARDOWN_MESSAGE__ = '\nTearing down...\n';
