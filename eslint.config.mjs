@@ -75,4 +75,10 @@ export default [
     // Override or add rules here
     rules: {},
   },
+  {
+    files: ['**/*.spec.*'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
 ];
