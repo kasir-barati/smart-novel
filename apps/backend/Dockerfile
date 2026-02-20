@@ -10,6 +10,7 @@ FROM base AS development
 ENV NODE_ENV=development
 ENV CHOKIDAR_USEPOLLING=1
 ENV WATCHPACK_POLLING=true
+ENV NX_DAEMON=true
 RUN npm ci
 CMD ["npx", "nx", "serve", "backend"]
 
