@@ -84,6 +84,7 @@ export class FileSystemNovelRepository implements INovelRepository {
         id: details.id,
         name: details.name,
         state: details.state,
+        coverUrl: details.coverUrl,
       };
     } catch (error) {
       this.logger.error(`Error loading novel ${novelId}:`, error);

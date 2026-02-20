@@ -17,6 +17,10 @@ services:
     depends_on:
       ollama:
         condition: service_healthy
+      s3:
+        condition: service_healthy
+      init-s3:
+        condition: service_completed_successfully
     healthcheck:
       test:
         [
@@ -48,6 +52,8 @@ services:
       - /app/node_modules
     depends_on:
       backend:
+        condition: service_healthy
+      s3:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:$FRONTEND_PORT"]
@@ -109,6 +115,42 @@ services:
       retries: 3
       start_period: 30s
 
+  s3:
+    image: minio/minio:RELEASE.2025-02-07T23-21-09Z-cpuv1
+    ports:
+      - "9000:9000"
+      - "9001:9001" # Dashboard
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server --console-address ":9001" /data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - minio-data:/data
+
+  init-s3:
+    image: minio/mc
+    depends_on:
+      s3:
+        condition: service_healthy
+    volumes:
+      - ./apps/backend/data/example-novel:/source-data
+      - ./local-setup/bucket-policy.json:/bucket-policy.json:ro
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set my_minio http://s3:9000 minioadmin minioadmin;
+      /usr/bin/mc admin info my_minio;
+      /usr/bin/mc mb my_minio/smart-novel || true;
+      /usr/bin/mc cp /source-data/71a3fcd8-937d-4e3d-94de-a643ff515f82.png my_minio/smart-novel/covers/71a3fcd8-937d-4e3d-94de-a643ff515f82.png;
+      /usr/bin/mc anonymous set-json /bucket-policy.json my_minio/smart-novel;
+      echo 'MinIO initialization complete! Public read access granted to covers/ directory only.';"
+
 volumes:
   ollama-data:
+    driver: local
+  minio-data:
     driver: local

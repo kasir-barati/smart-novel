@@ -29,6 +29,12 @@ export class Novel {
   @Field(() => NovelState, { description: 'The state of the novel' })
   state: NovelState;
 
+  @Field(() => String, {
+    nullable: true,
+    description: 'URL to the novel cover image',
+  })
+  coverUrl?: string;
+
   @Field(() => Chapter, {
     nullable: true,
     description: 'The current chapter of the novel',

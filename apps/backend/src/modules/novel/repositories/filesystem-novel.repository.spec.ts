@@ -34,6 +34,8 @@ describe(FileSystemNovelRepository.name, () => {
           id: novelId,
           name: 'Novel One',
           state: NovelState.FINISHED,
+          coverUrl:
+            'https://cdn.example.com/smart-novel/covers/1cd689e4-59c9-4d87-b0a5-3d7308270587.png',
         }),
       );
       (
@@ -51,6 +53,8 @@ describe(FileSystemNovelRepository.name, () => {
         id: novelId,
         name: 'Novel One',
         state: NovelState.FINISHED,
+        coverUrl:
+          'https://cdn.example.com/smart-novel/covers/1cd689e4-59c9-4d87-b0a5-3d7308270587.png',
       });
     });
 

@@ -58,4 +58,21 @@ describe('Novel (e2e)', () => {
     expect(res.data.data.novel.chapter.createdAt).toBeDateString();
     expect(res.data.data.novel.chapter.updatedAt).toBeDateString();
   });
+
+  it('should download the cover image', async () => {
+    const { data } = await axios.post('/graphql', {
+      query: `#graphql
+        query {
+          novel(id: "example-novel") {
+            coverUrl
+          }
+        }
+      `,
+    });
+
+    const res = await axios.get(data.data.novel.coverUrl);
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toBe('image/png');
+  });
 });
