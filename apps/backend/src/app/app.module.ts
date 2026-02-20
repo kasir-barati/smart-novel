@@ -15,6 +15,8 @@ import { AppResolver } from './app.resolver';
     }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
+      // FIXME: It is not storing it in the host, instead it creates it inside the container!
+      autoSchemaFile: true,
       // autoSchemaFile: join(
       //   process.cwd(),
       //   'apps',

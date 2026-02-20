@@ -130,6 +130,7 @@ describe(FileSystemNovelRepository.name, () => {
         id: chapterId,
         title: 'Chapter One',
         updatedAt,
+        novelId: 'novel-1',
       });
     });
 
@@ -260,6 +261,41 @@ describe(FileSystemNovelRepository.name, () => {
       await expect(uut.findAll()).rejects.toThrow(
         'Failed to read novels',
       );
+    });
+  });
+
+  describe('getChapterList', () => {
+    it('should return only markdown chapters sorted by file name', async () => {
+      const novelId = 'novel-1';
+      const novelPath = join('/data', novelId);
+      (
+        readdir as jest.MockedFunction<typeof readdir>
+      ).mockResolvedValue([
+        'chapter10.md',
+        'notes.txt',
+        'chapter2.md',
+        'details.json',
+        'chapter1.md',
+      ] as any);
+
+      const result = await uut.getChapterList(novelId);
+
+      expect(readdir).toHaveBeenCalledWith(novelPath);
+      expect(result).toStrictEqual([
+        'chapter1.md',
+        'chapter2.md',
+        'chapter10.md',
+      ]);
+    });
+
+    it('should return empty list when reading chapter directory fails', async () => {
+      (
+        readdir as jest.MockedFunction<typeof readdir>
+      ).mockRejectedValue(new Error('ENOENT'));
+
+      const result = await uut.getChapterList('missing-novel');
+
+      expect(result).toStrictEqual([]);
     });
   });
 });

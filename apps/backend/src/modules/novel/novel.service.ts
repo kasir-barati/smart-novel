@@ -125,4 +125,70 @@ export class NovelService {
   ): Promise<Chapter | null> {
     return this.novelRepository.getChapter(novelId, chapterId);
   }
+
+  async getNextChapter(
+    novelId: string,
+    currentChapterId: string,
+  ): Promise<Chapter | null> {
+    const chapters =
+      await this.novelRepository.getChapterList(novelId);
+    const currentIndex = chapters.indexOf(currentChapterId);
+
+    if (
+      this.chapterDoesNotExist(chapters, currentChapterId) ||
+      this.doesNotHaveNextChapter(chapters, currentChapterId)
+    ) {
+      return null;
+    }
+
+    const nextChapterId = chapters[currentIndex + 1];
+
+    return this.novelRepository.getChapter(novelId, nextChapterId);
+  }
+
+  async getPreviousChapter(
+    novelId: string,
+    currentChapterId: string,
+  ): Promise<Chapter | null> {
+    const chapters =
+      await this.novelRepository.getChapterList(novelId);
+    const currentIndex = chapters.indexOf(currentChapterId);
+
+    if (
+      this.chapterDoesNotExist(chapters, currentChapterId) ||
+      this.doesNotHavePreviousChapter(chapters, currentChapterId)
+    ) {
+      return null;
+    }
+
+    const previousChapterId = chapters[currentIndex - 1];
+
+    return this.novelRepository.getChapter(
+      novelId,
+      previousChapterId,
+    );
+  }
+
+  private doesNotHavePreviousChapter(
+    chapters: string[],
+    chapterId: string,
+  ): boolean {
+    const currentIndex = chapters.indexOf(chapterId);
+    return currentIndex === 0;
+  }
+
+  private doesNotHaveNextChapter(
+    chapters: string[],
+    chapterId: string,
+  ): boolean {
+    const currentIndex = chapters.indexOf(chapterId);
+    return currentIndex === chapters.length - 1;
+  }
+
+  private chapterDoesNotExist(
+    chapters: string[],
+    chapterId: string,
+  ): boolean {
+    return !chapters.includes(chapterId);
+  }
 }

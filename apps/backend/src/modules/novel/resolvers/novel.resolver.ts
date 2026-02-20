@@ -8,9 +8,9 @@ import {
   Resolver,
 } from '@nestjs/graphql';
 
-import { NovelFiltersInput } from './dto';
-import { NovelService } from './novel.service';
-import { Chapter, Novel, NovelConnection } from './types';
+import { NovelFiltersInput } from '../dto';
+import { NovelService } from '../novel.service';
+import { Chapter, Novel, NovelConnection } from '../types';
 
 @Resolver(() => Novel)
 export class NovelResolver {

@@ -14,6 +14,7 @@ describe(NovelService.name, () => {
       findAll: jest.fn(),
       findById: jest.fn(),
       getChapter: jest.fn(),
+      getChapterList: jest.fn(),
     };
 
     uut = new NovelService(novelRepository);
@@ -64,6 +65,7 @@ describe(NovelService.name, () => {
         title: 'Chapter 1',
         id: 'chapter1.md',
         updatedAt: new Date('2024-01-02'),
+        novelId: 'novel-1',
       };
       novelRepository.getChapter.mockResolvedValue(chapter);
 
@@ -216,6 +218,142 @@ describe(NovelService.name, () => {
         hasPreviousPage: false,
         startCursor: 'bm92ZWwtMg==', // Base64 for 'novel-2'
       });
+    });
+  });
+
+  describe('getNextChapter', () => {
+    it('should return the next chapter when current chapter exists', async () => {
+      const nextChapter: Chapter = {
+        content: '# Chapter 2',
+        createdAt: new Date('2024-01-03'),
+        title: 'Chapter 2',
+        id: 'chapter2.md',
+        updatedAt: new Date('2024-01-04'),
+        novelId: 'novel-1',
+      };
+      novelRepository.getChapterList.mockResolvedValue([
+        'chapter1.md',
+        'chapter2.md',
+      ]);
+      novelRepository.getChapter.mockResolvedValue(nextChapter);
+
+      const result = await uut.getNextChapter(
+        'novel-1',
+        'chapter1.md',
+      );
+
+      expect(result).toStrictEqual(nextChapter);
+      expect(novelRepository.getChapterList).toHaveBeenCalledWith(
+        'novel-1',
+      );
+      expect(novelRepository.getChapter).toHaveBeenCalledWith(
+        'novel-1',
+        'chapter2.md',
+      );
+    });
+
+    it('should return null when current chapter does not exist', async () => {
+      novelRepository.getChapterList.mockResolvedValue([
+        'chapter1.md',
+        'chapter2.md',
+      ]);
+
+      const result = await uut.getNextChapter(
+        'novel-1',
+        'missing-chapter.md',
+      );
+
+      expect(result).toBeNull();
+      expect(novelRepository.getChapterList).toHaveBeenCalledWith(
+        'novel-1',
+      );
+      expect(novelRepository.getChapter).not.toHaveBeenCalled();
+    });
+
+    it('should return null when current chapter is the last chapter', async () => {
+      novelRepository.getChapterList.mockResolvedValue([
+        'chapter1.md',
+        'chapter2.md',
+      ]);
+
+      const result = await uut.getNextChapter(
+        'novel-1',
+        'chapter2.md',
+      );
+
+      expect(result).toBeNull();
+      expect(novelRepository.getChapterList).toHaveBeenCalledWith(
+        'novel-1',
+      );
+      expect(novelRepository.getChapter).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getPreviousChapter', () => {
+    it('should return the previous chapter when current chapter exists', async () => {
+      const previousChapter: Chapter = {
+        content: '# Chapter 1',
+        createdAt: new Date('2024-01-01'),
+        title: 'Chapter 1',
+        id: 'chapter1.md',
+        updatedAt: new Date('2024-01-02'),
+        novelId: 'novel-1',
+      };
+      novelRepository.getChapterList.mockResolvedValue([
+        'chapter1.md',
+        'chapter2.md',
+      ]);
+      novelRepository.getChapter.mockResolvedValue(previousChapter);
+
+      const result = await uut.getPreviousChapter(
+        'novel-1',
+        'chapter2.md',
+      );
+
+      expect(result).toStrictEqual(previousChapter);
+      expect(novelRepository.getChapterList).toHaveBeenCalledWith(
+        'novel-1',
+      );
+      expect(novelRepository.getChapter).toHaveBeenCalledWith(
+        'novel-1',
+        'chapter1.md',
+      );
+    });
+
+    it('should return null when current chapter does not exist', async () => {
+      novelRepository.getChapterList.mockResolvedValue([
+        'chapter1.md',
+        'chapter2.md',
+      ]);
+
+      const result = await uut.getPreviousChapter(
+        'novel-1',
+        'missing-chapter.md',
+      );
+
+      expect(result).toBeNull();
+      expect(novelRepository.getChapterList).toHaveBeenCalledWith(
+        'novel-1',
+      );
+      expect(novelRepository.getChapter).not.toHaveBeenCalled();
+    });
+
+    it('should return null when current chapter is the first chapter', async () => {
+      novelRepository.getChapterList.mockResolvedValue([
+        'chapter1.md',
+        'chapter2.md',
+      ]);
+
+      const result = await uut.getPreviousChapter(
+        'novel-1',
+        'chapter1.md',
+      );
+
+      expect(result).toBeNull();
+      expect(novelRepository.getChapterList).toHaveBeenCalledWith(
+        'novel-1',
+      );
+      expect(novelRepository.getChapter).not.toHaveBeenCalled();
     });
   });
 });

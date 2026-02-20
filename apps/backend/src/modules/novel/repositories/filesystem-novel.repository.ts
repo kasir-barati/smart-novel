@@ -8,6 +8,11 @@ import { Chapter } from '../types/chapter.type';
 import { Novel } from '../types/novel.type';
 import { INovelRepository } from './novel.repository.interface';
 
+const naturalFilenameCollator = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: 'base',
+});
+
 @Injectable()
 export class FileSystemNovelRepository implements INovelRepository {
   private readonly dataPath = '/data';
@@ -56,6 +61,7 @@ export class FileSystemNovelRepository implements INovelRepository {
         content: parsed.content,
         createdAt: stats.birthtime,
         id: chapterId,
+        novelId,
         title: parsed.data.title || null,
         updatedAt: stats.mtime,
       };
@@ -63,6 +69,10 @@ export class FileSystemNovelRepository implements INovelRepository {
       this.logger.error(`Error reading chapter ${chapterId}:`, error);
       return null;
     }
+  }
+
+  async getChapterList(novelId: string): Promise<string[]> {
+    return this.getChapterListInternal(novelId);
   }
 
   private async loadNovel(novelId: string): Promise<Novel | null> {
@@ -75,7 +85,7 @@ export class FileSystemNovelRepository implements INovelRepository {
       const detailsContent = await readFile(detailsPath, 'utf-8');
       const details: NovelDetails = JSON.parse(detailsContent);
 
-      const chapters = await this.getChapterList(novelId);
+      const chapters = await this.getChapterListInternal(novelId);
 
       return {
         author: details.author,
@@ -92,14 +102,16 @@ export class FileSystemNovelRepository implements INovelRepository {
     }
   }
 
-  private async getChapterList(novelId: string): Promise<string[]> {
+  private async getChapterListInternal(
+    novelId: string,
+  ): Promise<string[]> {
     try {
       const novelPath = join(this.dataPath, novelId);
       const files = await readdir(novelPath);
 
       return files
         .filter((file) => file.endsWith('.md'))
-        .sort((a, b) => a.localeCompare(b));
+        .sort((a, b) => naturalFilenameCollator.compare(a, b));
     } catch (error) {
       this.logger.error(
         `Error reading chapter list for ${novelId}:`,
