@@ -35,6 +35,11 @@ export class Novel {
   })
   coverUrl?: string;
 
+  @Field(() => String, {
+    description: 'A short description of the novel',
+  })
+  description: string;
+
   @Field(() => Chapter, {
     nullable: true,
     description: 'The current chapter of the novel',

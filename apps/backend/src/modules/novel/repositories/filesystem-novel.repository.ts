@@ -91,6 +91,7 @@ export class FileSystemNovelRepository implements INovelRepository {
         author: details.author,
         category: details.category,
         chapters,
+        description: details.description,
         id: details.id,
         name: details.name,
         state: details.state,

@@ -31,6 +31,7 @@ describe(FileSystemNovelRepository.name, () => {
         JSON.stringify({
           author: 'Author 1',
           category: ['fantasy'],
+          description: 'A fantasy adventure novel',
           id: novelId,
           name: 'Novel One',
           state: NovelState.FINISHED,
@@ -50,6 +51,7 @@ describe(FileSystemNovelRepository.name, () => {
         author: 'Author 1',
         category: ['fantasy'],
         chapters: ['chapter1.md', 'chapter2.md'],
+        description: 'A fantasy adventure novel',
         id: novelId,
         name: 'Novel One',
         state: NovelState.FINISHED,

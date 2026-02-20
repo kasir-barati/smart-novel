@@ -8,6 +8,7 @@ describe('Novel (e2e)', () => {
             novel(id: "example-novel") {
               id
               name
+              description
               state
               author
               category
@@ -20,6 +21,8 @@ describe('Novel (e2e)', () => {
     expect(res.data.data.novel).toStrictEqual({
       id: 'example-novel',
       name: 'The Journey Begins',
+      description:
+        'A young hero leaves home to uncover an ancient mystery and shape the fate of the realm.',
       state: 'ONGOING',
       author: 'Jane Doe',
       category: expect.arrayContaining(['fantasy', 'adventure']),

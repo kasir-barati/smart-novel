@@ -1,6 +1,7 @@
 {
   "id": "example-novel",
   "name": "The Journey Begins",
+  "description": "A young hero leaves home to uncover an ancient mystery and shape the fate of the realm.",
   "author": "Jane Doe",
   "category": ["fantasy", "adventure"],
   "state": "ONGOING",
