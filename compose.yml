@@ -33,8 +33,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    networks:
-      - default
 
   ollama:
     image: ollama/ollama:latest
@@ -47,8 +45,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-    networks:
-      - default
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
@@ -83,7 +79,3 @@ services:
 volumes:
   ollama-data:
     driver: local
-
-networks:
-  default:
-    driver: bridge
