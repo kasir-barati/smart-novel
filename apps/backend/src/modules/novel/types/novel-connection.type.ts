@@ -1,22 +1,17 @@
-import { Field, ObjectType } from '@nestjs/graphql';
+import { ObjectType } from '@nestjs/graphql';
 
-import { PageInfo } from '../../../shared';
+import { ConnectionType, EdgeType } from '../../../shared';
 import { Novel } from './novel.type';
 
-@ObjectType()
-export class NovelEdge {
-  @Field(() => String)
-  cursor: string;
+@ObjectType({
+  description: 'An edge in a connection representing a novel',
+})
+export class NovelEdge extends EdgeType(Novel) {}
 
-  @Field(() => Novel)
-  node: Novel;
-}
-
-@ObjectType()
-export class NovelConnection {
-  @Field(() => [NovelEdge])
-  edges: NovelEdge[];
-
-  @Field(() => PageInfo)
-  pageInfo: PageInfo;
-}
+@ObjectType({
+  description: 'A connection representing a list of novels',
+})
+export class NovelConnection extends ConnectionType(
+  Novel,
+  NovelEdge,
+) {}
