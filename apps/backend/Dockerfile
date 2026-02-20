@@ -2,14 +2,14 @@ FROM node:24.13-alpine AS base
 RUN apk add --no-cache curl
 ENV HUSKY=0
 WORKDIR /app
-COPY package*.json ./
-RUN chown -R 1000:1000 /app
-USER 1000:1000
 ARG PORT
 EXPOSE $PORT
+COPY package*.json nx.json tsconfig*.json ./
 
 FROM base AS development
 ENV NODE_ENV=development
+ENV CHOKIDAR_USEPOLLING=1
+ENV WATCHPACK_POLLING=true
 RUN npm ci
 CMD ["npx", "nx", "serve", "backend"]
 

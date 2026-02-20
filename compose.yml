@@ -8,16 +8,11 @@ services:
         PORT: $PORT
     ports:
       - "3000:$PORT"
-    user: "1000:1000"
     env_file:
       - .env
     volumes:
-      - ./package.json:/app/package.json:ro
-      - ./package-lock.json:/app/package-lock.json:ro
-      - ./tsconfig.base.json:/app/tsconfig.base.json:ro
-      - ./nx.json:/app/nx.json:ro
-      - ./apps/backend:/app/apps/backend:delegated
-      - ./apps/backend/data:/app/data:delegated
+      - ./apps:/app/apps
+      - /app/node_modules
     depends_on:
       ollama:
         condition: service_healthy
