@@ -1,0 +1,7 @@
+{
+  "id": "example-novel",
+  "name": "The Journey Begins",
+  "author": "Jane Doe",
+  "category": ["fantasy", "adventure"],
+  "state": "ONGOING"
+}

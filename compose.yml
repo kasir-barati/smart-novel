@@ -1,0 +1,70 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      target: development
+      args:
+        PORT: $PORT
+    ports:
+      - "3000:$PORT"
+    env_file:
+      - .env
+    volumes:
+      - ./node_modules:/app/node_modules
+      - ./package.json:/app/package.json:ro
+      - ./package-lock.json:/app/package-lock.json:ro
+      - ./tsconfig.base.json:/app/tsconfig.base.json:ro
+      - ./nx.json:/app/nx.json:ro
+      - ./apps/backend:/app/apps/backend:delegated
+      - ./apps/backend/data:/app/data:delegated
+    depends_on:
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "-f",
+          "http://localhost:$PORT/graphql?query={health}",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - default
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - default
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        ollama serve &
+        pid=$$!
+        echo "Waiting for Ollama to start..."
+        sleep 5
+        echo "Pulling llama3.2:1b model..."
+        ollama pull llama3.2:1b
+        echo "Model pulled successfully!"
+        wait $$pid
+
+volumes:
+  ollama-data:
+    driver: local
+
+networks:
+  default:
+    driver: bridge
