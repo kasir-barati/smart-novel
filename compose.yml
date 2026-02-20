@@ -138,16 +138,16 @@ services:
       s3:
         condition: service_healthy
     volumes:
-      - ./apps/backend/data/example-novel:/source-data
+      - ./apps/backend/data:/source-data
       - ./local-setup/bucket-policy.json:/bucket-policy.json:ro
     entrypoint: >
       /bin/sh -c "
       /usr/bin/mc alias set my_minio http://s3:9000 minioadmin minioadmin;
       /usr/bin/mc admin info my_minio;
       /usr/bin/mc mb my_minio/smart-novel || true;
-      /usr/bin/mc cp /source-data/71a3fcd8-937d-4e3d-94de-a643ff515f82.png my_minio/smart-novel/covers/71a3fcd8-937d-4e3d-94de-a643ff515f82.png;
+      find /source-data -type f -name '*.png' -exec /usr/bin/mc cp {} my_minio/smart-novel/covers/ \;
       /usr/bin/mc anonymous set-json /bucket-policy.json my_minio/smart-novel;
-      echo 'MinIO initialization complete! Public read access granted to covers/ directory only.';"
+      echo 'MinIO initialization complete!';"
 
 volumes:
   ollama-data:
