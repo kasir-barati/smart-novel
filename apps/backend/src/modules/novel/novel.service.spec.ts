@@ -33,6 +33,7 @@ describe(NovelService.name, () => {
           'psychological',
           'supernatural',
         ],
+        description: `Lin Jie is the owner of a bookstore in another world. He's kind and warm-hearted, often recommending healing books to customers who are going through a tough time. From time to time, he secretly promotes his own work too. Over time, these customers begin to respect him greatly, some even frequently bringing local specialties to repay his favor. They often seek his professional opinion when it comes to selecting books, and share their experiences with this ordinary bookstore owner to people around them. They respectfully and intimately refer to him using names such as the "Demon God's Lackey", "Propagator of the Flesh and Blood Gospel", "Corpse Devouring Sect's Rites and Customs' Author" and "Shepherd of the Stars".`,
         chapters: ['chapter1.md'],
         id: 'i-am-really-not-the-demon-gods-lackey',
         name: "I'm Really Not The Demon God's Lackey",
@@ -89,6 +90,7 @@ describe(NovelService.name, () => {
           id: 'novel-1',
           name: 'Novel One',
           state: NovelState.ONGOING,
+          description: 'Description for Novel One',
         },
         {
           author: 'Author 2',
@@ -97,6 +99,7 @@ describe(NovelService.name, () => {
           id: 'novel-2',
           name: 'Novel Two',
           state: NovelState.FINISHED,
+          description: 'Description for Novel Two',
         },
         {
           author: 'Author 3',
@@ -105,6 +108,7 @@ describe(NovelService.name, () => {
           id: 'novel-3',
           name: 'Novel Three',
           state: NovelState.ONGOING,
+          description: 'Description for Novel Three',
         },
       ];
       novelRepository.findAll.mockResolvedValue(novels);
@@ -135,6 +139,7 @@ describe(NovelService.name, () => {
           id: 'novel-1',
           name: 'Novel One',
           state: NovelState.ONGOING,
+          description: 'Description for Novel One',
         },
         {
           author: 'Author 2',
@@ -143,6 +148,7 @@ describe(NovelService.name, () => {
           id: 'novel-2',
           name: 'Novel Two',
           state: NovelState.FINISHED,
+          description: 'Description for Novel Two',
         },
         {
           author: 'Author 3',
@@ -151,6 +157,7 @@ describe(NovelService.name, () => {
           id: 'novel-3',
           name: 'Novel Three',
           state: NovelState.ONGOING,
+          description: 'Description for Novel Three',
         },
       ];
       novelRepository.findAll.mockResolvedValue(novels);
@@ -187,6 +194,7 @@ describe(NovelService.name, () => {
           id: 'novel-1',
           name: 'Novel One',
           state: NovelState.ONGOING,
+          description: 'Description for Novel One',
         },
         {
           author: 'Author 2',
@@ -195,6 +203,7 @@ describe(NovelService.name, () => {
           id: 'novel-2',
           name: 'Novel Two',
           state: NovelState.FINISHED,
+          description: 'Description for Novel Two',
         },
         {
           author: 'Author 3',
@@ -203,6 +212,7 @@ describe(NovelService.name, () => {
           id: 'novel-3',
           name: 'Novel Three',
           state: NovelState.ONGOING,
+          description: 'Description for Novel Three',
         },
       ];
       novelRepository.findAll.mockResolvedValue(novels);
