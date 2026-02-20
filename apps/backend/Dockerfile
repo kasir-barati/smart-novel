@@ -3,11 +3,14 @@ RUN apk add --no-cache curl
 ENV HUSKY=0
 WORKDIR /app
 COPY package*.json ./
+RUN chown -R 1000:1000 /app
+USER 1000:1000
 ARG PORT
 EXPOSE $PORT
 
 FROM base AS development
 ENV NODE_ENV=development
+RUN npm ci
 CMD ["npx", "nx", "serve", "backend"]
 
 FROM base AS builder
