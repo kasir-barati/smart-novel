@@ -4,7 +4,7 @@
     "outDir": "../../dist/out-tsc",
     "module": "nodenext",
     "moduleResolution": "nodenext",
-    "types": ["jest", "node"]
+    "types": ["jest", "jest-extended", "node"]
   },
   "include": [
     "jest.config.ts",

@@ -1,6 +1,7 @@
 module.exports = {
   displayName: 'frontend',
   preset: '../../jest.preset.js',
+  setupFilesAfterEnv: ['jest-extended/all'],
   transform: {
     '^(?!.*\\.(js|jsx|ts|tsx|css|json)$)': '@nx/react/plugins/jest',
     '^.+\\.[tj]sx?$': [

@@ -4,6 +4,7 @@ export default {
   globalSetup: '<rootDir>/src/support/global-setup.ts',
   globalTeardown: '<rootDir>/src/support/global-teardown.ts',
   setupFiles: ['<rootDir>/src/support/test-setup.ts'],
+  setupFilesAfterEnv: ['jest-extended/all'],
   testEnvironment: 'node',
   transform: {
     '^.+\\.[tj]s$': [

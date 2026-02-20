@@ -2,7 +2,7 @@ import axios from 'axios';
 
 describe('Health check (e2e)', () => {
   it("should return 'OK'", async () => {
-    const res = await axios.post(`http://localhost:3000/graphql`, {
+    const res = await axios.post(`/graphql`, {
       query: `#graphql
         query {
           health

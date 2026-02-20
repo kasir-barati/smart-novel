@@ -51,6 +51,7 @@
     "jest": "^30.0.2",
     "jest-environment-jsdom": "^30.0.2",
     "jest-environment-node": "^30.0.2",
+    "jest-extended": "^7.0.0",
     "jest-util": "^30.0.2",
     "jiti": "2.4.2",
     "jsdom": "~22.1.0",
