@@ -12,6 +12,7 @@ services:
       - .env
     volumes:
       - ./apps:/app/apps
+      - ./apps/backend/data:/data
       - /app/node_modules
     depends_on:
       ollama:

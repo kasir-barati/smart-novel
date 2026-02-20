@@ -1,4 +1,3 @@
-import { NotFoundException } from '@nestjs/common';
 import {
   Args,
   ID,
@@ -17,14 +16,16 @@ import { Chapter, Novel, NovelConnection } from './types';
 export class NovelResolver {
   constructor(private readonly novelService: NovelService) {}
 
-  @Query(() => Novel)
+  @Query(() => Novel, { description: 'Find a novel by its ID' })
   async novel(
-    @Args('id', { type: () => ID }) id: string,
+    @Args('id', {
+      type: () => ID,
+      description: 'The ID of the novel',
+    })
+    id: string,
   ): Promise<Novel> {
     const novel = await this.novelService.findOne(id);
-    if (!novel) {
-      throw new NotFoundException(`Novel with id ${id} not found`);
-    }
+
     return novel;
   }
 
@@ -52,10 +53,17 @@ export class NovelResolver {
     );
   }
 
-  @ResolveField(() => Chapter, { nullable: true })
+  @ResolveField(() => Chapter, {
+    nullable: true,
+    description: 'Chapter of the novel',
+  })
   async chapter(
     @Parent() novel: Novel,
-    @Args('id', { type: () => ID }) id: string,
+    @Args('id', {
+      type: () => ID,
+      description: 'The ID of the chapter',
+    })
+    id: string,
   ): Promise<Chapter | null> {
     return this.novelService.getChapter(novel.id, id);
   }

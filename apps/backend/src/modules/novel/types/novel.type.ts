@@ -1,41 +1,37 @@
-import {
-  Field,
-  ID,
-  ObjectType,
-  registerEnumType,
-} from '@nestjs/graphql';
+import { Field, ID, ObjectType } from '@nestjs/graphql';
 
+import { NovelState } from '../enums';
 import { Chapter } from './chapter.type';
 
-export enum NovelState {
-  FINISHED = 'FINISHED',
-  ONGOING = 'ONGOING',
-}
-
-registerEnumType(NovelState, {
-  name: 'NovelState',
-});
-
-@ObjectType()
+@ObjectType({
+  description: 'Represents a novel with its details.',
+})
 export class Novel {
-  @Field(() => ID)
+  @Field(() => ID, { description: 'Unique identifier for the novel' })
   id: string;
 
-  @Field()
+  @Field({ description: 'The name of the novel' })
   name: string;
 
-  @Field()
+  @Field({ description: 'The author of the novel' })
   author: string;
 
-  @Field(() => [String])
+  @Field(() => [String], {
+    description: 'The categories of the novel',
+  })
   category: string[];
 
-  @Field(() => [String])
+  @Field(() => [String], {
+    description: 'Chapter IDs of the novel',
+  })
   chapters: string[];
 
-  @Field(() => NovelState)
+  @Field(() => NovelState, { description: 'The state of the novel' })
   state: NovelState;
 
-  @Field(() => Chapter, { nullable: true })
+  @Field(() => Chapter, {
+    nullable: true,
+    description: 'The current chapter of the novel',
+  })
   chapter?: Chapter;
 }

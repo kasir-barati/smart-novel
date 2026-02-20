@@ -16,4 +16,5 @@ export default {
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../../coverage/backend-e2e',
+  testMatch: ['<rootDir>/src/backend/*.e2e-spec.ts'],
 };

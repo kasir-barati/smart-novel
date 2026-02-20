@@ -1,4 +1,8 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 import { NovelFiltersInput } from './dto';
 import {
@@ -20,8 +24,14 @@ export class NovelService {
     private readonly novelRepository: INovelRepository,
   ) {}
 
-  async findOne(id: string): Promise<Novel | null> {
-    return this.novelRepository.findById(id);
+  async findOne(id: string): Promise<Novel> {
+    const novel = await this.novelRepository.findById(id);
+
+    if (!novel) {
+      throw new NotFoundException(`Novel with id ${id} not found`);
+    }
+
+    return novel;
   }
 
   async findAll(

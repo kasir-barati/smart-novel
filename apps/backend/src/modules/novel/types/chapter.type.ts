@@ -1,22 +1,23 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 
-@ObjectType()
+@ObjectType({ description: 'A chapter of a novel' })
 export class Chapter {
-  @Field(() => ID)
+  @Field(() => ID, {
+    description: 'Unique identifier for the chapter',
+  })
   id: string;
 
-  @Field({ nullable: true })
+  @Field({ nullable: true, description: 'The title of the chapter' })
   title?: string;
 
-  @Field({ nullable: true })
-  category?: string;
-
-  @Field()
+  @Field({
+    description: 'The content of the chapter in markdown format',
+  })
   content: string;
 
-  @Field()
+  @Field({ description: 'The creation date of the chapter' })
   createdAt: Date;
 
-  @Field()
+  @Field({ description: 'The last update date of the chapter' })
   updatedAt: Date;
 }

@@ -25,5 +25,5 @@ FROM base AS production
 ENV NODE_ENV=production
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 COPY --from=builder /app/dist/apps/backend ./dist
-COPY apps/backend/data ./data
+COPY apps/backend/data /data
 CMD ["node", "dist/main.js"]

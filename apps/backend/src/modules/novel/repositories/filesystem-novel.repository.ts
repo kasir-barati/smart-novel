@@ -1,23 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { readdir, readFile, stat } from 'fs/promises';
 import matter from 'gray-matter';
 import { join } from 'path';
 
+import { NovelDetails } from '../interfaces';
 import { Chapter } from '../types/chapter.type';
-import { Novel, NovelState } from '../types/novel.type';
+import { Novel } from '../types/novel.type';
 import { INovelRepository } from './novel.repository.interface';
-
-interface NovelDetails {
-  author: string;
-  category: string[];
-  id: string;
-  name: string;
-  state: NovelState;
-}
 
 @Injectable()
 export class FileSystemNovelRepository implements INovelRepository {
-  private readonly dataPath = join(__dirname, '../../../data');
+  private readonly dataPath = '/data';
+  private readonly logger = new Logger(
+    FileSystemNovelRepository.name,
+  );
 
   async findAll(): Promise<Novel[]> {
     try {
@@ -37,8 +33,8 @@ export class FileSystemNovelRepository implements INovelRepository {
 
       return novels.sort((a, b) => a.name.localeCompare(b.name));
     } catch (error) {
-      console.error('Error reading novels:', error);
-      return [];
+      this.logger.error('Error reading novels:', error);
+      throw new Error('Failed to read novels');
     }
   }
 
@@ -57,7 +53,6 @@ export class FileSystemNovelRepository implements INovelRepository {
       const stats = await stat(chapterPath);
 
       return {
-        category: parsed.data.category || null,
         content: parsed.content,
         createdAt: stats.birthtime,
         id: chapterId,
@@ -65,7 +60,7 @@ export class FileSystemNovelRepository implements INovelRepository {
         updatedAt: stats.mtime,
       };
     } catch (error) {
-      console.error(`Error reading chapter ${chapterId}:`, error);
+      this.logger.error(`Error reading chapter ${chapterId}:`, error);
       return null;
     }
   }
@@ -91,7 +86,7 @@ export class FileSystemNovelRepository implements INovelRepository {
         state: details.state,
       };
     } catch (error) {
-      console.error(`Error loading novel ${novelId}:`, error);
+      this.logger.error(`Error loading novel ${novelId}:`, error);
       return null;
     }
   }
@@ -105,7 +100,7 @@ export class FileSystemNovelRepository implements INovelRepository {
         .filter((file) => file.endsWith('.md'))
         .sort((a, b) => a.localeCompare(b));
     } catch (error) {
-      console.error(
+      this.logger.error(
         `Error reading chapter list for ${novelId}:`,
         error,
       );
