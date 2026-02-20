@@ -1,6 +1,5 @@
 import { InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { InterfaceDefinitionFactory } from '@nestjs/graphql/dist/schema-builder/factories/interface-definition.factory';
 import axios from 'axios';
 
 import { LlmService } from './llm.service';

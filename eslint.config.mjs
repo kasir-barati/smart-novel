@@ -1,5 +1,6 @@
 import nx from '@nx/eslint-plugin';
 import perfectionist from 'eslint-plugin-perfectionist';
+import unusedImports from 'eslint-plugin-unused-imports';
 
 export default [
   ...nx.configs['flat/base'],
@@ -12,6 +13,7 @@ export default [
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
     plugins: {
       perfectionist,
+      'unused-imports': unusedImports,
     },
     rules: {
       '@nx/enforce-module-boundaries': [
@@ -45,6 +47,18 @@ export default [
       ],
       'perfectionist/sort-exports': ['error', { type: 'natural' }],
       'perfectionist/sort-enums': ['error', { type: 'natural' }],
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      'unused-imports/no-unused-imports': 'error',
+      'unused-imports/no-unused-vars': [
+        'warn',
+        {
+          vars: 'all',
+          varsIgnorePattern: '^_',
+          args: 'after-used',
+          argsIgnorePattern: '^_',
+        },
+      ],
     },
   },
   {
