@@ -6,12 +6,9 @@ A modern monorepo project for managing and reading novels with AI-powered word e
 
 - **📚 Novel Management**: Markdown-based novel storage with JSON metadata
 - **🔍 GraphQL API**: Powerful query and mutation capabilities
-- **📄 Cursor Pagination**: Efficient data fetching for large collections
 - **🏷️ Advanced Filtering**: Filter novels by categories with inclusion/exclusion
 - **🤖 AI-Powered Explanations**: Word definitions with context using Ollama LLM
-- **🏗️ Modular Architecture**: Clean separation with repository pattern
 - **🔧 Type-Safe**: Full TypeScript support across the stack
-- **🎨 Modern Stack**: NestJS, Apollo GraphQL, React, Docker
 
 ## 📋 Prerequisites
 
