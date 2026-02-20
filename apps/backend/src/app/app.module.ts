@@ -25,6 +25,9 @@ import { AppResolver } from './app.resolver';
       // ),
       playground: false,
       plugins: [ApolloServerPluginLandingPageLocalDefault()],
+      subscriptions: {
+        'graphql-ws': true,
+      },
     }),
     NovelModule,
     LlmModule,
