@@ -15,7 +15,12 @@ import { AppResolver } from './app.resolver';
     }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
-      autoSchemaFile: true,
+      // autoSchemaFile: join(
+      //   process.cwd(),
+      //   'apps',
+      //   'backend',
+      //   'schema.gql',
+      // ),
       playground: false,
       plugins: [ApolloServerPluginLandingPageLocalDefault()],
     }),
