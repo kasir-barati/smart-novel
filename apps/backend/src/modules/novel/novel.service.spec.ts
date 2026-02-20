@@ -19,55 +19,203 @@ describe(NovelService.name, () => {
     uut = new NovelService(novelRepository);
   });
 
-  it('should return a novel when id exists', async () => {
-    const novel: Novel = {
-      author: `Great Calamity Of Fire`,
-      category: [
-        'action',
-        'comedy',
-        'fantasy',
-        'horror',
-        'mystery',
-        'psychological',
-        'supernatural',
-      ],
-      chapters: ['chapter1.md'],
-      id: 'i-am-really-not-the-demon-gods-lackey',
-      name: "I'm Really Not The Demon God's Lackey",
-      state: NovelState.ONGOING,
-    };
-    novelRepository.findById.mockResolvedValue(novel);
+  describe('findOne', () => {
+    it('should return a novel when id exists', async () => {
+      const novel: Novel = {
+        author: `Great Calamity Of Fire`,
+        category: [
+          'action',
+          'comedy',
+          'fantasy',
+          'horror',
+          'mystery',
+          'psychological',
+          'supernatural',
+        ],
+        chapters: ['chapter1.md'],
+        id: 'i-am-really-not-the-demon-gods-lackey',
+        name: "I'm Really Not The Demon God's Lackey",
+        state: NovelState.ONGOING,
+      };
+      novelRepository.findById.mockResolvedValue(novel);
 
-    const result = await uut.findOne('novel-1');
+      const result = await uut.findOne('novel-1');
 
-    expect(result).toEqual(novel);
-    expect(novelRepository.findById).toHaveBeenCalledWith('novel-1');
+      expect(result).toEqual(novel);
+      expect(novelRepository.findById).toHaveBeenCalledWith(
+        'novel-1',
+      );
+    });
+
+    it('should throw NotFoundException when id does not exist', async () => {
+      novelRepository.findById.mockResolvedValue(null);
+
+      await expect(uut.findOne('missing-id')).rejects.toThrow(
+        new NotFoundException('Novel with id missing-id not found'),
+      );
+    });
   });
 
-  it('should throw NotFoundException when id does not exist', async () => {
-    novelRepository.findById.mockResolvedValue(null);
+  describe('getChapter', () => {
+    it('should return chapter from repository', async () => {
+      const chapter: Chapter = {
+        content: '# Chapter 1',
+        createdAt: new Date('2024-01-01'),
+        title: 'Chapter 1',
+        id: 'chapter1.md',
+        updatedAt: new Date('2024-01-02'),
+      };
+      novelRepository.getChapter.mockResolvedValue(chapter);
 
-    await expect(uut.findOne('missing-id')).rejects.toThrow(
-      new NotFoundException('Novel with id missing-id not found'),
-    );
+      const result = await uut.getChapter('novel-1', 'chapter1.md');
+
+      expect(result).toEqual(chapter);
+      expect(novelRepository.getChapter).toHaveBeenCalledWith(
+        'novel-1',
+        'chapter1.md',
+      );
+    });
   });
 
-  it('should return chapter from repository', async () => {
-    const chapter: Chapter = {
-      content: '# Chapter 1',
-      createdAt: new Date('2024-01-01'),
-      title: 'Chapter 1',
-      id: 'chapter1.md',
-      updatedAt: new Date('2024-01-02'),
-    };
-    novelRepository.getChapter.mockResolvedValue(chapter);
+  describe('findAll', () => {
+    it('should return all novels as edges when no filters or pagination are provided', async () => {
+      const novels: Novel[] = [
+        {
+          author: 'Author 1',
+          category: ['action', 'fantasy'],
+          chapters: ['chapter1.md'],
+          id: 'novel-1',
+          name: 'Novel One',
+          state: NovelState.ONGOING,
+        },
+        {
+          author: 'Author 2',
+          category: ['romance', 'drama'],
+          chapters: ['chapter1.md'],
+          id: 'novel-2',
+          name: 'Novel Two',
+          state: NovelState.FINISHED,
+        },
+        {
+          author: 'Author 3',
+          category: ['action', 'mystery'],
+          chapters: ['chapter1.md'],
+          id: 'novel-3',
+          name: 'Novel Three',
+          state: NovelState.ONGOING,
+        },
+      ];
+      novelRepository.findAll.mockResolvedValue(novels);
 
-    const result = await uut.getChapter('novel-1', 'chapter1.md');
+      const result = await uut.findAll();
 
-    expect(result).toEqual(chapter);
-    expect(novelRepository.getChapter).toHaveBeenCalledWith(
-      'novel-1',
-      'chapter1.md',
-    );
+      expect(result.edges).toHaveLength(3);
+      expect(result.edges.map((edge) => edge.node.id)).toStrictEqual([
+        'novel-1',
+        'novel-2',
+        'novel-3',
+      ]);
+      expect(result.pageInfo).toStrictEqual({
+        endCursor: 'bm92ZWwtMw==',
+        hasNextPage: false,
+        hasPreviousPage: false,
+        startCursor: 'bm92ZWwtMQ==',
+      });
+      expect(novelRepository.findAll).toHaveBeenCalledTimes(1);
+    });
+
+    it('should apply category include and exclude filters', async () => {
+      const novels: Novel[] = [
+        {
+          author: 'Author 1',
+          category: ['action', 'fantasy'],
+          chapters: ['chapter1.md'],
+          id: 'novel-1',
+          name: 'Novel One',
+          state: NovelState.ONGOING,
+        },
+        {
+          author: 'Author 2',
+          category: ['romance', 'drama'],
+          chapters: ['chapter1.md'],
+          id: 'novel-2',
+          name: 'Novel Two',
+          state: NovelState.FINISHED,
+        },
+        {
+          author: 'Author 3',
+          category: ['action', 'mystery'],
+          chapters: ['chapter1.md'],
+          id: 'novel-3',
+          name: 'Novel Three',
+          state: NovelState.ONGOING,
+        },
+      ];
+      novelRepository.findAll.mockResolvedValue(novels);
+
+      const result = await uut.findAll(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          category: {
+            in: ['action'],
+            nin: ['mystery'],
+          },
+        },
+      );
+
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0].node.id).toBe('novel-1');
+      expect(result.pageInfo).toStrictEqual({
+        endCursor: 'bm92ZWwtMQ==',
+        hasNextPage: false,
+        hasPreviousPage: false,
+        startCursor: 'bm92ZWwtMQ==',
+      });
+    });
+
+    it('should paginate using after and first cursors', async () => {
+      const novels: Novel[] = [
+        {
+          author: 'Author 1',
+          category: ['action', 'fantasy'],
+          chapters: ['chapter1.md'],
+          id: 'novel-1',
+          name: 'Novel One',
+          state: NovelState.ONGOING,
+        },
+        {
+          author: 'Author 2',
+          category: ['romance', 'drama'],
+          chapters: ['chapter1.md'],
+          id: 'novel-2',
+          name: 'Novel Two',
+          state: NovelState.FINISHED,
+        },
+        {
+          author: 'Author 3',
+          category: ['action', 'mystery'],
+          chapters: ['chapter1.md'],
+          id: 'novel-3',
+          name: 'Novel Three',
+          state: NovelState.ONGOING,
+        },
+      ];
+      novelRepository.findAll.mockResolvedValue(novels);
+      const afterCursor = 'bm92ZWwtMQ=='; // Base64 for 'novel-1'
+
+      const result = await uut.findAll(1, undefined, afterCursor);
+
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0].node.id).toBe('novel-2');
+      expect(result.pageInfo).toStrictEqual({
+        endCursor: 'bm92ZWwtMg==', // Base64 for 'novel-2'
+        hasNextPage: true,
+        hasPreviousPage: false,
+        startCursor: 'bm92ZWwtMg==', // Base64 for 'novel-2'
+      });
+    });
   });
 });

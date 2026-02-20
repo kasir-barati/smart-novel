@@ -4,18 +4,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
+import { PageInfo } from '../../shared';
 import { NovelFiltersInput } from './dto';
 import {
   type INovelRepository,
   NOVEL_REPOSITORY,
 } from './repositories';
-import {
-  Chapter,
-  Novel,
-  NovelConnection,
-  NovelEdge,
-  PageInfo,
-} from './types';
+import { Chapter, Novel, NovelConnection, NovelEdge } from './types';
 
 @Injectable()
 export class NovelService {

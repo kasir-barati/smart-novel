@@ -139,4 +139,123 @@ describe(FileSystemNovelRepository.name, () => {
       expect(result).toBeNull();
     });
   });
+
+  describe('findAll', () => {
+    it('should return only directory novels sorted by name', async () => {
+      // Arrange
+      (
+        readdir as jest.MockedFunction<typeof readdir>
+      ).mockImplementation((path: any, options?: any) => {
+        if (path === '/data' && options?.withFileTypes) {
+          return Promise.resolve([
+            { isDirectory: () => true, name: 'novel-b' },
+            { isDirectory: () => false, name: 'README.md' },
+            { isDirectory: () => true, name: 'novel-a' },
+          ]);
+        }
+        if (path === join('/data', 'novel-b')) {
+          return Promise.resolve(['chapter2.md', 'chapter1.md']);
+        }
+        if (path === join('/data', 'novel-a')) {
+          return Promise.resolve(['chapter3.md']);
+        }
+        return Promise.resolve([] as any);
+      });
+      (
+        readFile as jest.MockedFunction<typeof readFile>
+      ).mockImplementation((path: any) => {
+        if (path === join('/data', 'novel-b', 'details.json')) {
+          return Promise.resolve(
+            JSON.stringify({
+              author: 'Author B',
+              category: ['fantasy'],
+              id: 'novel-b',
+              name: 'Zeta Novel',
+              state: NovelState.ONGOING,
+            }),
+          );
+        }
+        if (path === join('/data', 'novel-a', 'details.json')) {
+          return Promise.resolve(
+            JSON.stringify({
+              author: 'Author A',
+              category: ['action'],
+              id: 'novel-a',
+              name: 'Alpha Novel',
+              state: NovelState.FINISHED,
+            }),
+          );
+        }
+        return Promise.reject(new Error('ENOENT'));
+      });
+
+      // Act
+      const result = await uut.findAll();
+
+      // Assert
+      expect(result).toHaveLength(2);
+      expect(result.map((novel) => novel.id)).toStrictEqual([
+        'novel-a',
+        'novel-b',
+      ]);
+      expect(result[0].chapters).toStrictEqual(['chapter3.md']);
+      expect(result[1].chapters).toStrictEqual([
+        'chapter1.md',
+        'chapter2.md',
+      ]);
+    });
+
+    it('should skip directories whose novel details cannot be loaded', async () => {
+      // Arrange
+      (
+        readdir as jest.MockedFunction<typeof readdir>
+      ).mockImplementation((path: any, options?: any) => {
+        if (path === '/data' && options?.withFileTypes) {
+          return Promise.resolve([
+            { isDirectory: () => true, name: 'novel-ok' },
+            { isDirectory: () => true, name: 'novel-missing' },
+          ]);
+        }
+        if (path === join('/data', 'novel-ok')) {
+          return Promise.resolve(['chapter1.md']);
+        }
+        return Promise.resolve([] as any);
+      });
+      (
+        readFile as jest.MockedFunction<typeof readFile>
+      ).mockImplementation((path: any) => {
+        if (path === join('/data', 'novel-ok', 'details.json')) {
+          return Promise.resolve(
+            JSON.stringify({
+              author: 'Author OK',
+              category: ['mystery'],
+              id: 'novel-ok',
+              name: 'Novel OK',
+              state: NovelState.ONGOING,
+            }) as any,
+          );
+        }
+        return Promise.reject(new Error('ENOENT'));
+      });
+
+      // Act
+      const result = await uut.findAll();
+
+      // Assert
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('novel-ok');
+    });
+
+    it('should throw when the data directory cannot be read', async () => {
+      // Arrange
+      (
+        readdir as jest.MockedFunction<typeof readdir>
+      ).mockRejectedValue(new Error('EACCES'));
+
+      // Act & Assert
+      await expect(uut.findAll()).rejects.toThrow(
+        'Failed to read novels',
+      );
+    });
+  });
 });
