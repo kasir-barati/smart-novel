@@ -45,6 +45,7 @@ services:
       target: development
       args:
         FRONTEND_PORT: $FRONTEND_PORT
+        VITE_SERVICE_URL: $VITE_SERVICE_URL
     ports:
       - "4200:$FRONTEND_PORT"
     volumes:
