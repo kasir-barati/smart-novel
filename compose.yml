@@ -73,6 +73,7 @@ services:
       target: production
       args:
         PORT: $PORT
+    volumes: []
 
   ollama:
     image: ollama/ollama:latest
