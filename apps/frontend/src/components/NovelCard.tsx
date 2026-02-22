@@ -11,11 +11,26 @@ function truncateText(text: string, maxLength: number): string {
   return text.slice(0, maxLength) + '...';
 }
 
-function getLastUpdateDate(_novel: Novel): string {
-  // Since we don't have chapter updatedAt in the list query,
-  // we'll use a placeholder. In a real implementation,
-  // you'd include this in the GraphQL query or calculate it on the backend
-  return 'Recently updated';
+function getLastUpdateDate(novel: Novel): string {
+  if (!novel.lastChapterPublishedAt) {
+    return 'No updates yet';
+  }
+
+  const lastUpdate = new Date(novel.lastChapterPublishedAt);
+  const now = new Date();
+  const diffInMs = now.getTime() - lastUpdate.getTime();
+  const diffInHours = diffInMs / (1000 * 60 * 60);
+
+  if (diffInHours < 24) {
+    return 'Recently updated';
+  }
+
+  // Format as "Updated: Feb 22, 2026"
+  return `Updated: ${lastUpdate.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })}`;
 }
 
 export function NovelCard({ novel }: NovelCardProps) {

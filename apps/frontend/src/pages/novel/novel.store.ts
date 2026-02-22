@@ -40,13 +40,19 @@ export const fetchNovel = async (
             state
             coverUrl
             description
+            firstChapter {
+              id
+            }
+            lastPublishedChapter {
+              id
+            }
           }
         }
       `,
       variables: { id },
     });
-
     const novelData = response.data.data.novel;
+
     $novelState.set({
       ...$novelState.get(),
       novel: novelData,

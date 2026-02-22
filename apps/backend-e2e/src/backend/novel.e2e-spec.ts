@@ -14,24 +14,38 @@ describe('Novel (e2e)', () => {
               author
               category
               chapters
+              lastChapterPublishedAt
+              lastPublishedChapter {
+                id
+              }
+              firstChapter {
+                id
+              }
             }
           }
         `,
     });
 
-    expect(res.data.data.novel).toStrictEqual({
-      id: 'example-novel',
-      name: 'The Journey Begins',
-      description:
-        'A young hero leaves home to uncover an ancient mystery and shape the fate of the realm.',
-      state: 'ONGOING',
-      author: 'Jane Doe',
-      category: expect.arrayContaining(['fantasy', 'adventure']),
-      chapters: expect.arrayContaining([
-        'chapter1.md',
-        'chapter2.md',
-      ]),
-    });
+    expect(res.data.data.novel).toStrictEqual(
+      expect.objectContaining({
+        id: 'example-novel',
+        name: 'The Journey Begins',
+        description:
+          'A young hero leaves home to uncover an ancient mystery and shape the fate of the realm.',
+        state: 'ONGOING',
+        author: 'Jane Doe',
+        category: expect.arrayContaining(['fantasy', 'adventure']),
+        chapters: expect.arrayContaining([
+          'chapter1.md',
+          'chapter2.md',
+        ]),
+        lastPublishedChapter: { id: 'chapter2.md' },
+        firstChapter: { id: 'chapter1.md' },
+      }),
+    );
+    expect(
+      res.data.data.novel.lastChapterPublishedAt,
+    ).toBeDateString();
   });
 
   it('should download the cover image', async () => {

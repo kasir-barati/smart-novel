@@ -52,6 +52,7 @@ export const fetchNovels = async (
                 state
                 coverUrl
                 description
+                lastChapterPublishedAt
               }
             }
             pageInfo {

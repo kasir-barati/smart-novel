@@ -90,6 +90,7 @@ export const searchNovels = async (axios: AxiosInstance) => {
                 state
                 coverUrl
                 description
+                lastChapterPublishedAt
               }
             }
             pageInfo {

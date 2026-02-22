@@ -45,4 +45,23 @@ export class Novel {
     description: 'The current chapter of the novel',
   })
   chapter?: Chapter;
+
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'ISO date string of when the last chapter was published',
+  })
+  lastChapterPublishedAt?: string;
+
+  @Field(() => Chapter, {
+    nullable: true,
+    description: 'The most recently published chapter',
+  })
+  lastPublishedChapter?: Chapter;
+
+  @Field(() => Chapter, {
+    nullable: true,
+    description: 'The first chapter of the novel',
+  })
+  firstChapter?: Chapter;
 }

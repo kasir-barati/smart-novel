@@ -40,19 +40,14 @@ export function NovelPage() {
   };
 
   const handleReadFirstChapter = () => {
-    if (novelState.novel && novelState.novel.chapters.length > 0) {
-      const firstChapterId = novelState.novel.chapters[0];
-      handleChapterClick(firstChapterId);
+    if (novelState.novel?.firstChapter?.id) {
+      handleChapterClick(novelState.novel.firstChapter.id);
     }
   };
 
   const handleReadLatestChapter = () => {
-    if (novelState.novel && novelState.novel.chapters.length > 0) {
-      const lastChapterId =
-        novelState.novel.chapters[
-          novelState.novel.chapters.length - 1
-        ];
-      handleChapterClick(lastChapterId);
+    if (novelState.novel?.lastPublishedChapter?.id) {
+      handleChapterClick(novelState.novel.lastPublishedChapter.id);
     }
   };
 

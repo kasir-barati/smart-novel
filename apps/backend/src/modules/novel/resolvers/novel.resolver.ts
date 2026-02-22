@@ -74,4 +74,57 @@ export class NovelResolver {
   ): Promise<Chapter | null> {
     return this.novelService.getChapter(novel.id, id);
   }
+
+  @ResolveField(() => String, {
+    nullable: true,
+    description:
+      'ISO date string of when the last chapter was published',
+  })
+  async lastChapterPublishedAt(
+    @Parent() novel: Novel,
+  ): Promise<string | null> {
+    if (!novel.chapters || novel.chapters.length === 0) {
+      return null;
+    }
+
+    const lastChapterId = novel.chapters[novel.chapters.length - 1];
+    const lastChapter = await this.novelService.getChapter(
+      novel.id,
+      lastChapterId,
+    );
+
+    return lastChapter ? lastChapter.updatedAt.toISOString() : null;
+  }
+
+  @ResolveField(() => Chapter, {
+    nullable: true,
+    description: 'The most recently published chapter',
+  })
+  async lastPublishedChapter(
+    @Parent() novel: Novel,
+  ): Promise<Chapter | null> {
+    if (!novel.chapters || novel.chapters.length === 0) {
+      return null;
+    }
+
+    const lastChapterId = novel.chapters[novel.chapters.length - 1];
+
+    return this.novelService.getChapter(novel.id, lastChapterId);
+  }
+
+  @ResolveField(() => Chapter, {
+    nullable: true,
+    description: 'The first chapter of the novel',
+  })
+  async firstChapter(
+    @Parent() novel: Novel,
+  ): Promise<Chapter | null> {
+    if (!novel.chapters || novel.chapters.length === 0) {
+      return null;
+    }
+
+    const firstChapterId = novel.chapters[0];
+
+    return this.novelService.getChapter(novel.id, firstChapterId);
+  }
 }

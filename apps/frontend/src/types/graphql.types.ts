@@ -16,6 +16,9 @@ export interface Novel {
   coverUrl?: string;
   description: string;
   chapter?: Chapter;
+  lastChapterPublishedAt?: string;
+  lastPublishedChapter?: Chapter;
+  firstChapter?: Chapter;
 }
 
 export enum NovelState {
