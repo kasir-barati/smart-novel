@@ -185,6 +185,10 @@ export class NovelService {
     return currentIndex === chapters.length - 1;
   }
 
+  async getCategories(): Promise<string[]> {
+    return this.novelRepository.getCategories();
+  }
+
   private chapterDoesNotExist(
     chapters: string[],
     chapterId: string,

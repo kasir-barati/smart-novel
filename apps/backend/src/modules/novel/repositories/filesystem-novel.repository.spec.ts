@@ -1,3 +1,4 @@
+import { isString } from 'class-validator';
 import { readdir, readFile, stat } from 'fs/promises';
 import matter from 'gray-matter';
 import {
@@ -366,6 +367,38 @@ describe(FileSystemNovelRepository.name, () => {
       const result = await uut.getChapterList('missing-novel');
 
       expect(result).toStrictEqual([]);
+    });
+  });
+
+  describe('getCategories', () => {
+    it('should return hardcoded list of categories', async () => {
+      const categories = await uut.getCategories();
+
+      expect(categories).toIncludeSameMembers([
+        'fantasy',
+        'action',
+        'adventure',
+        'romance',
+        'mystery',
+        'sci-fi',
+        'horror',
+        'comedy',
+      ]);
+    });
+
+    it('should return an array of strings', async () => {
+      const categories = await uut.getCategories();
+
+      expect(categories).toBeArray();
+      expect(categories.every(isString)).toBeTrue();
+    });
+
+    it('should return categories in lowercase', async () => {
+      const categories = await uut.getCategories();
+
+      expect(categories).toSatisfyAll(
+        (category) => category === category.toLowerCase(),
+      );
     });
   });
 });

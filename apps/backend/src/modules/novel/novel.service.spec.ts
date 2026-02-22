@@ -1,4 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
+import { isString } from 'class-validator';
 
 import { NovelState } from './enums';
 import { NovelService } from './novel.service';
@@ -15,6 +16,7 @@ describe(NovelService.name, () => {
       findById: jest.fn(),
       getChapter: jest.fn(),
       getChapterList: jest.fn(),
+      getCategories: jest.fn(),
     };
 
     uut = new NovelService(novelRepository);
@@ -364,6 +366,34 @@ describe(NovelService.name, () => {
         'novel-1',
       );
       expect(novelRepository.getChapter).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getCategories', () => {
+    it('should return categories from repository', async () => {
+      const categories = [
+        'fantasy',
+        'action',
+        'adventure',
+        'romance',
+        'mystery',
+      ];
+      novelRepository.getCategories.mockResolvedValue(categories);
+
+      const result = await uut.getCategories();
+
+      expect(result).toIncludeSameMembers(categories);
+      expect(novelRepository.getCategories).toHaveBeenCalledOnce();
+    });
+
+    it('should return an array of strings', async () => {
+      const categories = ['fantasy', 'sci-fi', 'horror'];
+      novelRepository.getCategories.mockResolvedValue(categories);
+
+      const result = await uut.getCategories();
+
+      expect(result).toBeArray();
+      expect(result).toSatisfyAll(isString);
     });
   });
 });

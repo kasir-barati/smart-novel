@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { isString } from 'class-validator';
 
 describe('Novel (e2e)', () => {
   it('should find a novel by ID', async () => {
@@ -48,5 +49,18 @@ describe('Novel (e2e)', () => {
 
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toBe('image/png');
+  });
+
+  it('should return all categories', async () => {
+    const res = await axios.post('/graphql', {
+      query: `#graphql
+        query {
+          categories
+        }
+      `,
+    });
+
+    expect(res.data.data.categories).toBeArray();
+    expect(res.data.data.categories).toSatisfyAll(isString);
   });
 });

@@ -9,6 +9,7 @@ export interface INovelRepository {
     chapterId: string,
   ): Promise<Chapter | null>;
   getChapterList(novelId: string): Promise<string[]>;
+  getCategories(): Promise<string[]>;
 }
 
 export const NOVEL_REPOSITORY = Symbol('NOVEL_REPOSITORY');

@@ -53,6 +53,13 @@ export class NovelResolver {
     );
   }
 
+  @Query(() => [String], {
+    description: 'Get all available novel categories',
+  })
+  async categories(): Promise<string[]> {
+    return this.novelService.getCategories();
+  }
+
   @ResolveField(() => Chapter, {
     nullable: true,
     description: 'Chapter of the novel',

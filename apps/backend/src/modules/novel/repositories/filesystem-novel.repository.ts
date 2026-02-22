@@ -116,6 +116,19 @@ export class FileSystemNovelRepository implements INovelRepository {
     }
   }
 
+  async getCategories(): Promise<string[]> {
+    return [
+      'fantasy',
+      'action',
+      'adventure',
+      'romance',
+      'mystery',
+      'sci-fi',
+      'horror',
+      'comedy',
+    ].map((cat) => cat.toLowerCase());
+  }
+
   private async getChapterListInternal(
     novelId: string,
   ): Promise<string[]> {
