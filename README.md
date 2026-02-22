@@ -33,6 +33,7 @@ Then open:
 
 - Frontend: http://localhost:4200
 - GraphQL API: http://localhost:3000/graphql
+- Open WebUI: http://localhost:8080/
 
 ## Running Tests
 

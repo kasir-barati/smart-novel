@@ -52,7 +52,7 @@ export const fetchNovel = async (
       novel: novelData,
       loading: false,
     });
-  } catch (error) {
+  } catch {
     $novelState.set({
       ...$novelState.get(),
       loading: false,

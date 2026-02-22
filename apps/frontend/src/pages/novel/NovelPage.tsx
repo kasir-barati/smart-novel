@@ -28,12 +28,12 @@ export function NovelPage() {
   useEffect(() => {
     if (chapterState.currentChapterId) {
       markAsRead(chapterState.currentChapterId);
-      setShowChapterList(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [chapterState.currentChapterId, markAsRead]);
 
   const handleChapterClick = (chapterId: string) => {
+    setShowChapterList(false);
     if (id) {
       fetchChapter(api, id, chapterId);
     }

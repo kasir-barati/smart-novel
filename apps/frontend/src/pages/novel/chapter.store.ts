@@ -69,7 +69,7 @@ export const fetchChapter = async (
       currentChapterId: chapterId,
       loading: false,
     });
-  } catch (error) {
+  } catch {
     $chapterState.set({
       ...$chapterState.get(),
       loading: false,

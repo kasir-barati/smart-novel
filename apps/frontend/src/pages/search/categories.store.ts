@@ -40,7 +40,7 @@ export const fetchCategories = async (axios: AxiosInstance) => {
       loading: false,
       error: null,
     });
-  } catch (error) {
+  } catch {
     $categoriesState.set({
       categories: [],
       loading: false,

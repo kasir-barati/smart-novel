@@ -110,7 +110,7 @@ export const searchNovels = async (axios: AxiosInstance) => {
       novels: novelsData,
       loading: false,
     });
-  } catch (error) {
+  } catch {
     $searchState.set({
       ...$searchState.get(),
       loading: false,

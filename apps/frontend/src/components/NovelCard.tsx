@@ -11,7 +11,7 @@ function truncateText(text: string, maxLength: number): string {
   return text.slice(0, maxLength) + '...';
 }
 
-function getLastUpdateDate(novel: Novel): string {
+function getLastUpdateDate(_novel: Novel): string {
   // Since we don't have chapter updatedAt in the list query,
   // we'll use a placeholder. In a real implementation,
   // you'd include this in the GraphQL query or calculate it on the backend

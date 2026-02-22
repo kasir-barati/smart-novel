@@ -72,7 +72,7 @@ export const fetchNovels = async (
       novels: novelsData,
       loading: false,
     });
-  } catch (error) {
+  } catch {
     $novelsState.set({
       ...$novelsState.get(),
       loading: false,
