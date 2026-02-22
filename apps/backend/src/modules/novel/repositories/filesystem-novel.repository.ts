@@ -1,6 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { readdir, readFile, stat } from 'fs/promises';
 import matter from 'gray-matter';
+import {
+  CorrelationIdService,
+  CustomLoggerService,
+} from 'nestjs-backend-common';
 import { join } from 'path';
 
 import { NovelDetails } from '../interfaces';
@@ -16,9 +20,11 @@ const naturalFilenameCollator = new Intl.Collator(undefined, {
 @Injectable()
 export class FileSystemNovelRepository implements INovelRepository {
   private readonly dataPath = '/data';
-  private readonly logger = new Logger(
-    FileSystemNovelRepository.name,
-  );
+
+  constructor(
+    private readonly logger: CustomLoggerService,
+    private readonly correlationIdService: CorrelationIdService,
+  ) {}
 
   async findAll(): Promise<Novel[]> {
     try {
@@ -38,7 +44,9 @@ export class FileSystemNovelRepository implements INovelRepository {
 
       return novels.sort((a, b) => a.name.localeCompare(b.name));
     } catch (error) {
-      this.logger.error('Error reading novels:', error);
+      this.logger.error(`Error reading novels: ${error}`, {
+        correlationId: this.correlationIdService.correlationId,
+      });
       throw new Error('Failed to read novels');
     }
   }
@@ -66,7 +74,10 @@ export class FileSystemNovelRepository implements INovelRepository {
         updatedAt: stats.mtime,
       };
     } catch (error) {
-      this.logger.error(`Error reading chapter ${chapterId}:`, error);
+      this.logger.error(
+        `Error reading chapter ${chapterId}: ${error}`,
+        { correlationId: this.correlationIdService.correlationId },
+      );
       return null;
     }
   }
@@ -98,7 +109,9 @@ export class FileSystemNovelRepository implements INovelRepository {
         coverUrl: details.coverUrl,
       };
     } catch (error) {
-      this.logger.error(`Error loading novel ${novelId}:`, error);
+      this.logger.error(`Error loading novel ${novelId}: ${error}`, {
+        correlationId: this.correlationIdService.correlationId,
+      });
       return null;
     }
   }
@@ -115,8 +128,8 @@ export class FileSystemNovelRepository implements INovelRepository {
         .sort((a, b) => naturalFilenameCollator.compare(a, b));
     } catch (error) {
       this.logger.error(
-        `Error reading chapter list for ${novelId}:`,
-        error,
+        `Error reading chapter list for ${novelId}: ${error}`,
+        { correlationId: this.correlationIdService.correlationId },
       );
       return [];
     }

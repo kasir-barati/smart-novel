@@ -8,7 +8,7 @@ import {
   Resolver,
 } from '@nestjs/graphql';
 
-import { NovelFiltersInput } from '../dto';
+import { NovelFiltersInput } from '../inputs';
 import { NovelService } from '../novel.service';
 import { Chapter, Novel, NovelConnection } from '../types';
 

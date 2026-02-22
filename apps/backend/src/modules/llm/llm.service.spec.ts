@@ -7,12 +7,20 @@ import { LlmService } from './llm.service';
 describe(LlmService.name, () => {
   let uut: LlmService;
   let appConfigs: AppConfig;
+  let logger: any;
+  let correlationIdService: any;
 
   beforeEach(() => {
     appConfigs = {
       OLLAMA_BASE_URL: 'http://ollama',
     } as AppConfig;
-    uut = new LlmService(appConfigs);
+    logger = {
+      error: jest.fn(),
+    };
+    correlationIdService = {
+      correlationId: 'fd2914ad-4789-4ac2-a7a5-d97c7806294f',
+    };
+    uut = new LlmService(appConfigs, logger, correlationIdService);
   });
 
   it.each<{ word: any; context: any }>([

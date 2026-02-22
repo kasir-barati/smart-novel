@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { PageInfo } from 'nestjs-backend-common';
 
-import { NovelFiltersInput } from './dto';
+import { NovelFiltersInput } from './inputs';
 import {
   type INovelRepository,
   NOVEL_REPOSITORY,
