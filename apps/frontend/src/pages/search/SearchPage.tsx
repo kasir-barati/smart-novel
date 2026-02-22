@@ -4,6 +4,10 @@ import { useSearchParams } from 'react-router-dom';
 
 import { NovelCard } from '../../components/NovelCard';
 import { useApi } from '../../hooks/useApi';
+import {
+  $categoriesState,
+  fetchCategories,
+} from './categories.store';
 import { CategoryFilter } from './CategoryFilter';
 import {
   $searchState,
@@ -12,24 +16,20 @@ import {
   toggleIncludeCategory,
 } from './search.store';
 
-// Hard-coded available categories - in a real app, you'd fetch these from the backend
-const AVAILABLE_CATEGORIES = [
-  'Fantasy',
-  'Romance',
-  'Action',
-  'Adventure',
-  'Mystery',
-  'Sci-Fi',
-  'Horror',
-  'Comedy',
-  'Drama',
-  'Thriller',
-];
+const capitalizeCategory = (category: string): string => {
+  return category.charAt(0).toUpperCase() + category.slice(1);
+};
 
 export function SearchPage() {
   const { api } = useApi();
   const state = useStore($searchState);
+  const categoriesState = useStore($categoriesState);
   const [searchParams] = useSearchParams();
+
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchCategories(api);
+  }, [api]);
 
   // Handle category from URL params (when clicking category button in NovelCard)
   useEffect(() => {
@@ -53,6 +53,11 @@ export function SearchPage() {
 
   const novels = state.novels?.edges.map((edge) => edge.node) ?? [];
 
+  // Transform categories from lowercase to capitalized for display
+  const availableCategories = categoriesState.categories.map(
+    capitalizeCategory,
+  );
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <h1 className="mb-8 text-3xl font-bold text-gray-900 dark:text-white">
@@ -61,13 +66,23 @@ export function SearchPage() {
 
       {/* Filter Section */}
       <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-        <CategoryFilter
-          availableCategories={AVAILABLE_CATEGORIES}
-          includeCategories={state.includeCategories}
-          excludeCategories={state.excludeCategories}
-          onToggleInclude={handleToggleInclude}
-          onToggleExclude={handleToggleExclude}
-        />
+        {categoriesState.loading ? (
+          <div className="text-center text-gray-600 dark:text-gray-400">
+            <p>Loading categories...</p>
+          </div>
+        ) : categoriesState.error ? (
+          <div className="text-center text-red-600 dark:text-red-400">
+            <p>{categoriesState.error}</p>
+          </div>
+        ) : (
+          <CategoryFilter
+            availableCategories={availableCategories}
+            includeCategories={state.includeCategories}
+            excludeCategories={state.excludeCategories}
+            onToggleInclude={handleToggleInclude}
+            onToggleExclude={handleToggleExclude}
+          />
+        )}
 
         {/* Search Button */}
         <div className="mt-6">
