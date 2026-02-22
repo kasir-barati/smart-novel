@@ -1,14 +1,13 @@
 describe('Novel Page', () => {
   beforeEach(() => {
-    // First, visit home and get a novel ID
+    cy.intercept('POST', '**/graphql').as('graphql');
+
+    // First, visit home and navigate to a novel
     cy.visit('/');
-    cy.intercept('POST', '**/graphql').as('getNovels');
-    cy.wait('@getNovels');
+    cy.wait('@graphql');
 
     // Click on the first novel to navigate to its page
-    cy.get('[data-testid="novel-card"]', { timeout: 10000 })
-      .first()
-      .click();
+    cy.get('a[href^="/novel/"]', { timeout: 10000 }).first().click();
 
     // Wait for novel page to load
     cy.url().should('include', '/novel/');
@@ -20,76 +19,54 @@ describe('Novel Page', () => {
   });
 
   it('should display novel details', () => {
-    // Check for novel metadata
-    cy.get('body').should('be.visible');
-
-    // Wait for novel data to load
-    cy.intercept('POST', '**/graphql').as('getNovel');
-    cy.wait('@getNovel', { timeout: 10000 });
-
-    // Verify some content is present
-    cy.get('body').should('contain.text', 'Chapter');
+    cy.contains('button', /read first chapter/i).should('be.visible');
+    cy.contains('button', /read latest chapter/i).should(
+      'be.visible',
+    );
+    cy.get('body').should('contain.text', 'By');
   });
 
   it('should display chapter list', () => {
-    // Wait for chapters to load
-    cy.intercept('POST', '**/graphql').as('getChapters');
-    cy.wait('@getChapters');
-
-    // Check if chapters are displayed
-    cy.get('[data-testid="chapter-list"]', { timeout: 10000 }).should(
-      'be.visible',
-    );
-    cy.get('[data-testid="chapter-item"]').should(
-      'have.length.greaterThan',
-      0,
-    );
+    cy.contains('h2', /chapters/i).should('be.visible');
+    cy.contains('button', /chapter\s+\d+/i).should('be.visible');
   });
 
   it('should navigate to a chapter when clicking on chapter link', () => {
-    // Wait for chapters to load
-    cy.intercept('POST', '**/graphql').as('getChapters');
-    cy.wait('@getChapters');
+    cy.intercept('POST', '**/graphql').as('getChapter');
 
     // Click on first chapter
-    cy.get('[data-testid="chapter-item"]', { timeout: 10000 })
+    cy.contains('button', /chapter\s+\d+/i, { timeout: 10000 })
       .first()
       .click();
 
-    // Verify navigation to chapter
-    cy.url().should('include', '/chapter/');
+    cy.wait('@getChapter');
+    cy.contains('button', /back to novel/i).should('be.visible');
   });
 
   it('should display chapter content when a chapter is selected', () => {
-    // Wait for chapters to load
-    cy.intercept('POST', '**/graphql').as('getChapters');
-    cy.wait('@getChapters');
+    cy.intercept('POST', '**/graphql').as('getChapter');
 
     // Click on first chapter
-    cy.get('[data-testid="chapter-item"]', { timeout: 10000 })
+    cy.contains('button', /chapter\s+\d+/i, { timeout: 10000 })
       .first()
       .click();
 
-    // Wait for chapter content to load
-    cy.intercept('POST', '**/graphql').as('getChapterContent');
-    cy.wait('@getChapterContent');
+    cy.wait('@getChapter');
 
     // Verify chapter content is visible
-    cy.get('[data-testid="chapter-content"]', {
-      timeout: 10000,
-    }).should('be.visible');
+    cy.get('.prose-container', { timeout: 10000 }).should(
+      'be.visible',
+    );
   });
 
   it('should display breadcrumbs for navigation', () => {
-    cy.get('[data-testid="breadcrumbs"]', { timeout: 10000 }).should(
+    cy.contains('nav a', /^home$/i, { timeout: 10000 }).should(
       'be.visible',
     );
   });
 
   it('should navigate back to home when clicking home in breadcrumbs', () => {
-    cy.get('[data-testid="breadcrumbs"]', { timeout: 10000 })
-      .contains(/home/i)
-      .click();
+    cy.contains('nav a', /^home$/i, { timeout: 10000 }).click();
 
     cy.url().should('eq', Cypress.config().baseUrl + '/');
   });

@@ -86,7 +86,7 @@ services:
       dockerfile: apps/frontend/Dockerfile
       target: production
       args:
-        VITE_SERVICE_URL: http://backend-e2e:$PORT
+        VITE_SERVICE_URL: http://localhost:$PORT
     profiles:
       - frontend-e2e
     depends_on:
