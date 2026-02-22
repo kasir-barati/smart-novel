@@ -1,5 +1,9 @@
 import { readdir, readFile, stat } from 'fs/promises';
 import matter from 'gray-matter';
+import {
+  CorrelationIdService,
+  CustomLoggerService,
+} from 'nestjs-backend-common';
 import { join } from 'path';
 
 import { NovelState } from '../enums';
@@ -14,10 +18,17 @@ jest.mock('gray-matter', () => jest.fn());
 
 describe(FileSystemNovelRepository.name, () => {
   let uut: FileSystemNovelRepository;
+  let logger: CustomLoggerService;
+  let correlationIdService: CorrelationIdService;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    uut = new FileSystemNovelRepository();
+    logger = { error: jest.fn() } as any;
+    correlationIdService = {
+      correlationId: 'test-correlation-id',
+    } as any;
+
+    uut = new FileSystemNovelRepository(logger, correlationIdService);
   });
 
   describe('findById', () => {
@@ -94,6 +105,19 @@ describe(FileSystemNovelRepository.name, () => {
       const result = await uut.findById('missing-novel');
 
       expect(result).toBeNull();
+    });
+
+    it('should convert category to lowercase', async () => {
+      const novelId = 'the-hermit-wizard';
+      (
+        readFile as jest.MockedFunction<typeof readFile>
+      ).mockResolvedValue(
+        JSON.stringify({ category: ['Fantasy', 'Action'] }),
+      );
+
+      const result = await uut.findById(novelId);
+
+      expect(result!.category).toStrictEqual(['fantasy', 'action']);
     });
   });
 
@@ -263,6 +287,50 @@ describe(FileSystemNovelRepository.name, () => {
       await expect(uut.findAll()).rejects.toThrow(
         'Failed to read novels',
       );
+    });
+
+    it('should convert category to lowercase', async () => {
+      // Arrange
+      (
+        readdir as jest.MockedFunction<typeof readdir>
+      ).mockImplementation((path: any, options?: any) => {
+        if (path === '/data' && options?.withFileTypes) {
+          return Promise.resolve([
+            { isDirectory: () => true, name: 'novel-1' },
+          ]);
+        }
+        if (path === join('/data', 'novel-1')) {
+          return Promise.resolve(['chapter1.md']);
+        }
+        return Promise.resolve([] as any);
+      });
+      (
+        readFile as jest.MockedFunction<typeof readFile>
+      ).mockImplementation((path: any) => {
+        if (path === join('/data', 'novel-1', 'details.json')) {
+          return Promise.resolve(
+            JSON.stringify({
+              author: 'Author 1',
+              category: ['Fantasy', 'Adventure', 'ACTION'],
+              id: 'novel-1',
+              name: 'Novel One',
+              state: NovelState.ONGOING,
+            }),
+          );
+        }
+        return Promise.reject(new Error('ENOENT'));
+      });
+
+      // Act
+      const result = await uut.findAll();
+
+      // Assert
+      expect(result).toHaveLength(1);
+      expect(result[0].category).toStrictEqual([
+        'fantasy',
+        'adventure',
+        'action',
+      ]);
     });
   });
 

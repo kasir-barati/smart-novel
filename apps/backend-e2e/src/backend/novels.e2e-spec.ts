@@ -107,4 +107,25 @@ describe('Novels (e2e)', () => {
 
     expect(res.status).toBe(200);
   });
+
+  it('should treat category values as canonical (case-insensitive)', async () => {
+    const res = await axios.post('/graphql', {
+      query: `#graphql
+          query {
+            novels(filters: { category: { in: ["Fantasy"] } }) {
+              edges {
+                node {
+                  category
+                }
+              }
+            }
+          }
+        `,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.data.data.novels.edges[0].node.category).toContain(
+      'fantasy',
+    );
+  });
 });

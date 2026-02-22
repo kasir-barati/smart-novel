@@ -100,7 +100,7 @@ export class FileSystemNovelRepository implements INovelRepository {
 
       return {
         author: details.author,
-        category: details.category,
+        category: details.category.map((cat) => cat.toLowerCase()),
         chapters,
         description: details.description,
         id: details.id,

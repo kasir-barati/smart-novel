@@ -1,4 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { Transform } from 'class-transformer';
 import { IsArray, IsOptional } from 'class-validator';
 
 @InputType()
@@ -9,6 +10,7 @@ export class StringListFilterInput {
   })
   @IsOptional()
   @IsArray()
+  @Transform(({ value }) => value.map((v: string) => v.toLowerCase()))
   in?: string[];
 
   @Field(() => [String], {
@@ -17,5 +19,6 @@ export class StringListFilterInput {
   })
   @IsOptional()
   @IsArray()
+  @Transform(({ value }) => value.map((v: string) => v.toLowerCase()))
   nin?: string[];
 }
