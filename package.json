@@ -2,6 +2,41 @@
   "name": "@org/source",
   "version": "0.0.0",
   "license": "MIT",
+  "description": "smart-novel is a full-stack monorepo project for reading novels.",
+  "keywords": [
+    "ai",
+    "openai",
+    "llm",
+    "tdd",
+    "docker",
+    "minio",
+    "object-storage",
+    "monorepo",
+    "fullstack",
+    "typescript",
+    "javascript",
+    "npm",
+    "nodejs",
+    "nestjs",
+    "vite",
+    "reactjs",
+    "nanostores",
+    "tailwindcss",
+    "single-page-app",
+    "cypress"
+  ],
+  "author": {
+    "email": "kasir.barati@gmail.com",
+    "name": "Kasir Barati"
+  },
+  "bugs": {
+    "url": "https://github.com/kasir-barati/smart-novel/issues"
+  },
+  "homepage": "https://github.com/kasir-barati/smart-novel",
+  "packageManager": "npm@11.6.2",
+  "engines": {
+    "node": "v24.13.0"
+  },
   "scripts": {
     "prepare": "husky",
     "format": "prettier . -w -u",
