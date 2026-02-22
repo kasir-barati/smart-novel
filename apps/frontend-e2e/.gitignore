@@ -1,0 +1,13 @@
+# Cypress
+cypress/videos/
+cypress/screenshots/
+cypress/downloads/
+cypress.env.json
+
+# Test results
+test-results/
+junit-results/
+
+# Videos and screenshots
+videos/
+screenshots/

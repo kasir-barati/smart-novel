@@ -6,6 +6,8 @@ services:
       target: development
       args:
         PORT: $PORT
+    profiles:
+      - dev
     ports:
       - "3000:$PORT"
     env_file:
@@ -46,6 +48,8 @@ services:
       args:
         FRONTEND_PORT: $FRONTEND_PORT
         VITE_SERVICE_URL: $VITE_SERVICE_URL
+    profiles:
+      - dev
     ports:
       - "4200:$FRONTEND_PORT"
     volumes:
@@ -67,6 +71,7 @@ services:
     <<: *backend
     profiles:
       - backend-e2e
+      - frontend-e2e
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
@@ -74,6 +79,29 @@ services:
       args:
         PORT: $PORT
     volumes: []
+
+  frontend-e2e:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+      target: production
+      args:
+        VITE_SERVICE_URL: http://backend-e2e:$PORT
+    profiles:
+      - frontend-e2e
+    depends_on:
+      backend-e2e:
+        condition: service_healthy
+      s3:
+        condition: service_healthy
+    ports:
+      - "4200:80"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   ollama:
     image: ollama/ollama:latest

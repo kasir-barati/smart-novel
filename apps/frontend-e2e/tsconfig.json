@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "nodenext",
+    "types": ["cypress", "node"],
+    "sourceMap": false,
+    "allowJs": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.js", "cypress.config.ts"]
+}

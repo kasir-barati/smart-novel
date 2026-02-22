@@ -26,13 +26,23 @@ npm ci
 
 cp .env.example .env
 
-docker compose up
+docker compose --profile dev up
 ```
 
 Then open:
 
 - Frontend: http://localhost:4200
 - GraphQL API: http://localhost:3000/graphql
+
+## Running Tests
+
+```bash
+# Run all e2e tests
+nx e2e frontend-e2e
+
+# Run all e2e tests
+nx e2e backend-e2e
+```
 
 ## 📁 Project Structure
 

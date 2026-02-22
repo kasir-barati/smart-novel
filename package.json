@@ -7,13 +7,15 @@
     "format": "prettier . -w -u",
     "lint": "nx run-many -t lint",
     "lint-prepush": "nx run-many -t lint",
-    "lint-staged": "lint-staged"
+    "lint-staged": "lint-staged",
+    "cypress:open": "cypress open --project apps/frontend-e2e"
   },
   "private": true,
   "devDependencies": {
     "@eslint/js": "^9.8.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.0",
+    "@nx/cypress": "^22.5.2",
     "@nx/eslint": "22.5.1",
     "@nx/eslint-plugin": "22.5.1",
     "@nx/jest": "22.5.1",
@@ -43,6 +45,7 @@
     "@vitest/ui": "^4.0.0",
     "autoprefixer": "^10.4.24",
     "babel-jest": "^30.0.2",
+    "cypress": "^15.10.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.0.0",
     "eslint-plugin-import": "2.31.0",

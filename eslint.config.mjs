@@ -76,7 +76,10 @@ export default [
     rules: {},
   },
   {
-    files: ['**/*.config.ts'],
+    files: [
+      '**/*.config.ts',
+      'apps/frontend-e2e/src/support/commands.ts',
+    ],
     rules: {
       '@typescript-eslint/no-namespace': 'off',
       '@typescript-eslint/no-empty-interface': 'off',
