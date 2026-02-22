@@ -1,20 +1,21 @@
+import type { ConfigType } from '@nestjs/config';
+
 import {
   BadRequestException,
+  Inject,
   Injectable,
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { isEmpty } from 'class-validator';
+import { isNil, urlBuilder } from 'nestjs-backend-common';
 
-import { isNil, urlBuilder } from '../../shared';
+import { appConfigs } from '../../app/configs/app.config'; // To prevent circular dependency issues
 import { WordExplanation } from './types';
 
 @Injectable()
 export class LlmService {
-  private readonly ollamaBaseUrl: string;
-  private readonly ollamaModel: string;
   private readonly logger = new Logger(LlmService.name);
 
   private parseJsonObject(
@@ -63,11 +64,10 @@ export class LlmService {
     return null;
   }
 
-  constructor(private readonly configService: ConfigService) {
-    this.ollamaBaseUrl =
-      this.configService.getOrThrow('OLLAMA_BASE_URL');
-    this.ollamaModel = this.configService.getOrThrow('OLLAMA_MODEL');
-  }
+  constructor(
+    @Inject(appConfigs.KEY)
+    private readonly appConfig: ConfigType<typeof appConfigs>,
+  ) {}
 
   async explainWord(
     word: string,
@@ -84,7 +84,11 @@ export class LlmService {
       );
     }
 
-    const url = urlBuilder(this.ollamaBaseUrl, 'api', 'generate');
+    const url = urlBuilder(
+      this.appConfig.OLLAMA_BASE_URL,
+      'api',
+      'generate',
+    );
 
     try {
       const prompt = `Analyze the word "${word}" in this context: "${context}".
@@ -103,7 +107,7 @@ Rules:
       const response = await axios.post(
         url,
         {
-          model: this.ollamaModel,
+          model: this.appConfig.OLLAMA_MODEL,
           format: 'json',
           prompt,
           stream: false,

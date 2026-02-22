@@ -1,11 +1,19 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
+import { ConfigType } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 
-import { AppModule } from './app';
+import { appConfigs, AppModule } from './app';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const { PORT, CORS_ALLOWED_ORIGINS } = app.get<
+    ConfigType<typeof appConfigs>
+  >(appConfigs.KEY);
 
+  app.enableCors({
+    origin: CORS_ALLOWED_ORIGINS,
+    credentials: true,
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
@@ -14,10 +22,10 @@ async function bootstrap() {
     }),
   );
 
-  const port = process.env.PORT || 3000;
-  await app.listen(port);
+  await app.listen(PORT);
+
   Logger.log(
-    `🚀 Application is running on: http://localhost:${port}/graphql`,
+    `🚀 Application is running on: http://localhost:${PORT}/graphql`,
   );
 }
 

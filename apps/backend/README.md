@@ -1,3 +1,15 @@
+# TODOs
+
+- Libs:
+  ```
+  @nanostores/react@1.0.0
+  nanostores@1.1.0
+  react-markdown@10.1.0
+  sonner@2.0.7
+  ```
+- Making it look better.
+- Unit testing.
+
 # Smart Novel Backend
 
 A NestJS GraphQL API for managing and reading novels stored as markdown files with integrated LLM capabilities for word explanation.

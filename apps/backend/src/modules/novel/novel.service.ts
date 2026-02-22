@@ -3,8 +3,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { PageInfo } from 'nestjs-backend-common';
 
-import { PageInfo } from '../../shared';
 import { NovelFiltersInput } from './dto';
 import {
   type INovelRepository,

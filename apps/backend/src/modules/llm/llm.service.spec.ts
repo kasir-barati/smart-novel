@@ -1,19 +1,18 @@
 import { InternalServerErrorException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 
+import { AppConfig } from '../../app';
 import { LlmService } from './llm.service';
 
 describe(LlmService.name, () => {
   let uut: LlmService;
-  let configService: ConfigService;
+  let appConfigs: AppConfig;
 
   beforeEach(() => {
-    configService = {
-      getOrThrow: jest.fn().mockReturnValue('http://ollama'),
-    } as any;
-
-    uut = new LlmService(configService);
+    appConfigs = {
+      OLLAMA_BASE_URL: 'http://ollama',
+    } as AppConfig;
+    uut = new LlmService(appConfigs);
   });
 
   it.each<{ word: any; context: any }>([

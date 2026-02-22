@@ -1,6 +1,6 @@
 import { ObjectType } from '@nestjs/graphql';
+import { ConnectionType, EdgeType } from 'nestjs-backend-common';
 
-import { ConnectionType, EdgeType } from '../../../shared';
 import { Novel } from './novel.type';
 
 @ObjectType({

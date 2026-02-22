@@ -76,14 +76,17 @@ export default [
     rules: {},
   },
   {
-    files: ['**/*.spec.*'],
+    files: ['**/*.config.ts'],
     rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-namespace': 'off',
+      '@typescript-eslint/no-empty-interface': 'off',
+      '@typescript-eslint/no-empty-object-type': 'off',
     },
   },
   {
     files: ['**/*.spec.ts', '**/*.e2e-spec.ts'],
     rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
     },
   },

@@ -1,17 +1,35 @@
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
+import {
+  CorrelationIdModule,
+  LoggerModule,
+} from 'nestjs-backend-common';
+import { ClsModule } from 'nestjs-cls';
 
-import { LlmModule } from '../modules/llm/llm.module';
-import { NovelModule } from '../modules/novel/novel.module';
+import { LlmModule, NovelModule } from '../modules';
 import { AppResolver } from './app.resolver';
+import { appConfigs, LoggerModuleConfig } from './configs';
 
 @Module({
   imports: [
+    ClsModule.forRoot({
+      global: true,
+      middleware: { mount: true },
+    }),
+    CorrelationIdModule.forRoot({
+      global: true,
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
+      load: [appConfigs],
+    }),
+    LoggerModule.registerAsync({
+      global: true,
+      inject: [ConfigService],
+      useClass: LoggerModuleConfig,
     }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
