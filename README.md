@@ -12,9 +12,9 @@ A modern monorepo project for managing and reading novels with AI-powered word e
 
 ## 📋 Prerequisites
 
-- **Node.js**: v24.13 or higher
-- **Docker**: For running services
-- **npm**: Package manager
+- **Node.js**: v24.13 or higher.
+- **Docker**: For running services.
+- **npm**: Package manager.
 
 ## 🚀 Quick Start
 
@@ -83,6 +83,9 @@ data/
 {
   "id": "novel-name",
   "author": "Author Name",
+  "name": "Name of The Novel",
+  "description": "Some short description.",
+  "coverUrl": "http://localhost:9000/smart-novel/covers/71a3fcd8-937d-4e3d-94de-a643ff515f82.png",
   "category": ["fantasy", "adventure"],
   "state": "ONGOING"
 }
@@ -97,20 +100,3 @@ title: 'Chapter Title'
 
 # Chapter content...
 ```
-
-## 🐛 Troubleshooting
-
-### Ollama Connection Issues
-
-```bash
-# Check Ollama status
-docker compose ps ollama
-
-# View Ollama logs
-docker compose logs ollama
-
-# Verify model
-docker exec ollama ollama list
-```
-
-**Built with ❤️ using modern web technologies**
