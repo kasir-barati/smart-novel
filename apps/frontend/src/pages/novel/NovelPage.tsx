@@ -57,18 +57,18 @@ export function NovelPage() {
   };
 
   const handlePreviousChapter = () => {
-    const currentChapter =
-      chapterState.currentChapterId &&
-      chapterState.chapters.get(chapterState.currentChapterId);
+    const currentChapter = chapterState.currentChapterId
+      ? chapterState.chapters.get(chapterState.currentChapterId)
+      : undefined;
     if (currentChapter?.previous?.id && id) {
       fetchChapter(api, id, currentChapter.previous.id);
     }
   };
 
   const handleNextChapter = () => {
-    const currentChapter =
-      chapterState.currentChapterId &&
-      chapterState.chapters.get(chapterState.currentChapterId);
+    const currentChapter = chapterState.currentChapterId
+      ? chapterState.chapters.get(chapterState.currentChapterId)
+      : undefined;
     if (currentChapter?.next?.id && id) {
       fetchChapter(api, id, currentChapter.next.id);
     }
@@ -98,9 +98,10 @@ export function NovelPage() {
   }
 
   const novel = novelState.novel;
-  const currentChapter =
-    chapterState.currentChapterId &&
-    chapterState.chapters.get(chapterState.currentChapterId);
+  const hasChapters = novel.chapters.length > 0;
+  const currentChapter = chapterState.currentChapterId
+    ? chapterState.chapters.get(chapterState.currentChapterId)
+    : undefined;
 
   // Prepare chapter info for ChapterList
   const chaptersInfo = novel.chapters.map((chId) => ({
@@ -163,13 +164,15 @@ export function NovelPage() {
                 <div className="flex flex-wrap gap-4">
                   <button
                     onClick={handleReadFirstChapter}
-                    className="rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700"
+                    disabled={!hasChapters}
+                    className="cursor-pointer rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-blue-600"
                   >
                     Read First Chapter
                   </button>
                   <button
                     onClick={handleReadLatestChapter}
-                    className="rounded-lg border border-blue-600 px-6 py-3 font-medium text-blue-600 transition-colors hover:bg-blue-50 dark:border-blue-500 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                    disabled={!hasChapters}
+                    className="cursor-pointer rounded-lg border border-blue-600 px-6 py-3 font-medium text-blue-600 transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent dark:border-blue-500 dark:text-blue-400 dark:hover:bg-blue-900/30 dark:disabled:hover:bg-transparent"
                   >
                     Read Latest Chapter
                   </button>
@@ -194,7 +197,7 @@ export function NovelPage() {
             {/* Back Button */}
             <button
               onClick={() => setShowChapterList(true)}
-              className="mb-4 text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              className="cursor-pointer mb-4 text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
             >
               ← Back to Novel
             </button>

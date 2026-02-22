@@ -74,7 +74,7 @@ export function SearchPage() {
           <button
             onClick={handleSearch}
             disabled={state.loading}
-            className="rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="cursor-pointer rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {state.loading ? 'Searching...' : 'Search'}
           </button>

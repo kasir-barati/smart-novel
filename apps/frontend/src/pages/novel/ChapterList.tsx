@@ -38,7 +38,7 @@ export function ChapterList({
           <button
             key={chapter.id}
             onClick={() => onChapterClick(chapter.id)}
-            className={`flex w-full items-center justify-between rounded-lg border p-3 text-left transition-colors ${
+            className={`cursor-pointer flex w-full items-center justify-between rounded-lg border p-3 text-left transition-colors ${
               isActive
                 ? 'border-blue-600 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/30'
                 : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700'

@@ -27,7 +27,7 @@ export function CategoryFilter({
               <button
                 key={`include-${category}`}
                 onClick={() => onToggleInclude(category)}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                   isSelected
                     ? 'bg-green-600 text-white hover:bg-green-700'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
@@ -52,7 +52,7 @@ export function CategoryFilter({
               <button
                 key={`exclude-${category}`}
                 onClick={() => onToggleExclude(category)}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                className={`cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                   isSelected
                     ? 'bg-red-600 text-white hover:bg-red-700'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
