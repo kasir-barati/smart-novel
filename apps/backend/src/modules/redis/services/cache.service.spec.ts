@@ -17,11 +17,7 @@ describe(CacheService.name, () => {
     logger = { log: jest.fn() } as any;
     correlationIdService = {} as CorrelationIdService;
 
-    uut = new CacheService(
-      redisService,
-      logger,
-      correlationIdService,
-    );
+    uut = new CacheService(redisService);
   });
 
   it('should return invalidate the cache key', async () => {

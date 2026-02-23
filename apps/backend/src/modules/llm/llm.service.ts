@@ -19,6 +19,7 @@ import { hostname } from 'os';
 import { appConfigs } from '../../app/configs/app.config'; // To prevent circular dependency issues
 import { generateCacheKey } from '../../utils';
 import { CacheService } from '../redis';
+import { ExplainWordPromptResponse } from './llm.interface';
 import { WordExplanation } from './types';
 
 @Injectable()
@@ -28,7 +29,7 @@ export class LlmService {
     private readonly appConfig: ConfigType<typeof appConfigs>,
     private readonly logger: CustomLoggerService,
     private readonly correlationIdService: CorrelationIdService,
-    private readonly cacheService: CacheService,
+    private readonly cacheService: CacheService<ExplainWordPromptResponse>,
   ) {}
 
   async explainWord(
@@ -82,44 +83,44 @@ export class LlmService {
   private async callOllamaWithRetry(
     word: string,
     context: string,
-  ): Promise<Omit<WordExplanation, 'cacheKey'>> {
+  ): Promise<ExplainWordPromptResponse> {
     const retryCount = this.appConfig.OLLAMA_RETRY_COUNT;
     const retryDelayMs = ms(this.appConfig.OLLAMA_RETRY_DELAY);
     const timeoutMs = ms(this.appConfig.OLLAMA_TIMEOUT);
 
-    const [error, result] = await retryAsync<
-      Omit<WordExplanation, 'cacheKey'>
-    >(
-      async ({ index }) => {
-        this.logger.log(
-          `Calling Ollama for word "${word}" (attempt ${index + 1}/${retryCount + 1})`,
-          {
-            context: LlmService.name,
-            correlationId: this.correlationIdService.correlationId,
-            attemptIndex: index,
-            word,
-          },
-        );
-
-        return this.callOllama(word, context, timeoutMs);
-      },
-      {
-        retry: retryCount,
-        delay: retryDelayMs,
-        error: ({ index, error: retryError }) => {
-          this.logger.warn(
-            `Retry ${index + 1}/${retryCount} failed for word "${word}": ${retryError}`,
+    const [error, result] =
+      await retryAsync<ExplainWordPromptResponse>(
+        async ({ index }) => {
+          this.logger.log(
+            `Calling Ollama for word "${word}" (attempt ${index + 1}/${retryCount + 1})`,
             {
               context: LlmService.name,
               correlationId: this.correlationIdService.correlationId,
               attemptIndex: index,
               word,
-              error: retryError,
             },
           );
+
+          return this.callOllama(word, context, timeoutMs);
         },
-      },
-    );
+        {
+          retry: retryCount,
+          delay: retryDelayMs,
+          error: ({ index, error: retryError }) => {
+            this.logger.warn(
+              `Retry ${index + 1}/${retryCount} failed for word "${word}": ${retryError}`,
+              {
+                context: LlmService.name,
+                correlationId:
+                  this.correlationIdService.correlationId,
+                attemptIndex: index,
+                word,
+                error: retryError,
+              },
+            );
+          },
+        },
+      );
 
     if (error) {
       this.logger.error(
@@ -141,7 +142,7 @@ export class LlmService {
     word: string,
     context: string,
     timeoutMs: number,
-  ): Promise<Omit<WordExplanation, 'cacheKey'>> {
+  ): Promise<ExplainWordPromptResponse> {
     const url = urlBuilder(
       this.appConfig.OLLAMA_BASE_URL,
       'api',
@@ -162,7 +163,7 @@ Rules:
 - Ensure the JSON is complete and ends with a closing curly brace.\n`;
 
     try {
-      const response = await axios.post(
+      const { data } = await axios.post(
         url,
         {
           model: this.appConfig.OLLAMA_MODEL,
@@ -175,8 +176,11 @@ Rules:
         },
       );
 
-      const generatedText: string = response.data.response;
-      const parsed = this.parseJsonObject(generatedText);
+      const generatedText: string = data.response;
+      const parsed =
+        this.parseJsonObject<ExplainWordPromptResponse>(
+          generatedText,
+        );
 
       if (isNil(parsed)) {
         this.logger.error(
@@ -226,12 +230,10 @@ Rules:
     }
   }
 
-  private parseJsonObject(
-    text: string,
-  ): Record<string, unknown> | null {
+  private parseJsonObject<T>(text: string): T | null {
     const tryParse = (value: string) => {
       try {
-        return JSON.parse(value) as Record<string, unknown>;
+        return JSON.parse(value) as T;
       } catch {
         return null;
       }
