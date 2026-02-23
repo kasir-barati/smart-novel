@@ -41,6 +41,16 @@ export class LlmService {
         'Context must include the word to be explained',
       );
     }
+    if (word.length > 64) {
+      throw new BadRequestException(
+        'Word is too long (max 64 characters, 1-3 words (compound/hyphenated terms))',
+      );
+    }
+    if (context.length > 2000) {
+      throw new BadRequestException(
+        'Context is too long (max 2000 characters, ~300-400 words)',
+      );
+    }
 
     const url = urlBuilder(
       this.appConfig.OLLAMA_BASE_URL,

@@ -37,6 +37,35 @@ describe(LlmService.name, () => {
     },
   );
 
+  it('should throw an error if context does not include the word', async () => {
+    const word = 'melee';
+    const context = 'I need to analyze the data carefully.';
+
+    await expect(uut.explainWord(word, context)).rejects.toThrow(
+      'Context must include the word to be explained',
+    );
+  });
+
+  it('should throw an error when word is longer than 64 characters', async () => {
+    const word = 'a'.repeat(65);
+    const context = `This is a context that includes the word ${word}.`;
+
+    await expect(uut.explainWord(word, context)).rejects.toThrow(
+      'Word is too long (max 64 characters, 1-3 words (compound/hyphenated terms))',
+    );
+  });
+
+  it('should throw an error when context is longer than 2000 characters', async () => {
+    const word = 'analyze';
+    const context =
+      `This is a very long context that includes the word ${word}. ` +
+      'a'.repeat(2000);
+
+    await expect(uut.explainWord(word, context)).rejects.toThrow(
+      'Context is too long (max 2000 characters, ~300-400 words)',
+    );
+  });
+
   it('should throw an error when it cannot parse the response', async () => {
     const word = 'scrutinize';
     const context = 'I need to scrutinize the data carefully.';
