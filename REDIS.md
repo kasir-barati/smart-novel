@@ -4,6 +4,60 @@
 
 The word explanation feature uses a sophisticated caching system built on Redis to optimize performance and reduce LLM API costs.
 
+## 🧭 End-to-End Flow (How it actually works)
+
+This is the exact lifecycle for `explain(word, context)`:
+
+1. Resolver calls `LlmService.explainWord(word, context)`
+2. Service creates canonical `cacheKey` using normalized `word` + SHA-256 context fingerprint
+3. `CacheService.getOrCompute(cacheKey, computeFn, ttlMs)` runs
+4. Redis `GET cacheKey`:
+
+- **HIT** → return cached value immediately (`cacheHit: true`, `coalesced: false`)
+- **MISS** → continue to single-flight check
+
+5. In-memory `inFlightRequests` map is checked (per backend process):
+
+- Existing promise for same key → await it (`coalesced: true`)
+- No promise → create new compute promise
+
+6. Compute promise calls Ollama with retry + timeout
+7. Result is normalized/validated, then stored in Redis with TTL
+8. Promise is removed from `inFlightRequests`
+9. GraphQL response returns LLM fields + `cacheKey`
+
+### Request timeline example
+
+```
+Request A         Request B         CacheService/Redis             Ollama
+---------         ---------         -------------------            ------
+start                                GET key -> MISS
+compute starts                        inFlight[key] = promise
+            start              GET key -> MISS
+                         sees inFlight[key]
+            waits on promise
+                                         single API call
+                         SET key (TTL)
+                         delete inFlight[key]
+return data       return same data
+coalesced:false   coalesced:true
+```
+
+### Multi-instance behavior (critical)
+
+- Coalescing is **local to one Node.js process** (`Map` in memory).
+- Redis sharing still gives strong cross-instance benefit: once one instance writes the key, other instances will hit Redis on subsequent requests.
+- Two different backend instances can still issue duplicate LLM calls if both see a cache miss at the same time (no distributed lock yet).
+
+### Critical but easy-to-miss behaviors
+
+- Cache write failures are intentionally non-fatal: user still gets the fresh LLM result, but it may not be cached.
+- Cache read/JSON parse failures are treated as cache miss (graceful degradation).
+- `ttlMs` is converted with `Math.floor(ttlMs / 1000)`; very small TTL values can collapse to `0` seconds.
+- Retry delay is fixed by configuration (`OLLAMA_RETRY_DELAY`), not exponential backoff by default.
+- What gets cached is the parsed/sanitized `ExplainWordPromptResponse`, not raw Ollama text.
+- `cacheKey` is deterministic and safe to expose to clients as an opaque identifier.
+
 ### Canonical Cache Key Design
 
 Cache keys are generated using a **content-based fingerprinting approach**:
@@ -79,8 +133,12 @@ The cache service implements **single-flight pattern** to prevent duplicate LLM 
 
 - Prevents thundering herd under high load
 - Reduces LLM API costs dramatically during traffic spikes
-- Works across multiple backend instances via Redis
+- Guarantees one in-flight compute per key **per backend instance**
 - Logged as `coalesced: true` for observability
+
+**Important scope note**:
+
+- This is not a distributed lock. If horizontal scaling increases, consider Redis lock-based coalescing (e.g. `SET NX PX`) for global single-flight.
 
 **Example scenario**:
 
@@ -99,7 +157,7 @@ Result: 1 LLM call instead of 3! 🎉
 
 ### Retry Strategy
 
-LLM calls are wrapped with **exponential retry logic**:
+LLM calls are wrapped with **timeout + retry logic**:
 
 **Configuration** (via environment variables):
 
@@ -110,7 +168,7 @@ LLM calls are wrapped with **exponential retry logic**:
 **Retry behavior**:
 
 - Each attempt has its own timeout
-- Delays are fixed (not exponential by default, but configurable)
+- Delays are fixed by default (not exponential)
 - Errors are logged for each retry attempt
 - Final failure throws error after all retries exhausted
 
@@ -215,6 +273,7 @@ This document summarizes the Redis caching implementation for the GraphQL `expla
 - ✅ CacheService implements request coalescing
 - ✅ In-memory Map tracks in-flight requests per key
 - ✅ Multiple concurrent requests for same key await single LLM call
+- ✅ Coalescing scope is per backend process (local single-flight)
 - ✅ Metadata tracking (instanceId, cachedAt timestamp)
 - ✅ Comprehensive logging for observability
 
@@ -283,15 +342,13 @@ This document summarizes the Redis caching implementation for the GraphQL `expla
 
 ### Created Files
 
-- `apps/backend/src/utils/retry-async.util.ts` - Retry helper with typed results
 - `apps/backend/src/utils/cache-key.util.ts` - Canonical key generation
 - `apps/backend/src/modules/redis/redis.module.ts` - Redis module
-- `apps/backend/src/modules/redis/redis.service.ts` - Redis service wrapper
+- `apps/backend/src/modules/redis/services/redis.service.ts` - Redis service wrapper
 - `apps/backend/src/modules/redis/index.ts` - Redis exports
-- `apps/backend/src/modules/cache/cache.module.ts` - Cache module
-- `apps/backend/src/modules/cache/cache.service.ts` - Cache service with single-flight
-- `apps/backend/src/modules/cache/index.ts` - Cache exports
-- `REDIS_IMPLEMENTATION.md` - This file
+- `apps/backend/src/modules/redis/services/cache.service.ts` - Cache service with single-flight
+- `apps/backend/src/modules/redis/services/index.ts` - Service exports
+- `REDIS.md` - This file
 
 ### Modified Files
 
@@ -300,8 +357,7 @@ This document summarizes the Redis caching implementation for the GraphQL `expla
 - `.env.example` - Added new environment variables
 - `apps/backend/src/modules/llm/llm.service.ts` - Integrated caching, retries, logging
 - `apps/backend/src/modules/llm/types/word-explanation.type.ts` - Added cacheKey field
-- `apps/backend/src/modules/llm/llm.module.ts` - Imported CacheModule
-- `apps/backend/src/app/app.module.ts` - Imported RedisModule, CacheModule
+- `apps/backend/src/app/app.module.ts` - Imported RedisModule
 - `apps/backend/src/modules/index.ts` - Exported new modules
 - `apps/backend/src/utils/index.ts` - Exported utilities
 - `compose.yml` - Added Redis and RedisInsight services
