@@ -9,9 +9,13 @@ import {
 } from 'nestjs-backend-common';
 import { ClsModule } from 'nestjs-cls';
 
-import { LlmModule, NovelModule } from '../modules';
+import { LlmModule, NovelModule, RedisModule } from '../modules';
 import { AppResolver } from './app.resolver';
-import { appConfigs, LoggerModuleConfig } from './configs';
+import {
+  appConfigs,
+  LoggerModuleConfig,
+  RedisModuleConfig,
+} from './configs';
 
 @Module({
   imports: [
@@ -30,6 +34,11 @@ import { appConfigs, LoggerModuleConfig } from './configs';
       global: true,
       inject: [ConfigService],
       useClass: LoggerModuleConfig,
+    }),
+    RedisModule.registerAsync({
+      global: true,
+      inject: [ConfigService],
+      useClass: RedisModuleConfig,
     }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,

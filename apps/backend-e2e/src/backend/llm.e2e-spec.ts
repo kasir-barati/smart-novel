@@ -10,6 +10,7 @@ describe('Explain (e2e)', () => {
             context: "The detective scrutinized the crime scene for clues."
           ) {
             meaning
+            cacheKey
             antonyms
             synonyms
             simplifiedExplanation
@@ -23,5 +24,8 @@ describe('Explain (e2e)', () => {
     expect(res.data.data.explain.antonyms).toBeArray();
     expect(res.data.data.explain.synonyms).toBeArray();
     expect(res.data.data.explain.simplifiedExplanation).toBeString();
+    expect(res.data.data.explain.cacheKey).toBe(
+      'explain:scrutinize:44983f115f931a846573b791066de4184e2f8374876d29c55abdb318512a7ee9',
+    );
   }, 20000);
 });

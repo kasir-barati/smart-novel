@@ -23,6 +23,8 @@ services:
         condition: service_healthy
       init-s3:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
     healthcheck:
       test:
         [
@@ -102,6 +104,58 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+
+  redis:
+    image: redis:8.6-alpine3.23
+    restart: always
+    command: >
+      sh -c "redis-server
+      --maxmemory $${REDIS_MAXMEMORY:-512mb}
+      --maxmemory-policy $${REDIS_MAXMEMORY_POLICY:-allkeys-lfu}
+      $${REDIS_PASSWORD:+--requirepass $$REDIS_PASSWORD}"
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    env_file:
+      - ./.env
+    deploy:
+      resources:
+        limits:
+          memory: 640M
+    healthcheck:
+      test: >
+        sh -c 'if [ -n "$$REDIS_PASSWORD" ]; then
+          redis-cli -a "$$REDIS_PASSWORD" ping | grep PONG;
+        else
+          redis-cli ping | grep PONG;
+        fi'
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redis-data:/data
+
+  redis-insight:
+    image: redis/redisinsight:latest
+    restart: always
+    ports:
+      - "5540:5540"
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      RI_APP_PORT: 5540
+      RI_LOG_LEVEL: debug
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node",
+          "--experimental-default-type=module",
+          '-e "console.log((await fetch(''http://localhost:5540/api/health/'')).ok === true && ''healthy'')"',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   ollama:
     image: ollama/ollama:latest
@@ -183,4 +237,6 @@ volumes:
   ollama-data:
     driver: local
   minio-data:
+    driver: local
+  redis-data:
     driver: local

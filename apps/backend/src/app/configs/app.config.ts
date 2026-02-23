@@ -5,8 +5,10 @@ import {
   IsIn,
   IsInt,
   IsNotEmpty,
+  IsOptional,
   IsString,
 } from 'class-validator';
+import { type StringValue } from 'ms';
 import {
   type LogLevel,
   type LogMode,
@@ -70,4 +72,27 @@ class EnvironmentVariables implements AppConfig {
   @IsNotEmpty()
   @IsString()
   OLLAMA_MODEL: string;
+
+  @IsNotEmpty()
+  @IsString()
+  OLLAMA_TIMEOUT: StringValue;
+
+  @IsNotEmpty()
+  @IsString()
+  OLLAMA_CACHE_TTL: StringValue;
+
+  @IsInt()
+  OLLAMA_RETRY_COUNT: number;
+
+  @IsNotEmpty()
+  @IsString()
+  OLLAMA_RETRY_DELAY: StringValue;
+
+  @IsNotEmpty()
+  @IsString()
+  REDIS_URL: string;
+
+  @IsOptional()
+  @IsString()
+  REDIS_PASSWORD?: string;
 }

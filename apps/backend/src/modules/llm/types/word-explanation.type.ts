@@ -1,4 +1,4 @@
-import { Field, ObjectType } from '@nestjs/graphql';
+import { Field, ID, ObjectType } from '@nestjs/graphql';
 
 @ObjectType()
 export class WordExplanation {
@@ -17,4 +17,9 @@ export class WordExplanation {
     description: 'List of synonyms or similar terms for the word',
   })
   synonyms: string[];
+
+  @Field(() => ID, {
+    description: 'Canonical cache key for client-side micro-caching',
+  })
+  cacheKey: string;
 }

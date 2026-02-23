@@ -2,6 +2,7 @@ import { InternalServerErrorException } from '@nestjs/common';
 import axios from 'axios';
 
 import { AppConfig } from '../../app';
+import { CacheService } from '../redis';
 import { LlmService } from './llm.service';
 
 describe(LlmService.name, () => {
@@ -9,60 +10,34 @@ describe(LlmService.name, () => {
   let appConfigs: AppConfig;
   let logger: any;
   let correlationIdService: any;
+  let cacheService: CacheService;
 
   beforeEach(() => {
     appConfigs = {
       OLLAMA_BASE_URL: 'http://ollama',
-    } as AppConfig;
+      OLLAMA_TIMEOUT: '5s',
+      OLLAMA_RETRY_COUNT: 3,
+      OLLAMA_RETRY_DELAY: '100ms',
+      OLLAMA_CACHE_TTL: '1h',
+    } as any;
     logger = {
       error: jest.fn(),
+      log: jest.fn(),
+      warn: jest.fn(),
     };
     correlationIdService = {
       correlationId: 'fd2914ad-4789-4ac2-a7a5-d97c7806294f',
     };
-    uut = new LlmService(appConfigs, logger, correlationIdService);
-  });
-
-  it.each<{ word: any; context: any }>([
-    { word: '', context: 'some context' },
-    { word: 'word', context: '' },
-    { word: null, context: 'my context' },
-    { word: 'some', context: undefined },
-  ])(
-    'should throw an error if word ($word) or context ($context) is empty',
-    async ({ word, context }) => {
-      await expect(uut.explainWord(word, context)).rejects.toThrow(
-        'Word and context must be provided',
-      );
-    },
-  );
-
-  it('should throw an error if context does not include the word', async () => {
-    const word = 'melee';
-    const context = 'I need to analyze the data carefully.';
-
-    await expect(uut.explainWord(word, context)).rejects.toThrow(
-      'Context must include the word to be explained',
-    );
-  });
-
-  it('should throw an error when word is longer than 64 characters', async () => {
-    const word = 'a'.repeat(65);
-    const context = `This is a context that includes the word ${word}.`;
-
-    await expect(uut.explainWord(word, context)).rejects.toThrow(
-      'Word is too long (max 64 characters, 1-3 words (compound/hyphenated terms))',
-    );
-  });
-
-  it('should throw an error when context is longer than 2000 characters', async () => {
-    const word = 'analyze';
-    const context =
-      `This is a very long context that includes the word ${word}. ` +
-      'a'.repeat(2000);
-
-    await expect(uut.explainWord(word, context)).rejects.toThrow(
-      'Context is too long (max 2000 characters, ~300-400 words)',
+    cacheService = {
+      getOrCompute: jest.fn(
+        (_cacheKey: string, compute: () => Promise<any>) => compute(),
+      ),
+    } as any;
+    uut = new LlmService(
+      appConfigs,
+      logger,
+      correlationIdService,
+      cacheService,
     );
   });
 
@@ -82,6 +57,24 @@ describe(LlmService.name, () => {
         '6639cf09-2b91-481e-824a-9f8f6d22d362',
       ),
     );
+  });
+
+  it('should retry 3 times', async () => {
+    const word = 'scrutinize';
+    const context = 'I need to scrutinize the data carefully.';
+    axios.post = jest.fn().mockResolvedValue({
+      data: {
+        response: 'This is not a valid JSON',
+      },
+    });
+
+    try {
+      await uut.explainWord(word, context).catch();
+    } catch {
+      // ignore
+    }
+
+    expect(axios.post).toHaveBeenCalledTimes(4); // initial try + 3 retries
   });
 
   it('should throw an error if the API request fails', async () => {

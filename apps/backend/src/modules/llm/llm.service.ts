@@ -1,21 +1,24 @@
 import type { ConfigType } from '@nestjs/config';
 
 import {
-  BadRequestException,
   Inject,
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
 import axios from 'axios';
-import { isEmpty } from 'class-validator';
+import ms from 'ms';
 import {
   CorrelationIdService,
   CustomLoggerService,
   isNil,
+  retryAsync,
   urlBuilder,
 } from 'nestjs-backend-common';
+import { hostname } from 'os';
 
 import { appConfigs } from '../../app/configs/app.config'; // To prevent circular dependency issues
+import { generateCacheKey } from '../../utils';
+import { CacheService } from '../redis';
 import { WordExplanation } from './types';
 
 @Injectable()
@@ -25,41 +28,127 @@ export class LlmService {
     private readonly appConfig: ConfigType<typeof appConfigs>,
     private readonly logger: CustomLoggerService,
     private readonly correlationIdService: CorrelationIdService,
+    private readonly cacheService: CacheService,
   ) {}
 
   async explainWord(
     word: string,
     context: string,
   ): Promise<WordExplanation> {
-    if (isEmpty(word) || isEmpty(context)) {
-      throw new BadRequestException(
-        'Word and context must be provided',
+    const startTime = Date.now();
+    const cacheKey = generateCacheKey(word, context);
+    const cacheTtlMs = ms(this.appConfig.OLLAMA_CACHE_TTL);
+
+    try {
+      const result = await this.cacheService.getOrCompute(
+        cacheKey,
+        () => this.callOllamaWithRetry(word, context),
+        cacheTtlMs,
       );
+
+      const totalLatency = Date.now() - startTime;
+
+      // Log LLM observability
+      this.logger.log(`LLM call completed for word "${word}"`, {
+        context: LlmService.name,
+        correlationId: this.correlationIdService.correlationId,
+        cacheKey,
+        word,
+        instanceId: hostname(),
+        latencyMs: totalLatency,
+        telemetryOf: 'LlmObservability',
+      });
+
+      return {
+        ...result,
+        cacheKey,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to explain word "${word}": ${error}`,
+        {
+          context: LlmService.name,
+          correlationId: this.correlationIdService.correlationId,
+          cacheKey,
+          word,
+          error,
+        },
+      );
+
+      throw error;
     }
-    if (context.includes(word) === false) {
-      throw new BadRequestException(
-        'Context must include the word to be explained',
+  }
+
+  private async callOllamaWithRetry(
+    word: string,
+    context: string,
+  ): Promise<Omit<WordExplanation, 'cacheKey'>> {
+    const retryCount = this.appConfig.OLLAMA_RETRY_COUNT;
+    const retryDelayMs = ms(this.appConfig.OLLAMA_RETRY_DELAY);
+    const timeoutMs = ms(this.appConfig.OLLAMA_TIMEOUT);
+
+    const [error, result] = await retryAsync<
+      Omit<WordExplanation, 'cacheKey'>
+    >(
+      async ({ index }) => {
+        this.logger.log(
+          `Calling Ollama for word "${word}" (attempt ${index + 1}/${retryCount + 1})`,
+          {
+            context: LlmService.name,
+            correlationId: this.correlationIdService.correlationId,
+            attemptIndex: index,
+            word,
+          },
+        );
+
+        return this.callOllama(word, context, timeoutMs);
+      },
+      {
+        retry: retryCount,
+        delay: retryDelayMs,
+        error: ({ index, error: retryError }) => {
+          this.logger.warn(
+            `Retry ${index + 1}/${retryCount} failed for word "${word}": ${retryError}`,
+            {
+              context: LlmService.name,
+              correlationId: this.correlationIdService.correlationId,
+              attemptIndex: index,
+              word,
+              error: retryError,
+            },
+          );
+        },
+      },
+    );
+
+    if (error) {
+      this.logger.error(
+        `All retry attempts exhausted for word "${word}"`,
+        {
+          context: LlmService.name,
+          correlationId: this.correlationIdService.correlationId,
+          word,
+          error,
+        },
       );
-    }
-    if (word.length > 64) {
-      throw new BadRequestException(
-        'Word is too long (max 64 characters, 1-3 words (compound/hyphenated terms))',
-      );
-    }
-    if (context.length > 2000) {
-      throw new BadRequestException(
-        'Context is too long (max 2000 characters, ~300-400 words)',
-      );
+      throw error;
     }
 
+    return result;
+  }
+
+  private async callOllama(
+    word: string,
+    context: string,
+    timeoutMs: number,
+  ): Promise<Omit<WordExplanation, 'cacheKey'>> {
     const url = urlBuilder(
       this.appConfig.OLLAMA_BASE_URL,
       'api',
       'generate',
     );
 
-    try {
-      const prompt = `Analyze the word "${word}" in this context: "${context}".
+    const prompt = `Analyze the word "${word}" in this context: "${context}".
 
 Return ONLY a valid JSON object (no markdown, no extra text) with EXACTLY these keys:
 - "meaning": string (brief definition in this context)
@@ -72,6 +161,7 @@ Rules:
 - Do not include trailing commas.
 - Ensure the JSON is complete and ends with a closing curly brace.\n`;
 
+    try {
       const response = await axios.post(
         url,
         {
@@ -81,16 +171,20 @@ Rules:
           stream: false,
         },
         {
-          timeout: 30000,
+          timeout: timeoutMs,
         },
       );
+
       const generatedText: string = response.data.response;
       const parsed = this.parseJsonObject(generatedText);
 
       if (isNil(parsed)) {
         this.logger.error(
           `Failed to parse JSON response: ${generatedText}`,
-          { correlationId: this.correlationIdService.correlationId },
+          {
+            context: LlmService.name,
+            correlationId: this.correlationIdService.correlationId,
+          },
         );
         throw new InternalServerErrorException(
           '6639cf09-2b91-481e-824a-9f8f6d22d362',

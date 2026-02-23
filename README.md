@@ -34,6 +34,7 @@ Then open:
 - Frontend: http://localhost:4200
 - GraphQL API: http://localhost:3000/graphql
 - Open WebUI: http://localhost:8080/
+- RedisInsight: http://localhost:5540/
 
 ## Running Tests
 
@@ -63,9 +64,10 @@ smart-novel/
 
 ## 🛠️ Technology Stack
 
-- Backend: NestJS, GraphQL, TypeScript.
-- LLM: Ollama.
-- Frontend: ReactJS, Vite, TypeScript
+- **Backend**: NestJS, GraphQL, TypeScript, Cache (Redis).
+- **LLM**: Ollama (llama3.2:1b).
+- **Frontend**: ReactJS, Vite, TypeScript.
+- **Storage**: MinIO.
 
 ## 🗂️ Data Structure
 
