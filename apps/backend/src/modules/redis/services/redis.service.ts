@@ -23,19 +23,6 @@ export class RedisService implements OnModuleDestroy {
     this.client = new Redis(this.options.redisUrl, {
       password: this.options.redisPassword,
       lazyConnect: false,
-      retryStrategy: (times: number) => {
-        if (times > 5) {
-          this.logger.error(
-            'Redis connection failed after 5 retries. Exiting application.',
-            {
-              context: RedisService.name,
-            },
-          );
-          return null;
-        }
-        // Retry delay: exponential backoff (1s, 2s, 4s, 8s, 16s)
-        return Math.min(times * 1000, 3000);
-      },
     });
 
     this.client.on('connect', () => {
@@ -45,10 +32,6 @@ export class RedisService implements OnModuleDestroy {
     });
 
     this.client.on('error', (error: Error) => {
-      if (error.message.includes('ECONNREFUSED')) {
-        throw new Error('Could not connect to Redis.');
-      }
-
       this.logger.error(`Redis client error: ${error.message}`, {
         context: RedisService.name,
         error,
