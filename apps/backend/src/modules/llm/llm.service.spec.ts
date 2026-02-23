@@ -3,6 +3,7 @@ import axios from 'axios';
 
 import { AppConfig } from '../../app';
 import { CacheService } from '../redis';
+import { ExplainWordPromptResponse } from './llm.interface';
 import { LlmService } from './llm.service';
 
 describe(LlmService.name, () => {
@@ -10,7 +11,7 @@ describe(LlmService.name, () => {
   let appConfigs: AppConfig;
   let logger: any;
   let correlationIdService: any;
-  let cacheService: CacheService;
+  let cacheService: CacheService<ExplainWordPromptResponse>;
 
   beforeEach(() => {
     appConfigs = {
@@ -30,9 +31,17 @@ describe(LlmService.name, () => {
     };
     cacheService = {
       getOrCompute: jest.fn(
-        (_cacheKey: string, compute: () => Promise<any>) => compute(),
+        async (_cacheKey: string, compute: () => Promise<any>) => {
+          const data = await compute();
+          return {
+            data,
+            cacheHit: false,
+            coalesced: false,
+          };
+        },
       ),
     } as any;
+
     uut = new LlmService(
       appConfigs,
       logger,

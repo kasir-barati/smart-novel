@@ -41,12 +41,12 @@ export class LlmService {
     const cacheTtlMs = ms(this.appConfig.OLLAMA_CACHE_TTL);
 
     try {
-      const result = await this.cacheService.getOrCompute(
-        cacheKey,
-        () => this.callOllamaWithRetry(word, context),
-        cacheTtlMs,
-      );
-
+      const { data, cacheHit, coalesced } =
+        await this.cacheService.getOrCompute(
+          cacheKey,
+          () => this.callOllamaWithRetry(word, context),
+          cacheTtlMs,
+        );
       const totalLatency = Date.now() - startTime;
 
       // Log LLM observability
@@ -57,11 +57,13 @@ export class LlmService {
         word,
         instanceId: hostname(),
         latencyMs: totalLatency,
+        cacheHit,
+        coalesced,
         telemetryOf: 'LlmObservability',
       });
 
       return {
-        ...result,
+        ...data,
         cacheKey,
       };
     } catch (error) {
@@ -84,41 +86,17 @@ export class LlmService {
     word: string,
     context: string,
   ): Promise<ExplainWordPromptResponse> {
-    const retryCount = this.appConfig.OLLAMA_RETRY_COUNT;
-    const retryDelayMs = ms(this.appConfig.OLLAMA_RETRY_DELAY);
-    const timeoutMs = ms(this.appConfig.OLLAMA_TIMEOUT);
-
     const [error, result] =
       await retryAsync<ExplainWordPromptResponse>(
-        async ({ index }) => {
-          this.logger.log(
-            `Calling Ollama for word "${word}" (attempt ${index + 1}/${retryCount + 1})`,
-            {
-              context: LlmService.name,
-              correlationId: this.correlationIdService.correlationId,
-              attemptIndex: index,
-              word,
-            },
-          );
-
-          return this.callOllama(word, context, timeoutMs);
-        },
+        () =>
+          this.callOllama(
+            word,
+            context,
+            ms(this.appConfig.OLLAMA_TIMEOUT),
+          ),
         {
-          retry: retryCount,
-          delay: retryDelayMs,
-          error: ({ index, error: retryError }) => {
-            this.logger.warn(
-              `Retry ${index + 1}/${retryCount} failed for word "${word}": ${retryError}`,
-              {
-                context: LlmService.name,
-                correlationId:
-                  this.correlationIdService.correlationId,
-                attemptIndex: index,
-                word,
-                error: retryError,
-              },
-            );
-          },
+          retry: this.appConfig.OLLAMA_RETRY_COUNT,
+          delay: ms(this.appConfig.OLLAMA_RETRY_DELAY),
         },
       );
 
@@ -128,7 +106,6 @@ export class LlmService {
         {
           context: LlmService.name,
           correlationId: this.correlationIdService.correlationId,
-          word,
           error,
         },
       );

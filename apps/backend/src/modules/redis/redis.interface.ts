@@ -10,3 +10,11 @@ export interface CachedValue<T> {
   data: T;
   metadata: CacheMetadata;
 }
+export interface CacheResult<T> {
+  data: T;
+  cacheHit: boolean;
+  /**
+   * @description Indicates whether this result was reused from another request that was already in progress.
+   */
+  coalesced: boolean;
+}

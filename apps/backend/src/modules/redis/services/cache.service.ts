@@ -1,48 +1,53 @@
 import { Injectable } from '@nestjs/common';
+import {
+  CorrelationIdService,
+  CustomLoggerService,
+} from 'nestjs-backend-common';
 import { hostname } from 'os';
 
-import { CachedValue } from '../redis.interface';
+import { CachedValue, CacheResult } from '../redis.interface';
 import { RedisService } from './redis.service';
 
-// TODO: Refactor this!
 @Injectable()
 export class CacheService<T> {
-  private readonly inFlightRequests = new Map<string, Promise<T>>();
+  private readonly inFlightRequests = new Map<
+    string,
+    Promise<CacheResult<T>>
+  >();
 
-  constructor(private readonly redisService: RedisService) {}
+  constructor(
+    private readonly redisService: RedisService,
+    private readonly logger: CustomLoggerService,
+    private readonly correlationIdService: CorrelationIdService,
+  ) {}
 
   /**
    * @description
-   * Get value from cache or compute it using the provided function.
-   * Implements single-flight pattern to prevent duplicate computations.
+   * Get value from cache or compute it using the provided function. Implements single-flight pattern to prevent duplicate computations.
    */
   async getOrCompute(
     key: string,
     computeFn: () => Promise<T>,
     ttlMs: number,
-  ): Promise<T> {
-    // 1. Check Redis cache first
-    try {
-      const cached = await this.redisService.get(key);
+  ): Promise<CacheResult<T>> {
+    const result = await this.getFromCache(key);
 
-      if (cached) {
-        const parsedCache = JSON.parse(cached) as CachedValue<T>;
-
-        return parsedCache.data;
-      }
-    } catch {
-      // Continue to compute if cache read fails
+    if (result) {
+      return result;
     }
 
-    // 2. Check in-flight requests (single-flight coalescing)
     if (this.inFlightRequests.has(key)) {
-      return this.inFlightRequests.get(key) as Promise<T>;
+      const previousRequestResult =
+        await this.inFlightRequests.get(key)!;
+
+      return {
+        ...previousRequestResult,
+        coalesced: true,
+      };
     }
 
-    // 3. Execute compute function with single-flight protection
     const promise = computeFn()
       .then(async (result) => {
-        // Store in Redis with metadata
         const cacheValue: CachedValue<T> = {
           data: result,
           metadata: {
@@ -61,18 +66,27 @@ export class CacheService<T> {
           // Ignore storing data in cache
         }
 
-        // Clean up in-flight request
         this.inFlightRequests.delete(key);
 
-        return result;
+        return {
+          data: result,
+          cacheHit: false,
+          coalesced: false,
+        };
       })
       .catch((error) => {
-        // Clean up in-flight request on error
+        this.logger.error(
+          `Failed to compute/cache value for "${key}"`,
+          {
+            context: CacheService.name,
+            correlationId: this.correlationIdService.correlationId,
+            error,
+          },
+        );
         this.inFlightRequests.delete(key);
         throw error;
       });
 
-    // Register in-flight request
     this.inFlightRequests.set(key, promise);
 
     return promise;
@@ -81,5 +95,35 @@ export class CacheService<T> {
   async invalidate(key: string): Promise<void> {
     await this.redisService.del(key);
     this.inFlightRequests.delete(key);
+  }
+
+  private async getFromCache(
+    key: string,
+  ): Promise<CacheResult<T> | null> {
+    try {
+      const cached = await this.redisService.get(key);
+
+      if (!cached) {
+        return null;
+      }
+
+      const parsedCache: CachedValue<T> = JSON.parse(cached);
+
+      return {
+        data: parsedCache.data,
+        cacheHit: true,
+        coalesced: false,
+      };
+    } catch {
+      this.logger.error(
+        `Failed to get/parse cache for key "${key}"`,
+        {
+          context: CacheService.name,
+          correlationId: this.correlationIdService.correlationId,
+        },
+      );
+      // Ignore cache errors
+    }
+    return null;
   }
 }

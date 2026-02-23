@@ -7,7 +7,7 @@ import { CacheService } from './cache.service';
 import { RedisService } from './redis.service';
 
 describe(CacheService.name, () => {
-  let uut: CacheService;
+  let uut: CacheService<string>;
   let redisService: jest.Mocked<RedisService>;
   let logger: CustomLoggerService;
   let correlationIdService: CorrelationIdService;
@@ -17,7 +17,11 @@ describe(CacheService.name, () => {
     logger = { log: jest.fn() } as any;
     correlationIdService = {} as CorrelationIdService;
 
-    uut = new CacheService(redisService);
+    uut = new CacheService(
+      redisService,
+      logger,
+      correlationIdService,
+    );
   });
 
   it('should return invalidate the cache key', async () => {
@@ -45,7 +49,11 @@ describe(CacheService.name, () => {
       1000,
     );
 
-    expect(result).toBe('cache me');
+    expect(result).toEqual({
+      data: 'cache me',
+      cacheHit: true,
+      coalesced: false,
+    });
   });
 
   it('should compute and cache the value if not in cache', async () => {
@@ -61,7 +69,11 @@ describe(CacheService.name, () => {
 
     expect(computeFn).toHaveBeenCalled();
     expect(redisService.set).toHaveBeenCalledTimes(1);
-    expect(result).toBe('computed value');
+    expect(result).toEqual({
+      data: 'computed value',
+      cacheHit: false,
+      coalesced: false,
+    });
     const [cacheKey, serializedValue, ttlSeconds] =
       redisService.set.mock.calls[0];
     expect(cacheKey).toBe('my:cache:key');
@@ -73,5 +85,48 @@ describe(CacheService.name, () => {
         instanceId: expect.any(String),
       }),
     });
+  });
+
+  it('should coalesce concurrent requests for the same key', async () => {
+    redisService.get = jest.fn().mockResolvedValue(null);
+    redisService.set = jest.fn().mockResolvedValue('OK');
+    let resolveCompute: (value: string) => void;
+    const computePromise = new Promise<string>((resolve) => {
+      resolveCompute = resolve;
+    });
+    const computeFn = jest.fn().mockReturnValue(computePromise);
+
+    // Start two concurrent requests
+    const request1 = uut.getOrCompute(
+      'my:cache:key',
+      computeFn,
+      1000,
+    );
+    const request2 = uut.getOrCompute(
+      'my:cache:key',
+      computeFn,
+      1000,
+    );
+    // Resolve the compute function
+    resolveCompute!('computed value');
+    const [result1, result2] = await Promise.all([
+      request1,
+      request2,
+    ]);
+
+    // First request should not be coalesced
+    expect(result1).toEqual({
+      data: 'computed value',
+      cacheHit: false,
+      coalesced: false,
+    });
+    // Second request should be coalesced
+    expect(result2).toEqual({
+      data: 'computed value',
+      cacheHit: false,
+      coalesced: true,
+    });
+    // Compute function should only be called once
+    expect(computeFn).toHaveBeenCalledTimes(1);
   });
 });
