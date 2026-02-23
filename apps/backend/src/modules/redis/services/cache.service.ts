@@ -10,6 +10,14 @@ import { RedisService } from './redis.service';
 
 @Injectable()
 export class CacheService<T> {
+  /**
+   * Tracks in-flight computations by cache key for local single-flight coalescing.
+   *
+   * Scope: per Node.js process only (in-memory map).
+   * In multi-instance deployments, different app instances do not share this map,
+   * so the same cache miss may still trigger duplicate LLM calls across instances
+   * until one instance writes the result to Redis.
+   */
   private readonly inFlightRequests = new Map<
     string,
     Promise<CacheResult<T>>
