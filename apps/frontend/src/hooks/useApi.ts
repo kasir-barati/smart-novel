@@ -4,6 +4,13 @@ import { useMemo } from 'react';
 import { showApiError } from '../utils/notification';
 
 const responseErrorHandler = (error: unknown) => {
+  if (
+    axios.isCancel(error) ||
+    (error as { code?: string })?.code === 'ERR_CANCELED'
+  ) {
+    return Promise.reject(error);
+  }
+
   showApiError();
   return Promise.reject(error);
 };

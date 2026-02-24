@@ -57,6 +57,7 @@ export interface StringListFilterInput {
 }
 
 export interface WordExplanation {
+  cacheKey: string;
   antonyms: string[];
   meaning: string;
   simplifiedExplanation: string;
