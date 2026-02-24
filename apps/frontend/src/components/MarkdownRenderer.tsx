@@ -489,6 +489,18 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
     };
   })();
 
+  const underlineStyle = (() => {
+    if (!activeTarget) {
+      return { left: 0, top: 0, width: 0 };
+    }
+
+    return {
+      left: Math.max(8, activeTarget.rect.left),
+      top: Math.max(8, activeTarget.rect.bottom + 1),
+      width: Math.max(18, activeTarget.rect.width),
+    };
+  })();
+
   const renderExplainContent = () => (
     <div aria-live="polite" className="space-y-3">
       {loading ? (
@@ -537,7 +549,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
       <div
         ref={containerRef}
         onClick={handlePowerClick}
-        className="prose prose-slate max-w-none dark:prose-invert prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:text-base prose-p:leading-7 prose-a:text-blue-600 hover:prose-a:text-blue-500 dark:prose-a:text-blue-400 dark:hover:prose-a:text-blue-300"
+        className="prose prose-slate max-w-none selection:bg-transparent selection:text-inherit dark:prose-invert prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:text-base prose-p:leading-7 prose-a:text-blue-600 hover:prose-a:text-blue-500 dark:prose-a:text-blue-400 dark:hover:prose-a:text-blue-300"
       >
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
@@ -546,6 +558,14 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
           {content}
         </ReactMarkdown>
       </div>
+
+      {(showBubble || dialogOpen) && activeTarget ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed z-30 h-[3px] rounded-full bg-gradient-to-r from-pink-500 via-yellow-400 to-blue-500"
+          style={underlineStyle}
+        />
+      ) : null}
 
       {showBubble && activeTarget ? (
         <button
