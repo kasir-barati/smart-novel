@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -156,7 +150,6 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const bubbleButtonRef = useRef<HTMLButtonElement | null>(null);
   const selectionDebounceRef = useRef<number | null>(null);
-  const activeTargetRef = useRef<SelectionTarget | null>(null);
 
   const [isMobile, setIsMobile] = useState(
     () => window.matchMedia('(max-width: 767px)').matches,
@@ -164,69 +157,75 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
   const [showBubble, setShowBubble] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [activeTarget, setActiveTarget] =
+    useState<SelectionTarget | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(
     null,
   );
   const [result, setResult] = useState<WordExplanation | null>(null);
 
-  const locale = useMemo(() => navigator.language || 'en', []);
+  const locale = navigator.language || 'en';
 
   const clearSelectionUi = useCallback(() => {
     setShowBubble(false);
-    activeTargetRef.current = null;
+    setActiveTarget(null);
   }, []);
 
-  const requestExplanation = useCallback(async () => {
-    const target = activeTargetRef.current;
-    if (!target) {
-      return;
-    }
+  const requestExplanation = useCallback(
+    async (target: SelectionTarget) => {
+      setLoading(true);
+      setErrorMessage(null);
 
-    setLoading(true);
-    setErrorMessage(null);
+      const explainResult = await explain(api.post, {
+        word: target.word,
+        context: target.context,
+      });
 
-    const explainResult = await explain(api.post, {
-      word: target.word,
-      context: target.context,
-    });
-
-    if (explainResult.rateLimited) {
-      setLoading(false);
-      showInfo(
-        'Explain requests are temporarily rate-limited. Try again in a moment.',
-      );
-      return;
-    }
-
-    if (explainResult.error) {
-      setLoading(false);
-      if (explainResult.error === 'Request cancelled.') {
+      if (explainResult.rateLimited) {
+        setLoading(false);
+        showInfo(
+          'Explain requests are temporarily rate-limited. Try again in a moment.',
+        );
         return;
       }
 
-      setErrorMessage(explainResult.error);
-      return;
-    }
+      if (explainResult.error) {
+        setLoading(false);
+        if (explainResult.error === 'Request cancelled.') {
+          return;
+        }
 
-    setResult(explainResult.data ?? null);
-    setLoading(false);
-  }, [api.post, explain]);
+        setErrorMessage(explainResult.error);
+        return;
+      }
 
-  const openDialog = useCallback(() => {
-    setDialogOpen(true);
-    setResult(null);
-    void requestExplanation();
-  }, [requestExplanation]);
+      setResult(explainResult.data ?? null);
+      setLoading(false);
+    },
+    [api.post, explain],
+  );
+
+  const openDialog = useCallback(
+    (target: SelectionTarget) => {
+      setDialogOpen(true);
+      setResult(null);
+      void requestExplanation(target);
+    },
+    [requestExplanation],
+  );
 
   const closeDialog = useCallback(() => {
     setDialogOpen(false);
   }, []);
 
   const setTargetFromRange = useCallback(
-    (range: Range, shouldSnapWordBoundary: boolean) => {
+    (
+      range: Range,
+      shouldSnapWordBoundary: boolean,
+    ): SelectionTarget | null => {
       const container = containerRef.current;
       if (!container) {
-        return false;
+        return null;
       }
 
       if (
@@ -235,11 +234,11 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
           container,
         )
       ) {
-        return false;
+        return null;
       }
 
       if (isInSkipZone(range.commonAncestorContainer, container)) {
-        return false;
+        return null;
       }
 
       let resolvedRange = range;
@@ -263,7 +262,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
       );
 
       if (!resolvedWord) {
-        return false;
+        return null;
       }
 
       const contextBlock = getNearestContextBlock(
@@ -277,17 +276,15 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
       );
 
       if (!context) {
-        return false;
+        return null;
       }
 
       const rect = getSelectionRect(resolvedRange);
-      activeTargetRef.current = {
+      return {
         word: resolvedWord,
         context,
         rect,
       };
-
-      return true;
     },
     [locale],
   );
@@ -305,13 +302,14 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
     }
 
     const range = selection.getRangeAt(0);
-    const hasTarget = setTargetFromRange(range, isMobile);
+    const target = setTargetFromRange(range, isMobile);
 
-    if (!hasTarget) {
+    if (!target) {
       clearSelectionUi();
       return;
     }
 
+    setActiveTarget(target);
     setShowBubble(true);
   }, [clearSelectionUi, isMobile, setTargetFromRange]);
 
@@ -359,7 +357,8 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
       const wordRange = snapRangeToWord(caretRange, locale);
       const resolvedRange = wordRange ?? caretRange;
 
-      if (!setTargetFromRange(resolvedRange, true)) {
+      const targetData = setTargetFromRange(resolvedRange, true);
+      if (!targetData) {
         return;
       }
 
@@ -371,7 +370,8 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
 
       event.preventDefault();
       setShowBubble(false);
-      openDialog();
+      setActiveTarget(targetData);
+      openDialog(targetData);
     },
     [isMobile, locale, openDialog, setTargetFromRange],
   );
@@ -452,9 +452,8 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
     };
   }, [closeDialog, dialogOpen]);
 
-  const bubbleStyle = useMemo(() => {
-    const target = activeTargetRef.current;
-    if (!target) {
+  const bubbleStyle = (() => {
+    if (!activeTarget) {
       return { left: 0, top: 0 };
     }
 
@@ -463,21 +462,20 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
         12,
         Math.min(
           window.innerWidth - 88,
-          target.rect.left + target.rect.width / 2 - 36,
+          activeTarget.rect.left + activeTarget.rect.width / 2 - 36,
         ),
       ),
-      top: Math.max(12, target.rect.top - 44),
+      top: Math.max(12, activeTarget.rect.top - 44),
     };
-  }, [showBubble]);
+  })();
 
-  const popoverStyle = useMemo(() => {
-    const target = activeTargetRef.current;
-    if (!target) {
+  const popoverStyle = (() => {
+    if (!activeTarget) {
       return { left: 16, top: 16 };
     }
 
-    const desiredTop = target.rect.bottom + 10;
-    const desiredLeft = target.rect.left;
+    const desiredTop = activeTarget.rect.bottom + 10;
+    const desiredLeft = activeTarget.rect.left;
 
     return {
       left: Math.max(
@@ -489,7 +487,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
         Math.min(window.innerHeight - 260, desiredTop),
       ),
     };
-  }, [dialogOpen]);
+  })();
 
   const renderExplainContent = () => (
     <div aria-live="polite" className="space-y-3">
@@ -549,19 +547,19 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
         </ReactMarkdown>
       </div>
 
-      {showBubble && activeTargetRef.current ? (
+      {showBubble && activeTarget ? (
         <button
           ref={bubbleButtonRef}
           type="button"
           onClick={() => {
             setShowBubble(false);
-            openDialog();
+            openDialog(activeTarget);
           }}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault();
               setShowBubble(false);
-              openDialog();
+              openDialog(activeTarget);
             }
           }}
           className="fixed z-40 rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-md transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
@@ -589,7 +587,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
                   id="word-explain-title"
                   className="text-base font-semibold text-gray-900 dark:text-gray-100"
                 >
-                  Explain “{activeTargetRef.current?.word}”
+                  Explain “{activeTarget?.word}”
                 </h3>
                 <button
                   type="button"
@@ -617,7 +615,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
                 id="word-explain-title"
                 className="text-base font-semibold text-gray-900 dark:text-gray-100"
               >
-                Explain “{activeTargetRef.current?.word}”
+                Explain “{activeTarget?.word}”
               </h3>
               <button
                 type="button"
