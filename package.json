@@ -33,6 +33,18 @@
     "url": "https://github.com/kasir-barati/smart-novel/issues"
   },
   "homepage": "https://github.com/kasir-barati/smart-novel",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "onFail": "error",
+      "version": ">=24.13"
+    },
+    "packageManager": {
+      "name": "npm",
+      "onFail": "error",
+      "version": ">=11.6.2"
+    }
+  },
   "packageManager": "npm@11.10.1",
   "engines": {
     "node": "v24.13.0"
