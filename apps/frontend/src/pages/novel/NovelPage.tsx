@@ -1,6 +1,6 @@
 import { useStore } from '@nanostores/react';
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useCallback, useEffect } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { useApi } from '../../hooks/useApi';
@@ -13,17 +13,48 @@ import { $novelState, fetchNovel } from './novel.store';
 
 export function NovelPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { api } = useApi();
   const novelState = useStore($novelState);
   const chapterState = useStore($chapterState);
   const { markAsRead } = useReadChapters();
-  const [showChapterList, setShowChapterList] = useState(true);
+  const requestedChapterId = searchParams.get('chapter');
+  const showChapterList = !requestedChapterId;
+
+  const setChapterInUrl = useCallback(
+    (chapterId: string | null) => {
+      const nextSearchParams = new URLSearchParams(searchParams);
+
+      if (chapterId) {
+        nextSearchParams.set('chapter', chapterId);
+      } else {
+        nextSearchParams.delete('chapter');
+      }
+
+      setSearchParams(nextSearchParams, { replace: true });
+    },
+    [searchParams, setSearchParams],
+  );
 
   useEffect(() => {
     if (id) {
       fetchNovel(api, id);
     }
   }, [id, api]);
+
+  useEffect(() => {
+    if (!id) {
+      return;
+    }
+
+    if (!requestedChapterId) {
+      return;
+    }
+
+    if (chapterState.currentChapterId !== requestedChapterId) {
+      fetchChapter(api, id, requestedChapterId);
+    }
+  }, [api, chapterState.currentChapterId, id, requestedChapterId]);
 
   useEffect(() => {
     if (chapterState.currentChapterId) {
@@ -33,10 +64,7 @@ export function NovelPage() {
   }, [chapterState.currentChapterId, markAsRead]);
 
   const handleChapterClick = (chapterId: string) => {
-    setShowChapterList(false);
-    if (id) {
-      fetchChapter(api, id, chapterId);
-    }
+    setChapterInUrl(chapterId);
   };
 
   const handleReadFirstChapter = () => {
@@ -55,8 +83,8 @@ export function NovelPage() {
     const currentChapter = chapterState.currentChapterId
       ? chapterState.chapters.get(chapterState.currentChapterId)
       : undefined;
-    if (currentChapter?.previous?.id && id) {
-      fetchChapter(api, id, currentChapter.previous.id);
+    if (currentChapter?.previous?.id) {
+      setChapterInUrl(currentChapter.previous.id);
     }
   };
 
@@ -64,8 +92,8 @@ export function NovelPage() {
     const currentChapter = chapterState.currentChapterId
       ? chapterState.chapters.get(chapterState.currentChapterId)
       : undefined;
-    if (currentChapter?.next?.id && id) {
-      fetchChapter(api, id, currentChapter.next.id);
+    if (currentChapter?.next?.id) {
+      setChapterInUrl(currentChapter.next.id);
     }
   };
 
@@ -191,7 +219,9 @@ export function NovelPage() {
           <>
             {/* Back Button */}
             <button
-              onClick={() => setShowChapterList(true)}
+              onClick={() => {
+                setChapterInUrl(null);
+              }}
               className="cursor-pointer mb-4 text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
             >
               ← Back to Novel
