@@ -18,4 +18,9 @@ export interface AppConfig {
   OLLAMA_RETRY_DELAY: StringValue;
   REDIS_URL: string;
   REDIS_PASSWORD?: string;
+  POSTGRES_HOST: string;
+  POSTGRES_PORT: number;
+  POSTGRES_DB: string;
+  POSTGRES_USER: string;
+  POSTGRES_PASSWORD: string;
 }

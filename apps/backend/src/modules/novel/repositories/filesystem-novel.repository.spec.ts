@@ -153,10 +153,10 @@ describe(FileSystemNovelRepository.name, () => {
       expect(stat).toHaveBeenCalledWith(chapterPath);
       expect(result).toEqual({
         content: '# Content',
-        createdAt,
+        createdAt: createdAt.toISOString(),
         id: chapterId,
         title: 'Chapter One',
-        updatedAt,
+        updatedAt: updatedAt.toISOString(),
         novelId: 'novel-1',
       });
     });

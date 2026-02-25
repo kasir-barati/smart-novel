@@ -95,4 +95,23 @@ class EnvironmentVariables implements AppConfig {
   @IsOptional()
   @IsString()
   REDIS_PASSWORD?: string;
+
+  @IsNotEmpty()
+  @IsString()
+  POSTGRES_HOST: string;
+
+  @IsInt()
+  POSTGRES_PORT: number;
+
+  @IsNotEmpty()
+  @IsString()
+  POSTGRES_DB: string;
+
+  @IsNotEmpty()
+  @IsString()
+  POSTGRES_USER: string;
+
+  @IsNotEmpty()
+  @IsString()
+  POSTGRES_PASSWORD: string;
 }

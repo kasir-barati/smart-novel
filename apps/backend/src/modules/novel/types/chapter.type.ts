@@ -21,10 +21,10 @@ export class Chapter {
   content: string;
 
   @Field({ description: 'The creation date of the chapter' })
-  createdAt: Date;
+  createdAt: string;
 
   @Field({ description: 'The last update date of the chapter' })
-  updatedAt: Date;
+  updatedAt: string;
 
   @Field(() => Chapter, {
     nullable: true,

@@ -3,6 +3,7 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   CorrelationIdModule,
   LoggerModule,
@@ -15,6 +16,7 @@ import {
   appConfigs,
   LoggerModuleConfig,
   RedisModuleConfig,
+  TypeOrmModuleConfig,
 } from './configs';
 
 @Module({
@@ -39,6 +41,10 @@ import {
       global: true,
       inject: [ConfigService],
       useClass: RedisModuleConfig,
+    }),
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useClass: TypeOrmModuleConfig,
     }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,

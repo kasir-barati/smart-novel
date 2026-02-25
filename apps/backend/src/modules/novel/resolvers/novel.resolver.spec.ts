@@ -26,8 +26,9 @@ describe(NovelResolver.name, () => {
         name: 'Novel One',
         state: NovelState.ONGOING,
       };
-      const updatedAt = new Date('2026-02-20T10:20:30.000Z');
-
+      const updatedAt = new Date(
+        '2026-02-20T10:20:30.000Z',
+      ).toISOString();
       novelService.getChapter.mockResolvedValue({
         content: '# Chapter 2',
         createdAt: new Date('2026-02-19T00:00:00.000Z'),
@@ -98,10 +99,10 @@ describe(NovelResolver.name, () => {
       };
       const chapter = {
         content: '# Chapter 2',
-        createdAt: new Date('2026-02-19T00:00:00.000Z'),
+        createdAt: new Date('2026-02-19T00:00:00.000Z').toISOString(),
         id: 'chapter2.md',
         novelId: 'novel-1',
-        updatedAt: new Date('2026-02-20T10:20:30.000Z'),
+        updatedAt: new Date('2026-02-20T10:20:30.000Z').toISOString(),
       };
       novelService.getChapter.mockResolvedValue(chapter);
 
@@ -145,10 +146,10 @@ describe(NovelResolver.name, () => {
       };
       const chapter = {
         content: '# Chapter 1',
-        createdAt: new Date('2026-02-18T00:00:00.000Z'),
+        createdAt: new Date('2026-02-18T00:00:00.000Z').toISOString(),
         id: 'chapter1.md',
         novelId: 'novel-1',
-        updatedAt: new Date('2026-02-18T00:00:00.000Z'),
+        updatedAt: new Date('2026-02-18T00:00:00.000Z').toISOString(),
       };
       novelService.getChapter.mockResolvedValue(chapter);
 

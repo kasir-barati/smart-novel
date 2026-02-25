@@ -1,4 +1,7 @@
+// @ts-check
+
 import nx from '@nx/eslint-plugin';
+import importPlugin from 'eslint-plugin-import';
 import perfectionist from 'eslint-plugin-perfectionist';
 import unusedImports from 'eslint-plugin-unused-imports';
 
@@ -12,6 +15,7 @@ export default [
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
     plugins: {
+      import: importPlugin,
       perfectionist,
       'unused-imports': unusedImports,
     },
@@ -29,6 +33,7 @@ export default [
           ],
         },
       ],
+      'import/no-duplicates': ['error', { 'prefer-inline': true }],
       'perfectionist/sort-imports': [
         'error',
         {

@@ -8,8 +8,7 @@ import {
 import { join } from 'path';
 
 import { NovelDetails } from '../interfaces';
-import { Chapter } from '../types/chapter.type';
-import { Novel } from '../types/novel.type';
+import { Chapter, Novel } from '../types';
 import { INovelRepository } from './novel.repository.interface';
 
 const naturalFilenameCollator = new Intl.Collator(undefined, {
@@ -67,11 +66,11 @@ export class FileSystemNovelRepository implements INovelRepository {
 
       return {
         content: parsed.content,
-        createdAt: stats.birthtime,
+        createdAt: stats.birthtime.toISOString(),
         id: chapterId,
         novelId,
         title: parsed.data.title || null,
-        updatedAt: stats.mtime,
+        updatedAt: stats.mtime.toISOString(),
       };
     } catch (error) {
       this.logger.error(

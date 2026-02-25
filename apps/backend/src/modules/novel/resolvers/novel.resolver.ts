@@ -93,7 +93,7 @@ export class NovelResolver {
       lastChapterId,
     );
 
-    return lastChapter ? lastChapter.updatedAt.toISOString() : null;
+    return lastChapter ? lastChapter.updatedAt : null;
   }
 
   @ResolveField(() => Chapter, {
