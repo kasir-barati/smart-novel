@@ -1,5 +1,6 @@
 services:
-  migrate: &migrate
+  # You'd do something similar to this in CI/CD pipeline to apply your migrations and seed your database before your app starts (does not matter if it is QA, prod, or dev env).
+  init-postgres: &init-postgres
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
@@ -8,7 +9,7 @@ services:
       - dev
     env_file:
       - .env
-    command: npx nx prisma:db:push backend
+    command: npx nx prisma:db:push backend && npx nx prisma:seed backend
     depends_on:
       postgres:
         condition: service_healthy
@@ -35,7 +36,7 @@ services:
       - ./apps/backend/data:/data
       - /app/node_modules
     depends_on:
-      migrate:
+      init-postgres:
         condition: service_completed_successfully
       postgres:
         condition: service_healthy

@@ -84,6 +84,14 @@
         "command": "npx prisma db push --accept-data-loss",
         "cwd": "{projectRoot}"
       }
+    },
+    "prisma:seed": {
+      "executor": "nx:run-commands",
+      "description": "Seed the database with initial data",
+      "options": {
+        "command": "npx prisma db seed",
+        "cwd": "{projectRoot}"
+      }
     }
   }
 }

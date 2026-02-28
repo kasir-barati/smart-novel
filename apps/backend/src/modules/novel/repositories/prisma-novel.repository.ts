@@ -35,7 +35,7 @@ export class PrismaNovelRepository implements INovelRepository {
               id: true,
             },
             orderBy: {
-              filename: 'asc',
+              chapterNumber: 'asc',
             },
           },
         },
@@ -83,7 +83,7 @@ export class PrismaNovelRepository implements INovelRepository {
               id: true,
             },
             orderBy: {
-              filename: 'asc',
+              chapterNumber: 'asc',
             },
           },
         },
@@ -132,7 +132,7 @@ export class PrismaNovelRepository implements INovelRepository {
       return {
         id: chapter.id,
         novelId: chapter.novelId,
-        title: chapter.title ?? undefined,
+        title: chapter.title,
         content: chapter.content,
         createdAt: chapter.createdAt.toISOString(),
         updatedAt: chapter.updatedAt.toISOString(),
@@ -150,11 +150,11 @@ export class PrismaNovelRepository implements INovelRepository {
     try {
       const chapters = await this.prisma.chapter.findMany({
         where: { novelId },
-        select: { filename: true },
-        orderBy: { filename: 'asc' },
+        select: { id: true },
+        orderBy: { chapterNumber: 'asc' },
       });
 
-      return chapters.map((chapter) => chapter.filename);
+      return chapters.map((chapter) => chapter.id);
     } catch (error) {
       this.logger.error(
         `Error reading chapter list for ${novelId}: ${error}`,

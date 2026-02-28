@@ -3,10 +3,10 @@ import { defineConfig, env } from 'prisma/config';
 
 export default defineConfig({
   schema: join('prisma', 'schema.prisma'),
-  // migrations: {
-  //   path: "prisma/migrations",
-  //   seed: "tsx prisma/seed.ts",
-  // },
+  migrations: {
+    path: join('prisma', 'migrations'),
+    seed: 'ts-node prisma/seed.ts',
+  },
   datasource: {
     url: env('DATABASE_URL'),
   },
