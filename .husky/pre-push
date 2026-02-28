@@ -1,1 +1,3 @@
 npm run lint-prepush
+npx nx affected -t test
+npx nx affected -t e2e
