@@ -9,7 +9,12 @@ services:
       - dev
     env_file:
       - .env
-    command: npx nx prisma:db:push backend && npx nx prisma:seed backend
+    command:
+      [
+        "/bin/sh",
+        "-lc",
+        "npx nx run backend:prisma:db:push && npx nx prisma:generate backend && npx nx run backend:prisma:seed",
+      ]
     depends_on:
       postgres:
         condition: service_healthy
