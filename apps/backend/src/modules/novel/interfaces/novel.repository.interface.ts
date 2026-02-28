@@ -1,5 +1,4 @@
-import { Chapter } from '../types/chapter.type';
-import { Novel } from '../types/novel.type';
+import { Chapter, Novel } from '../types';
 
 export interface INovelRepository {
   findAll(): Promise<Novel[]>;

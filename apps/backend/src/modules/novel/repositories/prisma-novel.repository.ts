@@ -6,8 +6,8 @@ import {
 
 import { PrismaService } from '../../prisma';
 import { NovelState } from '../enums';
+import { INovelRepository } from '../interfaces';
 import { Chapter, Novel } from '../types';
-import { INovelRepository } from './novel.repository.interface';
 
 @Injectable()
 export class PrismaNovelRepository implements INovelRepository {

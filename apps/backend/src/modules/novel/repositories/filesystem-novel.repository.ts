@@ -7,9 +7,8 @@ import {
 } from 'nestjs-backend-common';
 import { join } from 'path';
 
-import { NovelDetails } from '../interfaces';
+import { INovelRepository, NovelDetails } from '../interfaces';
 import { Chapter, Novel } from '../types';
-import { INovelRepository } from './novel.repository.interface';
 
 const naturalFilenameCollator = new Intl.Collator(undefined, {
   numeric: true,
