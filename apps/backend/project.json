@@ -68,6 +68,22 @@
       "options": {
         "passWithNoTests": true
       }
+    },
+    "prisma:generate": {
+      "executor": "nx:run-commands",
+      "description": "Generate Prisma client",
+      "options": {
+        "command": "npx prisma generate",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "prisma:db:push": {
+      "executor": "nx:run-commands",
+      "description": "Pushes the database schema to the database",
+      "options": {
+        "command": "npx prisma db push --accept-data-loss",
+        "cwd": "{projectRoot}"
+      }
     }
   }
 }

@@ -1,5 +1,7 @@
 # TODOs
 
+- Cleanup memory in ReactJS when we jump from chapter to chapter (except for the words we have explained).
+- Add soft delete support!
 - Add Piper TTS: https://hub.docker.com/repository/docker/9109679196/piper-tts-rest-api/general
   - Auto gen the TTS each time we change the content of a chapter.
     - Can we do something about prolonged interjections like "ahhh~" (used in manga and novels), or its other form "ahhh...", or "ahhhhhhhh"? I think right now the auto generated voice would be like "ahhh tilde".

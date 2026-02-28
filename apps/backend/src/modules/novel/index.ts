@@ -1,4 +1,3 @@
-export * from './entities';
 export * from './inputs';
 export * from './novel.module';
 export * from './novel.service';

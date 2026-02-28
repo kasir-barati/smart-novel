@@ -1,3 +1,6 @@
+import { mock } from 'jest-mock-extended';
+import { CustomLoggerService } from 'nestjs-backend-common';
+
 import { RedisService } from './redis.service';
 
 const mockClient = {
@@ -19,11 +22,15 @@ describe(RedisService.name, () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    const logger = mock<CustomLoggerService>();
 
-    uut = new RedisService({
-      redisUrl: 'redis://localhost:6379',
-      redisPassword: 'password',
-    });
+    uut = new RedisService(
+      {
+        redisUrl: 'redis://localhost:6379',
+        redisPassword: 'password',
+      },
+      logger,
+    );
   });
 
   it('should set a value', async () => {

@@ -25,7 +25,7 @@
     "single-page-app",
     "cypress",
     "postgresql",
-    "typeorm"
+    "prisma"
   ],
   "author": {
     "email": "kasir.barati@gmail.com",
@@ -87,6 +87,7 @@
     "@types/jest": "^30.0.0",
     "@types/ms": "^2.1.0",
     "@types/node": "^24.10.13",
+    "@types/pg": "^8.16.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.56.0",
@@ -109,6 +110,7 @@
     "jest-environment-jsdom": "^30.2.0",
     "jest-environment-node": "^30.2.0",
     "jest-extended": "^7.0.0",
+    "jest-mock-extended": "^4.0.0",
     "jest-util": "^30.2.0",
     "jiti": "2.6.1",
     "jsdom": "~28.1.0",
@@ -117,6 +119,7 @@
     "postcss": "^8.5.6",
     "postcss-load-config": "^6.0.1",
     "prettier": "^3.8.1",
+    "prisma": "^7.4.2",
     "tailwindcss": "^4.2.0",
     "ts-jest": "^29.4.6",
     "ts-node": "10.9.2",
@@ -137,7 +140,8 @@
     "@nestjs/core": "^11.1.14",
     "@nestjs/graphql": "^13.2.4",
     "@nestjs/platform-express": "^11.1.14",
-    "@nestjs/typeorm": "^11.0.0",
+    "@prisma/adapter-pg": "^7.4.2",
+    "@prisma/client": "^7.4.2",
     "axios": "^1.13.5",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.3",
@@ -148,7 +152,7 @@
     "nanostores": "^1.1.0",
     "nestjs-backend-common": "^1.4.0",
     "nestjs-cls": "^6.2.0",
-    "pg": "^8.18.0",
+    "pg": "^8.19.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-markdown": "^10.1.0",
@@ -156,7 +160,6 @@
     "reflect-metadata": "^0.2.2",
     "remark-gfm": "^4.0.1",
     "rxjs": "^7.8.2",
-    "sonner": "^2.0.7",
-    "typeorm": "^0.3.28"
+    "sonner": "^2.0.7"
   }
 }

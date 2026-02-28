@@ -3,20 +3,23 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   CorrelationIdModule,
   LoggerModule,
 } from 'nestjs-backend-common';
 import { ClsModule } from 'nestjs-cls';
 
-import { LlmModule, NovelModule, RedisModule } from '../modules';
+import {
+  LlmModule,
+  NovelModule,
+  PrismaModule,
+  RedisModule,
+} from '../modules';
 import { AppResolver } from './app.resolver';
 import {
   appConfigs,
   LoggerModuleConfig,
   RedisModuleConfig,
-  TypeOrmModuleConfig,
 } from './configs';
 
 @Module({
@@ -42,10 +45,7 @@ import {
       inject: [ConfigService],
       useClass: RedisModuleConfig,
     }),
-    TypeOrmModule.forRootAsync({
-      inject: [ConfigService],
-      useClass: TypeOrmModuleConfig,
-    }),
+    PrismaModule,
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       // FIXME: It is not storing it in the host, instead it creates it inside the container!

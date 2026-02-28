@@ -1,10 +1,6 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-} from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Redis } from 'ioredis';
+import { CustomLoggerService } from 'nestjs-backend-common';
 
 import {
   MODULE_OPTIONS_TOKEN,
@@ -13,12 +9,12 @@ import {
 
 @Injectable()
 export class RedisService implements OnModuleDestroy {
-  private readonly logger = new Logger(RedisService.name);
   private readonly client: Redis;
 
   constructor(
     @Inject(MODULE_OPTIONS_TOKEN)
     private readonly options: RedisModuleOptions,
+    private readonly logger: CustomLoggerService,
   ) {
     this.client = new Redis(this.options.redisUrl, {
       password: this.options.redisPassword,

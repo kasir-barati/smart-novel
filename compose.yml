@@ -1,4 +1,22 @@
 services:
+  migrate: &migrate
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      target: development
+    profiles:
+      - dev
+    env_file:
+      - .env
+    command: npx nx prisma:db:push backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./apps:/app/apps
+      - ./apps/backend/data:/data
+      - /app/node_modules
+
   backend: &backend
     build:
       context: .
@@ -17,6 +35,8 @@ services:
       - ./apps/backend/data:/data
       - /app/node_modules
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       ollama:
@@ -126,8 +146,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-    volumes:
-      - postgres-data:/var/lib/postgresql
 
   pgadmin:
     image: dpage/pgadmin4:8.4
@@ -172,8 +190,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
-    volumes:
-      - redis-data:/data
 
   redis-insight:
     image: redis/redisinsight:latest
@@ -200,9 +216,6 @@ services:
 
   ollama:
     image: ollama/ollama:latest
-    container_name: ollama
-    volumes:
-      - ollama-data:/root/.ollama
     healthcheck:
       test: ["CMD", "ollama", "list"]
       interval: 10s
@@ -254,8 +267,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 3
-    volumes:
-      - minio-data:/data
 
   init-s3:
     image: minio/mc
@@ -265,14 +276,18 @@ services:
     volumes:
       - ./apps/backend/data:/source-data
       - ./local-setup/bucket-policy.json:/bucket-policy.json:ro
-    entrypoint: >
-      /bin/sh -c "
-      /usr/bin/mc alias set my_minio http://s3:9000 minioadmin minioadmin;
-      /usr/bin/mc admin info my_minio;
-      /usr/bin/mc mb my_minio/smart-novel || true;
-      find /source-data -type f -name '*.png' -exec /usr/bin/mc cp {} my_minio/smart-novel/covers/ \;
-      /usr/bin/mc anonymous set-json /bucket-policy.json my_minio/smart-novel;
-      echo 'MinIO initialization complete!';"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        /usr/bin/mc alias set my_minio http://s3:9000 minioadmin minioadmin
+        /usr/bin/mc admin info my_minio
+        /usr/bin/mc mb my_minio/smart-novel || true
+        for file in /source-data/**/*.png /source-data/**/**/*.png; do
+          [ -f "$$file" ] && /usr/bin/mc cp "$$file" my_minio/smart-novel/covers/
+        done
+        /usr/bin/mc anonymous set-json /bucket-policy.json my_minio/smart-novel
+        echo 'MinIO initialization complete!'
 
 configs:
   preferences.json:
@@ -303,13 +318,3 @@ configs:
           }
         }
       }
-
-volumes:
-  postgres-data:
-    driver: local
-  ollama-data:
-    driver: local
-  minio-data:
-    driver: local
-  redis-data:
-    driver: local

@@ -64,14 +64,14 @@ smart-novel/
 
 ## 🛠️ Technology Stack
 
-- **Backend**: NestJS, GraphQL, TypeScript, Cache (Redis).
+- **Backend**: NestJS, GraphQL, TypeScript, Cache (Redis), PostgreSQL.
 - **LLM**: Ollama (llama3.2:1b).
 - **Frontend**: ReactJS, Vite, TypeScript.
 - **Storage**: MinIO.
 
 ## 🗂️ Data Structure
 
-Novels are stored in `apps/backend/data/`:
+<details><summary>Novels are stored in <code>apps/backend/data/</code>:</summary>
 
 ```
 data/
@@ -102,4 +102,24 @@ title: 'Chapter Title'
 ---
 
 # Chapter content...
+```
+
+</details>
+
+### Prisma Migration Guide
+
+#### Development
+
+To run migrations in development:
+
+```bash
+npx prisma migrate dev
+```
+
+#### Production
+
+How migrations should be applied in a professional, production‑safe workflow? Since the Prisma CLI is a dev dependency and not available in the production container. Thus we need to apply migrations in our CI/CD Pipeline:
+
+```bash
+npx prisma migrate deploy --schema=./apps/backend/prisma/schema.prisma
 ```
