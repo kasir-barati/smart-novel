@@ -17,7 +17,7 @@ import { ChapterFieldResolver, NovelResolver } from './resolvers';
     PrismaNovelRepository,
     {
       provide: NOVEL_REPOSITORY,
-      useClass: FileSystemNovelRepository,
+      useClass: PrismaNovelRepository,
     },
   ],
   exports: [NovelService],
