@@ -6,7 +6,11 @@ import { ThemeToggle } from '../../components/ThemeToggle';
 import { useApi } from '../../hooks/useApi';
 import { useReadChapters } from '../../hooks/useReadChapters';
 import { Breadcrumbs } from './Breadcrumbs';
-import { $chapterState, fetchChapter } from './chapter.store';
+import {
+  $chapterState,
+  fetchChapter,
+  setCurrentChapter,
+} from './chapter.store';
 import { ChapterContent } from './ChapterContent';
 import { ChapterList } from './ChapterList';
 import { $novelState, fetchNovel } from './novel.store';
@@ -35,6 +39,12 @@ export function NovelPage() {
     },
     [searchParams, setSearchParams],
   );
+
+  useEffect(() => {
+    if (!requestedChapterId && chapterState.currentChapterId) {
+      setCurrentChapter(null);
+    }
+  }, [requestedChapterId, chapterState.currentChapterId]);
 
   useEffect(() => {
     if (id) {
@@ -143,7 +153,9 @@ export function NovelPage() {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <Breadcrumbs
           novelName={novel.name}
-          chapterTitle={currentChapter?.title}
+          chapterTitle={
+            requestedChapterId ? currentChapter?.title : null
+          }
         />
 
         {showChapterList ? (
