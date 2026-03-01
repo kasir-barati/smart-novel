@@ -98,4 +98,19 @@ class EnvironmentVariables implements AppConfig {
 
   @IsNotEmpty()
   DATABASE_URL: string;
+
+  @IsString()
+  OBJECT_STORAGE_REGION: string;
+
+  @IsOptional()
+  @IsString()
+  OBJECT_STORAGE_ENDPOINT?: string;
+
+  @IsOptional()
+  @IsString()
+  OBJECT_STORAGE_ACCESS_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  OBJECT_STORAGE_SECRET_KEY?: string;
 }

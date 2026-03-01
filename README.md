@@ -26,7 +26,7 @@ npm ci
 
 cp .env.example .env
 
-docker compose --profile dev up
+npm run start:dev
 ```
 
 Then open:

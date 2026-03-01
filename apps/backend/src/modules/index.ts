@@ -1,4 +1,5 @@
 export * from './llm';
 export * from './novel';
+export * from './object-storage';
 export * from './prisma';
 export * from './redis';

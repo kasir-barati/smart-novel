@@ -12,6 +12,7 @@ import { ClsModule } from 'nestjs-cls';
 import {
   LlmModule,
   NovelModule,
+  ObjectStorageModule,
   PrismaModule,
   RedisModule,
 } from '../modules';
@@ -19,6 +20,7 @@ import { AppResolver } from './app.resolver';
 import {
   appConfigs,
   LoggerModuleConfig,
+  ObjectStorageModuleConfig,
   RedisModuleConfig,
 } from './configs';
 
@@ -44,6 +46,11 @@ import {
       global: true,
       inject: [ConfigService],
       useClass: RedisModuleConfig,
+    }),
+    ObjectStorageModule.registerAsync({
+      global: true,
+      inject: [ConfigService],
+      useClass: ObjectStorageModuleConfig,
     }),
     PrismaModule,
     GraphQLModule.forRoot<ApolloDriverConfig>({
