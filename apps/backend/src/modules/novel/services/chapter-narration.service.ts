@@ -60,12 +60,13 @@ export class ChapterNarrationService {
    */
   async startGeneration(
     chapterId: string,
+    forceRegenerate = false,
   ): Promise<ChapterNarrationResponse> {
     const correlationId = this.correlationIdService.correlationId;
 
     return this.prisma.$transaction(async (tx) => {
       this.logger.debug(
-        `Attempting to start narration generation for chapter ID: ${chapterId}`,
+        `Attempting to start narration generation for chapter ID (force generate: ${forceRegenerate}): ${chapterId}`,
         {
           context: ChapterNarrationService.name,
           correlationId,
@@ -80,7 +81,7 @@ export class ChapterNarrationService {
         throw new BadRequestException('Chapter not found');
       }
 
-      if (this.doesNarrationExist(chapter)) {
+      if (!forceRegenerate && this.doesNarrationExist(chapter)) {
         this.logger.debug(
           `Narration already exists for chapter ID: ${chapterId}`,
           {
@@ -97,9 +98,19 @@ export class ChapterNarrationService {
 
       const oneHour = 60 * 60 * 1000;
       const lockKey = this.narrationLockService.getLockKey(chapterId);
+
+      // README: client should at least wait until the lock is released.
+      if (
+        forceRegenerate &&
+        (await this.narrationLockService.exists(lockKey))
+      ) {
+        return { status: NarrationStatus.PROCESSING };
+      }
+
       const token = await this.narrationLockService.tryAcquire(
         lockKey,
         oneHour,
+        forceRegenerate,
       );
 
       if (isNil(token)) {
@@ -112,7 +123,7 @@ export class ChapterNarrationService {
         where: { id: chapterId },
       });
 
-      if (recheck?.narrationUrl) {
+      if (!forceRegenerate && recheck?.narrationUrl) {
         await this.narrationLockService.release(lockKey, token);
         return {
           status: NarrationStatus.READY,
@@ -120,8 +131,11 @@ export class ChapterNarrationService {
         };
       }
 
-      // If already processing (status check), don't start again
-      if (recheck?.narrationStatus === 'PROCESSING') {
+      // If already processing (status check), don't start again (unless forcing)
+      if (
+        !forceRegenerate &&
+        recheck?.narrationStatus === 'PROCESSING'
+      ) {
         await this.narrationLockService.release(lockKey, token);
         return { status: NarrationStatus.PROCESSING };
       }
@@ -290,6 +304,8 @@ export class ChapterNarrationService {
     chapterId: string,
     correlationId: string,
   ): Promise<Readable | null> {
+    const twentySeconds = 20000;
+
     try {
       const response = await axios.post(
         this.appConfig.TTS_ENDPOINT,
@@ -297,7 +313,7 @@ export class ChapterNarrationService {
         {
           headers: { 'correlation-id': correlationId },
           responseType: 'stream',
-          timeout: 10000, // 10s timeout for initial connection
+          timeout: twentySeconds, // FIXME: is it that I have to increase this to a number that prevents this request for longer chapters from timing out? I mean we are returning a readable stream and TTS service also starts streaming immediately (it won't wait for the entire audio to be generated). TTS service accepts 10 concurrent requests, so why my tests where failing and ASAP I increased the timeout they passed?
         },
       );
 

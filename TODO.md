@@ -1,30 +1,4 @@
-e2e tests in prepush should be executed in sequence (NOT parallel)
-
 Auto gen a simple API client for the backend and use it in the frontend app (so I don't have to create and maintain some dumb interfaces which are essentially the same object type, and input types I have in the backend).
-
-Move the dummy data to `prisma/seed` dir or somewhere next it.
-
-Upgrade nx deps
-
-Add a new field to the new `generateChapterAudio` mutation to force our way (just in case we fixed a bug in how we convert markdown to text for better TTS results, or when we change the voice of TTS).
-
-I now have a new service which takes an string as input and converts it to mp3 (`POST /speak` with `{ "text": "..." }` as request body and it returns a stream). Add a new mutation called `generateChapterAudio` accept the ID of a chapter and then stream back the generated audio file back to the client. We have to do two things simultaneously:
-
-1. Stream back the stream we get from TTS service to the client.
-   - If client cancels the request we should still keep consuming the stream we get back from the TTS service, this is because we do not want to go over the already processed part of a chapter again later. This means that we will be storing the result in Minio (S3) regardless of client consuming the stream.
-2. Forward the stream we get from the TTS service to the Minio (S3).
-   - Update the chapter with a direct link to that file so UI can play it directly later.
-
-Notes:
-
-- We need a new optional field in chapters table (`narrationUrl`). It should be similar to `coverUrl` of novels.
-- Create a new directory in smart-novel bucket, named `narrations`. This is where the narration should be uploaded to.
-  - Make this directory also publicly accessible, similar to what we are doing for covers dir.
-- Before sending a request to TTS service we need to make sure that `narrationUrl` is not present.
-- When we received the last chunk and closed the stream we should update the chapter in DB to contain a direct link to the file stored in Minio.
-- What can we do if two different user with 10 seconds time difference request to generate the chapter's TTS? How can we prevent sending a second request to the TTS server since:
-  - This is expensive operation.
-  - And we might update the same DB record twice.
 
 # TODOs
 

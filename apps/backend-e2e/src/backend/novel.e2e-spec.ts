@@ -44,9 +44,10 @@ describe('Novel (e2e)', () => {
           '4dd92f16-4743-47b9-960c-6529678e9bc5',
           '4769a024-6267-4abc-a412-5ab0241a8d0e',
           'a3987a2f-eaa5-4a05-8714-34a110511cba',
+          '038dd3f5-e921-4076-be91-66175ebd1bc3',
         ]),
         lastPublishedChapter: {
-          id: 'a3987a2f-eaa5-4a05-8714-34a110511cba',
+          id: '038dd3f5-e921-4076-be91-66175ebd1bc3',
         },
         firstChapter: { id: '4dd92f16-4743-47b9-960c-6529678e9bc5' },
       }),

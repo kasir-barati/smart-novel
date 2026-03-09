@@ -10,6 +10,12 @@ export class NarrationLockService {
     return `chapter_tts:${chapterId}`;
   }
 
+  async exists(lockKey: string): Promise<boolean> {
+    const value = await this.redisService.get(lockKey);
+
+    return value !== null;
+  }
+
   /**
    * @description tries to acquire a lock.
    * @returns a token if lock acquired, or null otherwise.
@@ -17,7 +23,12 @@ export class NarrationLockService {
   async tryAcquire(
     key: string,
     ttlMs: number,
+    forceRegenerate: boolean,
   ): Promise<string | null> {
+    if (forceRegenerate) {
+      await this.redisService.del(key);
+    }
+
     const token = Math.random().toString(36).slice(2);
     // Sets TTL using SET NX PX.
     const res = await this.redisService.set(key, token, {

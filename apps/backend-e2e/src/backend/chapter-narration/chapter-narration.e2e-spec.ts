@@ -42,6 +42,34 @@ describe('Chapter Narration (e2e)', () => {
     });
   });
 
+  it('should force regenerate chapter audio even if the narrationUrl exists', async () => {
+    const chapterId = '038dd3f5-e921-4076-be91-66175ebd1bc3';
+    await fixture.generateChapterAudio(chapterId);
+    await new Promise((resolve) => setTimeout(resolve, 12_000)); // 12 seconds
+    const correlationId = '23cf8ec5-17ce-4ae4-90be-baea23f9712c';
+
+    const res = await axios.post(
+      '/graphql',
+      {
+        query: `#graphql
+        mutation GenerateChapterAudio($chapterId: ID!) {
+          generateChapterAudio(chapterId: $chapterId, forceRegenerate: true) {
+            status
+            narrationUrl
+          }
+        }
+      `,
+        variables: {
+          chapterId: chapterId,
+        },
+      },
+      { headers: { [CORRELATION_ID_HEADER_NAME]: correlationId } },
+    );
+
+    expect(res.status).toBe(200);
+    await fixture.thenTtsCalledOnceWith(correlationId);
+  }, 35000); // 35 seconds
+
   it('should NOT call TTS service twice for the same chapter', async () => {
     const firstCallCorrelationId =
       '10a69005-8176-4b76-ae4b-c268777699d0';

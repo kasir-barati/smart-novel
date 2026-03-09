@@ -64,6 +64,7 @@ describe(ChapterNarrationService.name, () => {
       tryAcquire: vi.fn(),
       release: vi.fn(),
       getLockKey: vi.fn().mockReturnValue(''),
+      exists: vi.fn(),
     } as any;
     prisma = {
       $transaction: vi.fn(),
@@ -133,6 +134,74 @@ describe(ChapterNarrationService.name, () => {
         expect.any(Object),
       );
       expect(narrationLockService.tryAcquire).not.toHaveBeenCalled();
+    });
+
+    it('should force its way to start generating a new narration if forceRegenerate is true', async () => {
+      // Arrange
+      vi.mocked(prisma.$transaction).mockImplementation(
+        async (callback: any) => {
+          return callback({
+            chapter: {
+              findUnique: vi.fn().mockResolvedValue({
+                id: mockChapterId,
+                content: 'Chapter content',
+                narrationUrl: mockNarrationUrl,
+                narrationStatus: 'READY',
+              }),
+              update: vi.fn().mockResolvedValue({
+                id: mockChapterId,
+                content: 'Chapter content',
+                narrationUrl: null,
+                narrationStatus: 'PENDING',
+              }),
+            },
+          });
+        },
+      );
+      vi.mocked(narrationLockService.tryAcquire).mockResolvedValue(
+        '',
+      );
+
+      // Act
+      const result = await service.startGeneration(
+        mockChapterId,
+        true,
+      );
+
+      // Assert
+      expect(result).toEqual({ status: NarrationStatus.PROCESSING });
+      expect(narrationLockService.tryAcquire).toHaveBeenCalled();
+    });
+
+    it('should wait for the lock to be released before you can reprocess with forceRegenerate', async () => {
+      // Arrange
+      vi.mocked(prisma.$transaction).mockImplementation(
+        async (callback: any) => {
+          return callback({
+            chapter: {
+              findUnique: vi.fn().mockResolvedValue({
+                id: mockChapterId,
+                content: 'Chapter content',
+                narrationUrl: mockNarrationUrl,
+                narrationStatus: 'READY',
+              }),
+            },
+          });
+        },
+      );
+      vi.mocked(narrationLockService.tryAcquire).mockResolvedValue(
+        null,
+      );
+
+      // Act
+      const result = await service.startGeneration(
+        mockChapterId,
+        true,
+      );
+
+      // Assert
+      expect(result).toEqual({ status: NarrationStatus.PROCESSING });
+      expect(narrationLockService.tryAcquire).toHaveBeenCalled();
     });
 
     it('should throw BadRequestException if chapter not found', async () => {

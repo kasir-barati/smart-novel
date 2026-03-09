@@ -115,7 +115,12 @@ export class RedisService implements OnModuleDestroy {
     // Using sendCommand to support dynamic args, since ioredis doesn't have a good typed method for this combination.
     const rawResult = (await this.client.sendCommand(
       new Command('SET', [key, value, ...args]),
-    )) as Buffer;
+    )) as Buffer | undefined;
+
+    if (isNil(rawResult)) {
+      return false;
+    }
+
     const result = rawResult.toString();
 
     if (result !== 'OK') {

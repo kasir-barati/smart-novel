@@ -27,8 +27,19 @@ export class ChapterNarrationResolver {
   })
   async generateChapterAudio(
     @Args('chapterId', { type: () => ID }) chapterId: string,
+    @Args('forceRegenerate', {
+      type: () => Boolean,
+      nullable: true,
+      defaultValue: false,
+      description:
+        'Force regeneration even if audio already exists. Use this when TTS voice changes or markdown-to-text conversion is improved.',
+    })
+    forceRegenerate = false,
   ): Promise<ChapterNarrationResponse> {
-    return this.narrationService.startGeneration(chapterId);
+    return this.narrationService.startGeneration(
+      chapterId,
+      forceRegenerate,
+    );
   }
 
   /**

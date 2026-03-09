@@ -8,6 +8,8 @@ describe(NarrationLockService.name, () => {
   beforeEach(() => {
     redisService = {
       set: vi.fn(),
+      del: vi.fn(),
+      get: vi.fn(),
       evaluate: vi.fn(),
     } as any;
 
@@ -27,7 +29,7 @@ describe(NarrationLockService.name, () => {
     const ttlMs = 5000;
     vi.mocked(redisService.set).mockResolvedValue(true);
 
-    const token = await uut.tryAcquire(key, ttlMs);
+    const token = await uut.tryAcquire(key, ttlMs, false);
 
     expect(redisService.set).toHaveBeenCalledWith(
       key,
@@ -40,14 +42,32 @@ describe(NarrationLockService.name, () => {
     expect(token).toBeTruthy();
   });
 
-  it('should return null if lock is not acquired', async () => {
+  it('should return false if lock does NOT exist', async () => {
+    const key = 'chapter_tts:a33ac257-ff1d-4c20-ac4f-e9b4365439ca';
+    vi.mocked(redisService.get).mockResolvedValue(null);
+
+    const token = await uut.exists(key);
+
+    expect(token).toBeFalse();
+  });
+
+  it('should return true if lock exists', async () => {
+    const key = 'chapter_tts:a33ac257-ff1d-4c20-ac4f-e9b4365439ca';
+    vi.mocked(redisService.get).mockResolvedValue('some value');
+
+    const exists = await uut.exists(key);
+
+    expect(redisService.get).toHaveBeenCalledWith(key);
+    expect(exists).toBe(true);
+  });
+
+  it('should delete the key before acquiring if forceRegenerate is true', async () => {
     const key = 'chapter_tts:a33ac257-ff1d-4c20-ac4f-e9b4365439ca';
     const ttlMs = 5000;
-    vi.mocked(redisService.set).mockResolvedValue(false);
 
-    const token = await uut.tryAcquire(key, ttlMs);
+    await uut.tryAcquire(key, ttlMs, true);
 
-    expect(token).toBeNull();
+    expect(redisService.del).toHaveBeenCalledWith(key);
   });
 
   it('should release the lock', async () => {
