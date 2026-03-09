@@ -6,11 +6,6 @@ Move the dummy data to `prisma/seed` dir or somewhere next it.
 
 Upgrade nx deps
 
-Add these to the eslint:
-
-- `no-console` (skip test files, and prisma dir).
-- no `.only` and `.skip`.
-
 Add a new field to the new `generateChapterAudio` mutation to force our way (just in case we fixed a bug in how we convert markdown to text for better TTS results, or when we change the voice of TTS).
 
 I now have a new service which takes an string as input and converts it to mp3 (`POST /speak` with `{ "text": "..." }` as request body and it returns a stream). Add a new mutation called `generateChapterAudio` accept the ID of a chapter and then stream back the generated audio file back to the client. We have to do two things simultaneously:

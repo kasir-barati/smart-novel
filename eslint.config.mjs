@@ -1,6 +1,7 @@
 // @ts-check
 
 import nx from '@nx/eslint-plugin';
+import vitest from '@vitest/eslint-plugin';
 import importPlugin from 'eslint-plugin-import';
 import perfectionist from 'eslint-plugin-perfectionist';
 import unusedImports from 'eslint-plugin-unused-imports';
@@ -102,12 +103,17 @@ export default [
       '**/global-setup.ts',
       '**/*.fixture.ts',
     ],
+    plugins: {
+      vitest,
+    },
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/no-empty-function': 'off',
       'no-async-promise-executor': 'off',
       'no-console': 'off',
+      'vitest/no-disabled-tests': 'error',
+      'vitest/no-focused-tests': 'error',
     },
   },
   {
