@@ -1,7 +1,10 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
+import { NarrationStatus } from '@prisma/client';
+
+import { IChapter } from '../interfaces';
 
 @ObjectType({ description: 'A chapter of a novel' })
-export class Chapter {
+export class Chapter implements IChapter {
   @Field(() => ID, {
     description: 'Unique identifier for the chapter',
   })
@@ -25,6 +28,18 @@ export class Chapter {
 
   @Field({ description: 'The last update date of the chapter' })
   updatedAt: string;
+
+  @Field(() => NarrationStatus, {
+    nullable: true,
+    description: 'The status of audio narration generation',
+  })
+  narrationStatus?: NarrationStatus;
+
+  @Field({
+    nullable: true,
+    description: 'Public URL to the audio narration file',
+  })
+  narrationUrl?: string;
 
   @Field(() => Chapter, {
     nullable: true,

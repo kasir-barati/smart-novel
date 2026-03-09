@@ -15,6 +15,8 @@ RUN npm ci
 CMD ["/bin/sh", "-c", "npx nx prisma:generate backend && npx nx serve backend"]
 
 FROM base AS builder
+ARG DATABASE_URL
+ENV DATABASE_URL=${DATABASE_URL}
 COPY tsconfig.base.json ./
 COPY nx.json ./
 RUN npm ci

@@ -65,8 +65,12 @@
       }
     },
     "test": {
+      "executor": "@nx/vitest:test",
       "options": {
-        "passWithNoTests": true
+        "config": "{projectRoot}/vitest.config.ts",
+        "reportsDirectory": "../../coverage/apps/backend",
+        "passWithNoTests": true,
+        "reporter": "verbose"
       }
     },
     "prisma:generate": {

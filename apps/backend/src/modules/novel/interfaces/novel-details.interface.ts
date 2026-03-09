@@ -10,3 +10,13 @@ export interface NovelDetails {
   name: string;
   state: NovelState;
 }
+export interface INovel {
+  id: string;
+  name: string;
+  author: string;
+  category: string[];
+  chapters: string[];
+  state: NovelState;
+  coverUrl?: string;
+  description: string;
+}

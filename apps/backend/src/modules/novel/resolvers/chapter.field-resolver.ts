@@ -1,6 +1,6 @@
 import { Parent, ResolveField, Resolver } from '@nestjs/graphql';
 
-import { NovelService } from '../novel.service';
+import { NovelService } from '../services';
 import { Chapter } from '../types';
 
 @Resolver(() => Chapter)

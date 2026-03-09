@@ -7,6 +7,8 @@ services:
       target: development
     profiles:
       - dev
+      - backend-e2e
+      - frontend-e2e
     env_file:
       - .env
     command:
@@ -52,6 +54,8 @@ services:
       init-s3:
         condition: service_completed_successfully
       redis:
+        condition: service_healthy
+      tts:
         condition: service_healthy
     healthcheck:
       test:
@@ -108,6 +112,7 @@ services:
       target: production
       args:
         PORT: $PORT
+        DATABASE_URL: ${DATABASE_URL}
     volumes: []
 
   frontend-e2e:
@@ -208,6 +213,13 @@ services:
     environment:
       RI_APP_PORT: 5540
       RI_LOG_LEVEL: debug
+      RI_ACCEPT_TERMS_AND_CONDITIONS: true
+      # 👇 Does NOT create a DB connection most of the times, create it manually.
+      RI_REDIS_HOST: redis
+      RI_REDIS_PORT: 6379
+      RI_REDIS_ALIAS: "Local Redis (compose)"
+      RI_REDIS_USERNAME: default
+      RI_REDIS_PASSWORD: "${REDIS_PASSWORD:-}"
     healthcheck:
       test:
         [
@@ -221,24 +233,18 @@ services:
       retries: 5
 
   ollama:
-    image: ollama/ollama:latest
+    build:
+      context: local-setup/ollama
+      dockerfile: Dockerfile
+      args:
+        # Change this 👇 if you want a different model baked in
+        OLLAMA_MODEL: llama3.2:1b
     healthcheck:
-      test: ["CMD", "ollama", "list"]
-      interval: 10s
+      test: ["CMD-SHELL", "/usr/local/bin/healthcheck.sh"]
+      interval: 30s
       timeout: 5s
       retries: 5
-      start_period: 30s
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        ollama serve &
-        pid=$$!
-        echo "Waiting for Ollama to start..."
-        sleep 5
-        echo "Pulling llama3.2:1b model..."
-        ollama pull llama3.2:1b
-        echo "Model pulled successfully!"
-        wait $$pid
+      start_period: 45s
 
   # Takes up to 1 minute to start!
   open-webui:
@@ -260,13 +266,16 @@ services:
       start_period: 30s
 
   tts:
-    image: 9109679196/piper-tts-rest-api:2.0.0
+    image: 9109679196/piper-tts-rest-api:2.1.0
     user: "1000:1000"
-    ports:
-      - "3001:3000"
+    profiles:
+      - dev
+      - backend-e2e
+      - frontend-e2e
     environment:
       PIPER_MODEL: /app/models/en_US-lessac-medium.onnx
       PORT: 3000
+      LOGGING_MODE: "JSON"
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:3000/health"]
       interval: 30s
@@ -280,8 +289,8 @@ services:
       - "9000:9000"
       - "9001:9001" # Dashboard
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${OBJECT_STORAGE_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${OBJECT_STORAGE_SECRET_KEY}
     command: server --console-address ":9001" /data
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
@@ -294,6 +303,9 @@ services:
     depends_on:
       s3:
         condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${OBJECT_STORAGE_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${OBJECT_STORAGE_SECRET_KEY}
     volumes:
       - ./apps/backend/data:/source-data
       - ./local-setup/bucket-policy.json:/bucket-policy.json:ro
@@ -301,7 +313,7 @@ services:
       - /bin/sh
       - -c
       - |
-        /usr/bin/mc alias set my_minio http://s3:9000 minioadmin minioadmin
+        /usr/bin/mc alias set my_minio http://s3:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD
         /usr/bin/mc admin info my_minio
         /usr/bin/mc mb my_minio/smart-novel || true
         for file in /source-data/**/*.png /source-data/**/**/*.png; do

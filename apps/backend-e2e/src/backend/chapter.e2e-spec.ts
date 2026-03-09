@@ -1,29 +1,36 @@
 import axios from 'axios';
 
 describe('Chapter (e2e)', () => {
+  const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829'; // example-novel from seed data
+  const CHAPTER_ONE_ID = '4dd92f16-4743-47b9-960c-6529678e9bc5'; // chapter1 from seed data
+
   it('should return the selected chapter', async () => {
     const res = await axios.post('/graphql', {
       query: `#graphql
-          query {
-            novel(id: "example-novel") {
-              chapter(id: "chapter1.md") {
-                id
-                title
-                content
-                createdAt
-                updatedAt
-              }
+        query GetChapter($novelId: ID!, $chapterId: ID!) {
+          novel(id: $novelId) {
+            chapter(id: $chapterId) {
+              id
+              title
+              content
+              createdAt
+              updatedAt
             }
           }
-        `,
+        }
+      `,
+      variables: {
+        novelId: NOVEL_ID,
+        chapterId: CHAPTER_ONE_ID,
+      },
     });
 
     expect(res.data.data.novel.chapter).toStrictEqual(
       expect.objectContaining({
-        id: 'chapter1.md',
+        id: CHAPTER_ONE_ID,
         title: 'The Beginning',
         content:
-          "\n# Chapter 1: The Beginning\n\nIn a small village nestled between rolling hills and ancient forests, a young adventurer named Elena discovered an old map hidden in her grandmother's attic. The map was yellowed with age, its edges frayed, but the intricate markings and mysterious symbols captured her imagination immediately.\n\nShe scrutinized the men's faces carefully, trying to work out who was lying about the treasure's location. The village elders had always spoken of a legendary artifact, but none had dared to seek it.\n\nAs dawn broke over the horizon, Elena made her decision. She would embark on this journey, following the map's cryptic directions into the unknown. Little did she know that this choice would change her life forever.\n\nThe path ahead was uncertain, filled with both danger and wonder. But Elena was ready. Her adventure was just beginning.\n",
+          "# Chapter 1: The Beginning\n\nIn a small village nestled between rolling hills and ancient forests, a young adventurer named Elena discovered an old map hidden in her grandmother's attic. The map was yellowed with age, its edges frayed, but the intricate markings and mysterious symbols captured her imagination immediately.\n\nShe scrutinized the men's faces carefully, trying to work out who was lying about the treasure's location. The village elders had always spoken of a legendary artifact, but none had dared to seek it.\n\nAs dawn broke over the horizon, Elena made her decision. She would embark on this journey, following the map's cryptic directions into the unknown. Little did she know that this choice would change her life forever.\n\nThe path ahead was uncertain, filled with both danger and wonder. But Elena was ready. Her adventure was just beginning.",
       }),
     );
     expect(res.data.data.novel.chapter.createdAt).toBeDateString();
@@ -33,38 +40,48 @@ describe('Chapter (e2e)', () => {
   it('should return next chapter', async () => {
     const res = await axios.post('/graphql', {
       query: `#graphql
-          query {
-            novel(id: "example-novel") {
-              chapter(id: "chapter1.md") {
-                next {
-                  id
-                }
+        query GetChapter($novelId: ID!, $chapterId: ID!) {
+          novel(id: $novelId) {
+            chapter(id: $chapterId) {
+              next {
+                id
               }
             }
           }
-        `,
+        }
+      `,
+      variables: {
+        novelId: NOVEL_ID,
+        chapterId: CHAPTER_ONE_ID,
+      },
     });
 
-    expect(res.data.data.novel.chapter.next.id).toBe('chapter2.md');
+    expect(res.data.data.novel.chapter.next.id).toBe(
+      '4769a024-6267-4abc-a412-5ab0241a8d0e',
+    );
   });
 
   it('should return previous chapter', async () => {
     const res = await axios.post('/graphql', {
       query: `#graphql
-          query {
-            novel(id: "example-novel") {
-              chapter(id: "chapter2.md") {
-                previous {
-                  id
+        query GetChapter($novelId: ID!, $chapterId: ID!) {
+          novel(id: $novelId) {
+            chapter(id: $chapterId) {
+              previous {
+                id
                 }
               }
             }
           }
         `,
+      variables: {
+        novelId: NOVEL_ID,
+        chapterId: '4769a024-6267-4abc-a412-5ab0241a8d0e',
+      },
     });
 
     expect(res.data.data.novel.chapter.previous.id).toBe(
-      'chapter1.md',
+      CHAPTER_ONE_ID,
     );
   });
 });

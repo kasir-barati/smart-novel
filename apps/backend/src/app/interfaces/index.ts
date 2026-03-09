@@ -23,4 +23,5 @@ export interface AppConfig {
   OBJECT_STORAGE_ENDPOINT?: string;
   OBJECT_STORAGE_ACCESS_KEY?: string;
   OBJECT_STORAGE_SECRET_KEY?: string;
+  TTS_ENDPOINT: string;
 }

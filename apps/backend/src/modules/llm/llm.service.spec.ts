@@ -22,15 +22,15 @@ describe(LlmService.name, () => {
       OLLAMA_CACHE_TTL: '1h',
     } as any;
     logger = {
-      error: jest.fn(),
-      log: jest.fn(),
-      warn: jest.fn(),
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
     };
     correlationIdService = {
       correlationId: 'fd2914ad-4789-4ac2-a7a5-d97c7806294f',
     };
     cacheService = {
-      getOrCompute: jest.fn(
+      getOrCompute: vi.fn(
         async (_cacheKey: string, compute: () => Promise<any>) => {
           const data = await compute();
           return {
@@ -53,7 +53,7 @@ describe(LlmService.name, () => {
   it('should throw an error when it cannot parse the response', async () => {
     const word = 'scrutinize';
     const context = 'I need to scrutinize the data carefully.';
-    axios.post = jest.fn().mockResolvedValue({
+    axios.post = vi.fn().mockResolvedValue({
       data: {
         response: 'This is not a valid JSON',
       },
@@ -71,7 +71,7 @@ describe(LlmService.name, () => {
   it('should retry 3 times', async () => {
     const word = 'scrutinize';
     const context = 'I need to scrutinize the data carefully.';
-    axios.post = jest.fn().mockResolvedValue({
+    axios.post = vi.fn().mockResolvedValue({
       data: {
         response: 'This is not a valid JSON',
       },
@@ -89,7 +89,7 @@ describe(LlmService.name, () => {
   it('should throw an error if the API request fails', async () => {
     const word = 'scrutinize';
     const context = 'I need to scrutinize the data carefully.';
-    axios.post = jest
+    axios.post = vi
       .fn()
       .mockRejectedValue(new Error('API request failed'));
 

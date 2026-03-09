@@ -1,18 +1,11 @@
-import 'jest-extended';
 import {
   AbortMultipartUploadCommand,
   ChecksumAlgorithm,
   PutObjectCommand,
-  S3Client,
 } from '@aws-sdk/client-s3';
 import { InternalServerErrorException } from '@nestjs/common';
-import { mock } from 'jest-mock-extended';
 
 import { UploaderService } from './uploader.service';
-
-jest.mock('mime', () => ({
-  getType: jest.fn().mockReturnValue('text/plain'),
-}));
 
 describe(UploaderService.name, () => {
   const filename = 'file.txt';
@@ -21,15 +14,16 @@ describe(UploaderService.name, () => {
   const correlationIdService = {
     correlationId: '5903cba5-7066-4ff4-a619-4b5c84d77dff',
   } as any;
-  const logger = { verbose: jest.fn() } as any;
+  const logger = { verbose: vi.fn() } as any;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should use a single PUT upload (no multipart) WITHOUT checksum', async () => {
-    const s3 = mock<S3Client>();
-    (s3.send as any).mockResolvedValueOnce({}); // PutObject response
+    const s3 = {
+      send: vi.fn().mockResolvedValueOnce({}),
+    } as any;
     const uut = new UploaderService(
       s3,
       filename,
@@ -49,7 +43,7 @@ describe(UploaderService.name, () => {
     );
 
     expect(s3.send).toHaveBeenCalledTimes(1);
-    const cmd = s3.send.mock.calls[0][0];
+    const cmd = vi.mocked(s3.send).mock.calls[0][0];
     expect(cmd).toBeInstanceOf(PutObjectCommand);
     const input = getCommandInput<PutObjectCommand>(cmd);
     expect(input).toEqual(
@@ -66,8 +60,9 @@ describe(UploaderService.name, () => {
   });
 
   it('should use a single PUT upload (no multipart) WITH checksum + algorithm', async () => {
-    const s3 = mock<S3Client>();
-    (s3.send as any).mockResolvedValueOnce({}); // PutObject response
+    const s3 = {
+      send: vi.fn().mockResolvedValueOnce({}),
+    } as any;
     const checksumAlgorithm = ChecksumAlgorithm.CRC32;
     const checksum = 'i9aeUg==';
     const uut = new UploaderService(
@@ -84,7 +79,7 @@ describe(UploaderService.name, () => {
     await uut.upload(data, true, checksum);
 
     expect(s3.send).toHaveBeenCalledTimes(1);
-    const cmd = s3.send.mock.calls[0][0];
+    const cmd = vi.mocked(s3.send).mock.calls[0][0];
     expect(cmd).toBeInstanceOf(PutObjectCommand);
     const input = getCommandInput<PutObjectCommand>(cmd);
     expect(input).toEqual(
@@ -108,7 +103,9 @@ describe(UploaderService.name, () => {
   );
 
   it('should do nothing if not multipart', async () => {
-    const s3 = mock<S3Client>();
+    const s3 = {
+      send: vi.fn(),
+    } as any;
     const uut = new UploaderService(
       s3,
       filename,
@@ -124,10 +121,12 @@ describe(UploaderService.name, () => {
   });
 
   it('should send AbortMultipartUploadCommand when multipart started', async () => {
-    const s3 = mock<S3Client>();
-    (s3.send as any)
-      .mockResolvedValueOnce({ UploadId: 'u-3' }) // create
-      .mockResolvedValueOnce({ ETag: '"etag-1"' }); // uploadPart
+    const s3 = {
+      send: vi
+        .fn()
+        .mockResolvedValueOnce({ UploadId: 'u-3' }) // create
+        .mockResolvedValueOnce({ ETag: '"etag-1"' }), // uploadPart
+    } as any;
     const uut = new UploaderService(
       s3,
       filename,
@@ -142,7 +141,7 @@ describe(UploaderService.name, () => {
 
     await uut.abortUpload();
 
-    const abortCmd = s3.send.mock.calls.at(-1)![0];
+    const abortCmd = vi.mocked(s3.send).mock.calls.at(-1)![0];
     expect(abortCmd).toBeInstanceOf(AbortMultipartUploadCommand);
     expect(
       getCommandInput<AbortMultipartUploadCommand>(abortCmd),
@@ -156,8 +155,9 @@ describe(UploaderService.name, () => {
   });
 
   it('should throw if createMultipartUpload returns missing UploadId', async () => {
-    const s3 = mock<S3Client>();
-    (s3.send as any).mockResolvedValueOnce({}); // missing UploadId
+    const s3 = {
+      send: vi.fn().mockResolvedValueOnce({}),
+    } as any;
     const uut = new UploaderService(
       s3,
       filename,

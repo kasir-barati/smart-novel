@@ -1,12 +1,13 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 
 import { NovelState } from '../enums';
+import { INovel } from '../interfaces';
 import { Chapter } from './chapter.type';
 
 @ObjectType({
   description: 'Represents a novel with its details.',
 })
-export class Novel {
+export class Novel implements INovel {
   @Field(() => ID, { description: 'Unique identifier for the novel' })
   id: string;
 

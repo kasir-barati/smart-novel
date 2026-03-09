@@ -2,17 +2,17 @@ import { fireEvent, render, screen } from '@testing-library/react';
 
 import { MarkdownRenderer } from './MarkdownRenderer';
 
-jest.mock('../hooks/useApi', () => ({
+vi.mock('../hooks/useApi', () => ({
   useApi: () => ({
     api: {
-      post: jest.fn(),
+      post: vi.fn(),
     },
   }),
 }));
 
-jest.mock('../hooks/useWordExplain', () => ({
+vi.mock('../hooks/useWordExplain', () => ({
   useWordExplain: () => ({
-    explain: jest.fn(async () => ({
+    explain: vi.fn(async () => ({
       data: {
         cacheKey: 'key',
         meaning: 'meaning',
@@ -24,22 +24,22 @@ jest.mock('../hooks/useWordExplain', () => ({
   }),
 }));
 
-jest.mock('../utils/notification', () => ({
-  showInfo: jest.fn(),
+vi.mock('../utils/notification', () => ({
+  showInfo: vi.fn(),
 }));
 
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
-    value: jest.fn().mockImplementation((query: string) => ({
+    value: vi.fn().mockImplementation((query: string) => ({
       matches: query.includes('max-width: 767px') ? false : false,
       media: query,
       onchange: null,
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      addListener: jest.fn(),
-      removeListener: jest.fn(),
-      dispatchEvent: jest.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
     })),
   });
 
@@ -49,19 +49,66 @@ beforeAll(() => {
 
   if (!docWithCaret.caretRangeFromPoint) {
     Object.defineProperty(document, 'caretRangeFromPoint', {
-      value: jest.fn(() => null),
+      value: vi.fn(() => null),
     });
   }
+
+  // Mock localStorage to prevent the tip from showing
+  const localStorageMock = {
+    getItem: vi.fn(() => '1'),
+    setItem: vi.fn(),
+    removeItem: vi.fn(),
+    clear: vi.fn(),
+    length: 0,
+    key: vi.fn(),
+  };
+  Object.defineProperty(window, 'localStorage', {
+    value: localStorageMock,
+    writable: true,
+  });
+
+  // Mock Range.prototype.getBoundingClientRect to return a valid rect
+  Range.prototype.getBoundingClientRect = vi.fn(() => ({
+    x: 100,
+    y: 100,
+    width: 50,
+    height: 20,
+    top: 100,
+    right: 150,
+    bottom: 120,
+    left: 100,
+    toJSON: () => {},
+  }));
+
+  // Mock Range.prototype.getClientRects
+  Range.prototype.getClientRects = vi.fn(() => {
+    const rect = {
+      x: 100,
+      y: 100,
+      width: 50,
+      height: 20,
+      top: 100,
+      right: 150,
+      bottom: 120,
+      left: 100,
+      toJSON: () => {},
+    };
+    return [rect] as any;
+  });
 });
 
 describe('MarkdownRenderer', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
+    try {
+      vi.runOnlyPendingTimers();
+    } catch {
+      // Ignore if timers are not mocked
+    }
+    vi.useRealTimers();
   });
 
   it('does not render per-word spans', () => {
@@ -75,6 +122,9 @@ describe('MarkdownRenderer', () => {
   });
 
   it('shows explain bubble after stable selection', async () => {
+    // Use real timers for this test
+    vi.useRealTimers();
+
     const { container } = render(
       <MarkdownRenderer content={'Hello world from chapter.'} />,
     );
@@ -94,7 +144,6 @@ describe('MarkdownRenderer', () => {
     selection?.addRange(range);
 
     fireEvent(document, new Event('selectionchange'));
-    jest.advanceTimersByTime(460);
 
     expect(
       await screen.findByRole('button', { name: 'Explain' }),
@@ -118,7 +167,7 @@ describe('MarkdownRenderer', () => {
     selection?.addRange(range);
 
     fireEvent(document, new Event('selectionchange'));
-    jest.advanceTimersByTime(460);
+    vi.advanceTimersByTime(460);
 
     expect(
       screen.queryByRole('button', { name: 'Explain' }),

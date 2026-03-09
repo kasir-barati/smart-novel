@@ -5,12 +5,12 @@ import {
 } from '@nestjs/common';
 import { PageInfo } from 'nestjs-backend-common';
 
-import { NovelFiltersInput } from './inputs';
+import { NovelFiltersInput } from '../inputs';
 import {
   type INovelRepository,
   NOVEL_REPOSITORY,
-} from './repositories';
-import { Chapter, Novel, NovelConnection, NovelEdge } from './types';
+} from '../interfaces';
+import { Chapter, Novel, NovelConnection, NovelEdge } from '../types';
 
 @Injectable()
 export class NovelService {
@@ -169,6 +169,10 @@ export class NovelService {
     );
   }
 
+  async getCategories(): Promise<string[]> {
+    return this.novelRepository.getCategories();
+  }
+
   private doesNotHavePreviousChapter(
     chapters: string[],
     chapterId: string,
@@ -183,10 +187,6 @@ export class NovelService {
   ): boolean {
     const currentIndex = chapters.indexOf(chapterId);
     return currentIndex === chapters.length - 1;
-  }
-
-  async getCategories(): Promise<string[]> {
-    return this.novelRepository.getCategories();
   }
 
   private chapterDoesNotExist(

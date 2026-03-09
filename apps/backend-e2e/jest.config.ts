@@ -1,5 +1,6 @@
-/** @type {import('jest').Config} */
-export default {
+import type { Config } from 'jest';
+
+const config: Config = {
   displayName: 'backend-e2e',
   preset: '../../jest.preset.js',
   globalSetup: '<rootDir>/src/support/global-setup.ts',
@@ -17,5 +18,7 @@ export default {
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../../coverage/backend-e2e',
-  testMatch: ['<rootDir>/src/backend/*.e2e-spec.ts'],
+  testMatch: ['<rootDir>/src/backend/**/*.e2e-spec.ts'],
 };
+
+export default config;

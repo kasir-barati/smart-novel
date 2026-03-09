@@ -5,6 +5,6 @@ import { CacheService, RedisService } from './services';
 
 @Module({
   providers: [RedisService, CacheService],
-  exports: [CacheService],
+  exports: [RedisService, CacheService],
 })
 export class RedisModule extends ConfigurableModuleClass {}

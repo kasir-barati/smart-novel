@@ -1,7 +1,9 @@
 import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
-import { Redis } from 'ioredis';
-import { CustomLoggerService } from 'nestjs-backend-common';
+import { isBoolean, isNumber } from 'class-validator';
+import { Command, Redis } from 'ioredis';
+import { CustomLoggerService, isNil } from 'nestjs-backend-common';
 
+import { RedisSetArg, RedisSetOptions } from '../redis.interface';
 import {
   MODULE_OPTIONS_TOKEN,
   type RedisModuleOptions,
@@ -59,12 +61,75 @@ export class RedisService implements OnModuleDestroy {
     key: string,
     value: string,
     ttlSeconds?: number,
-  ): Promise<void> {
-    if (ttlSeconds) {
-      await this.client.setex(key, ttlSeconds, value);
-      return;
+  ): Promise<boolean>;
+  async set(
+    key: string,
+    value: string,
+    options?: RedisSetOptions,
+  ): Promise<boolean>;
+  async set(
+    key: string,
+    value: string,
+    ttlOrOptions?: number | RedisSetOptions,
+  ): Promise<boolean> {
+    const opts: RedisSetOptions = isNumber(ttlOrOptions)
+      ? { ttlSeconds: ttlOrOptions }
+      : (ttlOrOptions ?? {});
+
+    if (!isNil(opts.ttlSeconds) && !isNil(opts.ttlMs)) {
+      throw new Error(
+        'Provide either ttlSeconds (EX) or ttlMs (PX), not both.',
+      );
     }
-    await this.client.set(key, value);
+
+    if (!isNil(opts.nx) && !isNil(opts.xx)) {
+      throw new Error('Provide either nx or xx, not both.');
+    }
+
+    if (isNil(opts.nx) && isNil(opts.xx) && isNil(opts.ttlMs)) {
+      if (!isNil(opts.ttlSeconds)) {
+        await this.client.setex(key, opts.ttlSeconds, value);
+
+        return true;
+      }
+
+      await this.client.set(key, value);
+      return true;
+    }
+
+    const args: RedisSetArg[] = [];
+
+    if (!isNil(opts.ttlMs)) {
+      args.push('PX', opts.ttlMs);
+    } else if (!isNil(opts.ttlSeconds)) {
+      args.push('EX', opts.ttlSeconds);
+    }
+
+    if (isBoolean(opts.nx) && opts.nx) {
+      args.push('NX');
+    }
+    if (isBoolean(opts.xx) && opts.xx) {
+      args.push('XX');
+    }
+
+    // Using sendCommand to support dynamic args, since ioredis doesn't have a good typed method for this combination.
+    const rawResult = (await this.client.sendCommand(
+      new Command('SET', [key, value, ...args]),
+    )) as Buffer;
+    const result = rawResult.toString();
+
+    if (result !== 'OK') {
+      this.logger.warn(
+        `Failed to set key "${key}" with options ${JSON.stringify(opts)}`,
+        {
+          context: RedisService.name,
+        },
+      );
+
+      return false;
+    }
+
+    return true;
   }
 
   /**
@@ -78,5 +143,19 @@ export class RedisService implements OnModuleDestroy {
       return false;
     }
     return true;
+  }
+
+  /**
+   * @description Evaluate a Lua script in Redis
+   * @param script the Lua program as a string
+   * @param numKeys how many of the following arguments are keys
+   */
+  evaluate(
+    script: string,
+    numKeys: number,
+    key: string,
+    token: string,
+  ) {
+    return this.client.eval(script, numKeys, key, token);
   }
 }

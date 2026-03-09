@@ -1,25 +1,36 @@
 import { Module } from '@nestjs/common';
 
-import { NovelService } from './novel.service';
+import { NOVEL_REPOSITORY } from './interfaces';
+import { PubSubProvider } from './providers';
+import { PrismaNovelRepository } from './repositories';
 import {
-  FileSystemNovelRepository,
-  NOVEL_REPOSITORY,
-  PrismaNovelRepository,
-} from './repositories';
-import { ChapterFieldResolver, NovelResolver } from './resolvers';
+  ChapterFieldResolver,
+  ChapterNarrationResolver,
+  NovelResolver,
+} from './resolvers';
+import {
+  ChapterNarrationService,
+  MarkdownToSpeechTextService,
+  NarrationLockService,
+  NovelService,
+} from './services';
 
 @Module({
   providers: [
     NovelResolver,
     ChapterFieldResolver,
+    ChapterNarrationResolver,
     NovelService,
-    FileSystemNovelRepository,
+    ChapterNarrationService,
+    NarrationLockService,
     PrismaNovelRepository,
+    PubSubProvider,
+    MarkdownToSpeechTextService,
     {
       provide: NOVEL_REPOSITORY,
       useClass: PrismaNovelRepository,
     },
   ],
-  exports: [NovelService],
+  exports: [NovelService, ChapterNarrationService],
 })
 export class NovelModule {}

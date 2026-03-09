@@ -2,7 +2,7 @@ import { TokenBucket } from './token-bucket';
 
 describe('TokenBucket', () => {
   it('blocks when depleted then refills over time', () => {
-    const nowSpy = jest.spyOn(Date, 'now');
+    const nowSpy = vi.spyOn(Date, 'now');
     nowSpy.mockReturnValue(0);
 
     const bucket = new TokenBucket({

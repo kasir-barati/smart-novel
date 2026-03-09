@@ -24,7 +24,7 @@ export class UploaderService {
   private uploadId?: string;
   private parts: CompletedPart[] = [];
   private chunk: Uint8Array | undefined;
-  private isMultipart = false;
+  private _isMultipart = false;
 
   constructor(
     private readonly s3Client: S3Client,
@@ -47,7 +47,7 @@ export class UploaderService {
       this.chunk = appendUint8Array(this.chunk, chunk);
     }
 
-    if (isLastChunk && !this.isMultipart) {
+    if (isLastChunk && !this._isMultipart) {
       const command = new PutObjectCommand({
         Body: this.chunk,
         Key: this.objectKey,
@@ -83,7 +83,7 @@ export class UploaderService {
   }
 
   async abortUpload() {
-    if (!this.isMultipart) {
+    if (!this._isMultipart) {
       return;
     }
 
@@ -138,7 +138,7 @@ export class UploaderService {
     }
 
     this.uploadId = response.UploadId;
-    this.isMultipart = true;
+    this._isMultipart = true;
   }
 
   private async uploadPart() {

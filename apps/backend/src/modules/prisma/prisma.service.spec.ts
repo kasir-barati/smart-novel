@@ -1,39 +1,39 @@
 import type { ConfigType } from '@nestjs/config';
 
-import { mock } from 'jest-mock-extended';
-
 import { appConfigs } from '../../app/configs/app.config';
 import { PrismaService } from './prisma.service';
 
-jest.mock('pg', () => ({
-  Pool: jest.fn().mockImplementation(() => ({
-    connect: jest.fn(),
-    end: jest.fn(),
-    query: jest.fn(),
-  })),
-}));
-jest.mock('@prisma/adapter-pg', () => ({
-  PrismaPg: jest.fn().mockImplementation(() => ({
-    provider: 'postgres',
-    startTransaction: jest.fn(),
-    getConnectionInfo: jest.fn(),
-  })),
-}));
+vi.mock('pg', () => {
+  const Pool = vi.fn(function (this: any) {
+    this.connect = vi.fn();
+    this.end = vi.fn();
+    this.query = vi.fn();
+  });
+  return { Pool };
+});
+vi.mock('@prisma/adapter-pg', () => {
+  const PrismaPg = vi.fn(function (this: any) {
+    this.provider = 'postgres';
+    this.startTransaction = vi.fn();
+    this.getConnectionInfo = vi.fn();
+  });
+  return { PrismaPg };
+});
 
 describe(PrismaService.name, () => {
   let uut: PrismaService;
   let mockAppConfig: ConfigType<typeof appConfigs>;
 
   beforeEach(async () => {
-    mockAppConfig = mock<ConfigType<typeof appConfigs>>({
+    mockAppConfig = {
       DATABASE_URL: 'postgresql://test:test@localhost:5432/test',
-    });
+    } as ConfigType<typeof appConfigs>;
 
     uut = new PrismaService(mockAppConfig);
 
     // Mock the PrismaClient methods
-    uut.$connect = jest.fn().mockResolvedValue(undefined);
-    uut.$disconnect = jest.fn().mockResolvedValue(undefined);
+    uut.$connect = vi.fn().mockResolvedValue(undefined);
+    uut.$disconnect = vi.fn().mockResolvedValue(undefined);
   });
 
   it('should connect to the database on module init', async () => {

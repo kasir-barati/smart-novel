@@ -8,13 +8,13 @@ import { RedisService } from './redis.service';
 
 describe(CacheService.name, () => {
   let uut: CacheService<string>;
-  let redisService: jest.Mocked<RedisService>;
+  let redisService: RedisService;
   let logger: CustomLoggerService;
   let correlationIdService: CorrelationIdService;
 
   beforeEach(() => {
-    redisService = { get: jest.fn() } as any;
-    logger = { log: jest.fn() } as any;
+    redisService = { get: vi.fn() } as any;
+    logger = { log: vi.fn() } as any;
     correlationIdService = {} as CorrelationIdService;
 
     uut = new CacheService(
@@ -24,8 +24,8 @@ describe(CacheService.name, () => {
     );
   });
 
-  it('should return invalidate the cache key', async () => {
-    redisService.del = jest.fn().mockResolvedValue(true);
+  it('should invalidate the cache key', async () => {
+    redisService.del = vi.fn().mockResolvedValue(true);
 
     await uut.invalidate('my:cache:key');
 
@@ -33,7 +33,7 @@ describe(CacheService.name, () => {
   });
 
   it('should return the cached value', async () => {
-    redisService.get = jest.fn().mockResolvedValue(
+    redisService.get = vi.fn().mockResolvedValue(
       JSON.stringify({
         data: 'cache me',
         metadata: {
@@ -57,9 +57,9 @@ describe(CacheService.name, () => {
   });
 
   it('should compute and cache the value if not in cache', async () => {
-    redisService.get = jest.fn().mockResolvedValue(null);
-    redisService.set = jest.fn().mockResolvedValue('OK');
-    const computeFn = jest.fn().mockResolvedValue('computed value');
+    redisService.get = vi.fn().mockResolvedValue(null);
+    redisService.set = vi.fn().mockResolvedValue('OK');
+    const computeFn = vi.fn().mockResolvedValue('computed value');
 
     const result = await uut.getOrCompute(
       'my:cache:key',
@@ -74,8 +74,9 @@ describe(CacheService.name, () => {
       cacheHit: false,
       coalesced: false,
     });
-    const [cacheKey, serializedValue, ttlSeconds] =
-      redisService.set.mock.calls[0];
+    const [cacheKey, serializedValue, ttlSeconds] = vi.mocked(
+      redisService.set,
+    ).mock.calls[0];
     expect(cacheKey).toBe('my:cache:key');
     expect(ttlSeconds).toBe(1);
     expect(JSON.parse(serializedValue)).toEqual({
@@ -88,13 +89,13 @@ describe(CacheService.name, () => {
   });
 
   it('should coalesce concurrent requests for the same key', async () => {
-    redisService.get = jest.fn().mockResolvedValue(null);
-    redisService.set = jest.fn().mockResolvedValue('OK');
+    redisService.get = vi.fn().mockResolvedValue(null);
+    redisService.set = vi.fn().mockResolvedValue('OK');
     let resolveCompute: (value: string) => void;
     const computePromise = new Promise<string>((resolve) => {
       resolveCompute = resolve;
     });
-    const computeFn = jest.fn().mockReturnValue(computePromise);
+    const computeFn = vi.fn().mockReturnValue(computePromise);
 
     // Start two concurrent requests
     const request1 = uut.getOrCompute(

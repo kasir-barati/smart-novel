@@ -4,11 +4,11 @@
     "outDir": "../../dist/out-tsc",
     "module": "nodenext",
     "moduleResolution": "nodenext",
-    "types": ["jest", "jest-extended", "node"]
+    "types": ["vitest/globals", "jest-extended", "node"]
   },
   "include": [
-    "jest.config.ts",
-    "jest.config.cts",
+    "vitest.config.ts",
+    "vitest.setup.ts",
     "src/**/*.test.ts",
     "src/**/*.spec.ts",
     "src/**/*.d.ts"

@@ -18,3 +18,14 @@ export interface CacheResult<T> {
    */
   coalesced: boolean;
 }
+export type RedisSetOptions = {
+  /** @description a TTL specifier in seconds (EX) */
+  ttlSeconds?: number;
+  /** @description a TTL specifier in milliseconds (PX) */
+  ttlMs?: number;
+  /** @description only set the key if it does not already exist (NX) */
+  nx?: boolean;
+  /** @description only set the key if it already exists (XX) */
+  xx?: boolean;
+};
+export type RedisSetArg = 'EX' | 'PX' | 'NX' | 'XX' | number;

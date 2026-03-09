@@ -1,23 +1,23 @@
 import { NotFoundException } from '@nestjs/common';
 import { isString } from 'class-validator';
 
-import { NovelState } from './enums';
+import { NovelState } from '../enums';
+import { type INovelRepository } from '../interfaces';
+import { Chapter, Novel } from '../types';
 import { NovelService } from './novel.service';
-import { type INovelRepository } from './repositories';
-import { Chapter, Novel } from './types';
 
 describe(NovelService.name, () => {
   let uut: NovelService;
-  let novelRepository: jest.Mocked<INovelRepository>;
+  let novelRepository: INovelRepository;
 
   beforeEach(() => {
     novelRepository = {
-      findAll: jest.fn(),
-      findById: jest.fn(),
-      getChapter: jest.fn(),
-      getChapterList: jest.fn(),
-      getCategories: jest.fn(),
-    };
+      findAll: vi.fn(),
+      findById: vi.fn(),
+      getChapter: vi.fn(),
+      getChapterList: vi.fn(),
+      getCategories: vi.fn(),
+    } as any;
 
     uut = new NovelService(novelRepository);
   });
@@ -41,7 +41,7 @@ describe(NovelService.name, () => {
         name: "I'm Really Not The Demon God's Lackey",
         state: NovelState.ONGOING,
       };
-      novelRepository.findById.mockResolvedValue(novel);
+      vi.mocked(novelRepository.findById).mockResolvedValue(novel);
 
       const result = await uut.findOne('novel-1');
 
@@ -52,7 +52,7 @@ describe(NovelService.name, () => {
     });
 
     it('should throw NotFoundException when id does not exist', async () => {
-      novelRepository.findById.mockResolvedValue(null);
+      vi.mocked(novelRepository.findById).mockResolvedValue(null);
 
       await expect(uut.findOne('missing-id')).rejects.toThrow(
         new NotFoundException('Novel with id missing-id not found'),
@@ -64,13 +64,13 @@ describe(NovelService.name, () => {
     it('should return chapter from repository', async () => {
       const chapter: Chapter = {
         content: '# Chapter 1',
-        createdAt: new Date('2024-01-01'),
+        createdAt: new Date('2024-01-01').toISOString(),
         title: 'Chapter 1',
         id: 'chapter1.md',
-        updatedAt: new Date('2024-01-02'),
+        updatedAt: new Date('2024-01-02').toISOString(),
         novelId: 'novel-1',
       };
-      novelRepository.getChapter.mockResolvedValue(chapter);
+      (novelRepository.getChapter as any).mockResolvedValue(chapter);
 
       const result = await uut.getChapter('novel-1', 'chapter1.md');
 
@@ -113,7 +113,7 @@ describe(NovelService.name, () => {
           description: 'Description for Novel Three',
         },
       ];
-      novelRepository.findAll.mockResolvedValue(novels);
+      vi.mocked(novelRepository.findAll).mockResolvedValue(novels);
 
       const result = await uut.findAll();
 
@@ -162,7 +162,7 @@ describe(NovelService.name, () => {
           description: 'Description for Novel Three',
         },
       ];
-      novelRepository.findAll.mockResolvedValue(novels);
+      vi.mocked(novelRepository.findAll).mockResolvedValue(novels);
 
       const result = await uut.findAll(
         undefined,
@@ -217,7 +217,7 @@ describe(NovelService.name, () => {
           description: 'Description for Novel Three',
         },
       ];
-      novelRepository.findAll.mockResolvedValue(novels);
+      vi.mocked(novelRepository.findAll).mockResolvedValue(novels);
       const afterCursor = 'bm92ZWwtMQ=='; // Base64 for 'novel-1'
 
       const result = await uut.findAll(1, undefined, afterCursor);
@@ -237,17 +237,19 @@ describe(NovelService.name, () => {
     it('should return the next chapter when current chapter exists', async () => {
       const nextChapter: Chapter = {
         content: '# Chapter 2',
-        createdAt: new Date('2024-01-03'),
+        createdAt: new Date('2024-01-03').toISOString(),
         title: 'Chapter 2',
         id: 'chapter2.md',
-        updatedAt: new Date('2024-01-04'),
+        updatedAt: new Date('2024-01-04').toISOString(),
         novelId: 'novel-1',
       };
-      novelRepository.getChapterList.mockResolvedValue([
+      vi.mocked(novelRepository.getChapterList).mockResolvedValue([
         'chapter1.md',
         'chapter2.md',
       ]);
-      novelRepository.getChapter.mockResolvedValue(nextChapter);
+      vi.mocked(novelRepository.getChapter).mockResolvedValue(
+        nextChapter,
+      );
 
       const result = await uut.getNextChapter(
         'novel-1',
@@ -265,7 +267,7 @@ describe(NovelService.name, () => {
     });
 
     it('should return null when current chapter does not exist', async () => {
-      novelRepository.getChapterList.mockResolvedValue([
+      vi.mocked(novelRepository.getChapterList).mockResolvedValue([
         'chapter1.md',
         'chapter2.md',
       ]);
@@ -283,7 +285,7 @@ describe(NovelService.name, () => {
     });
 
     it('should return null when current chapter is the last chapter', async () => {
-      novelRepository.getChapterList.mockResolvedValue([
+      vi.mocked(novelRepository.getChapterList).mockResolvedValue([
         'chapter1.md',
         'chapter2.md',
       ]);
@@ -305,17 +307,19 @@ describe(NovelService.name, () => {
     it('should return the previous chapter when current chapter exists', async () => {
       const previousChapter: Chapter = {
         content: '# Chapter 1',
-        createdAt: new Date('2024-01-01'),
+        createdAt: new Date('2024-01-01').toISOString(),
         title: 'Chapter 1',
         id: 'chapter1.md',
-        updatedAt: new Date('2024-01-02'),
+        updatedAt: new Date('2024-01-02').toISOString(),
         novelId: 'novel-1',
       };
-      novelRepository.getChapterList.mockResolvedValue([
+      vi.mocked(novelRepository.getChapterList).mockResolvedValue([
         'chapter1.md',
         'chapter2.md',
       ]);
-      novelRepository.getChapter.mockResolvedValue(previousChapter);
+      vi.mocked(novelRepository.getChapter).mockResolvedValue(
+        previousChapter,
+      );
 
       const result = await uut.getPreviousChapter(
         'novel-1',
@@ -333,7 +337,7 @@ describe(NovelService.name, () => {
     });
 
     it('should return null when current chapter does not exist', async () => {
-      novelRepository.getChapterList.mockResolvedValue([
+      vi.mocked(novelRepository.getChapterList).mockResolvedValue([
         'chapter1.md',
         'chapter2.md',
       ]);
@@ -351,7 +355,7 @@ describe(NovelService.name, () => {
     });
 
     it('should return null when current chapter is the first chapter', async () => {
-      novelRepository.getChapterList.mockResolvedValue([
+      vi.mocked(novelRepository.getChapterList).mockResolvedValue([
         'chapter1.md',
         'chapter2.md',
       ]);
@@ -378,7 +382,9 @@ describe(NovelService.name, () => {
         'romance',
         'mystery',
       ];
-      novelRepository.getCategories.mockResolvedValue(categories);
+      vi.mocked(novelRepository.getCategories).mockResolvedValue(
+        categories,
+      );
 
       const result = await uut.getCategories();
 
@@ -388,7 +394,9 @@ describe(NovelService.name, () => {
 
     it('should return an array of strings', async () => {
       const categories = ['fantasy', 'sci-fi', 'horror'];
-      novelRepository.getCategories.mockResolvedValue(categories);
+      vi.mocked(novelRepository.getCategories).mockResolvedValue(
+        categories,
+      );
 
       const result = await uut.getCategories();
 

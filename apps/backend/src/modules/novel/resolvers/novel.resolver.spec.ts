@@ -1,15 +1,15 @@
 import { NovelState } from '../enums';
-import { NovelService } from '../novel.service';
+import { NovelService } from '../services';
 import { Novel } from '../types';
 import { NovelResolver } from './novel.resolver';
 
 describe(NovelResolver.name, () => {
   let uut: NovelResolver;
-  let novelService: jest.Mocked<NovelService>;
+  let novelService: NovelService;
 
   beforeEach(() => {
     novelService = {
-      getChapter: jest.fn(),
+      getChapter: vi.fn(),
     } as any;
 
     uut = new NovelResolver(novelService);
@@ -29,7 +29,7 @@ describe(NovelResolver.name, () => {
       const updatedAt = new Date(
         '2026-02-20T10:20:30.000Z',
       ).toISOString();
-      novelService.getChapter.mockResolvedValue({
+      vi.mocked(novelService.getChapter).mockResolvedValue({
         content: '# Chapter 2',
         createdAt: new Date('2026-02-19T00:00:00.000Z'),
         id: 'chapter2.md',
@@ -74,7 +74,7 @@ describe(NovelResolver.name, () => {
         state: NovelState.ONGOING,
       };
 
-      novelService.getChapter.mockResolvedValue(null);
+      vi.mocked(novelService.getChapter).mockResolvedValue(null);
 
       const result = await uut.lastChapterPublishedAt(novel);
 
@@ -104,7 +104,7 @@ describe(NovelResolver.name, () => {
         novelId: 'novel-1',
         updatedAt: new Date('2026-02-20T10:20:30.000Z').toISOString(),
       };
-      novelService.getChapter.mockResolvedValue(chapter);
+      vi.mocked(novelService.getChapter).mockResolvedValue(chapter);
 
       const result = await uut.lastPublishedChapter(novel);
 
@@ -151,7 +151,7 @@ describe(NovelResolver.name, () => {
         novelId: 'novel-1',
         updatedAt: new Date('2026-02-18T00:00:00.000Z').toISOString(),
       };
-      novelService.getChapter.mockResolvedValue(chapter);
+      vi.mocked(novelService.getChapter).mockResolvedValue(chapter);
 
       const result = await uut.firstChapter(novel);
 
