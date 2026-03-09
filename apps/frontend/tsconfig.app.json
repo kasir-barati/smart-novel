@@ -18,8 +18,8 @@
     "src/**/*.test.js",
     "src/**/*.spec.jsx",
     "src/**/*.test.jsx",
-    "jest.config.ts",
-    "jest.config.cts"
+    "vitest.config.ts",
+    "vitest.setup.ts"
   ],
   "include": [
     "src/**/*.js",

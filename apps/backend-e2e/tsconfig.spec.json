@@ -3,7 +3,7 @@
   "compilerOptions": {
     "outDir": "../../dist/out-tsc",
     "module": "nodenext",
-    "types": ["jest", "jest-extended", "node"]
+    "types": ["vitest/globals", "jest-extended", "node"]
   },
-  "include": ["jest.config.ts", "src/**/*.ts"]
+  "include": ["vitest.config.ts", "src/**/*.ts"]
 }

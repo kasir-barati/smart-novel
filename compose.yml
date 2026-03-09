@@ -268,10 +268,6 @@ services:
   tts:
     image: 9109679196/piper-tts-rest-api:2.1.0
     user: "1000:1000"
-    profiles:
-      - dev
-      - backend-e2e
-      - frontend-e2e
     environment:
       PIPER_MODEL: /app/models/en_US-lessac-medium.onnx
       PORT: 3000
