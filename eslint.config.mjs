@@ -64,6 +64,7 @@ export default [
           argsIgnorePattern: '^_',
         },
       ],
+      'no-console': 'error',
     },
   },
   {
@@ -92,12 +93,27 @@ export default [
     },
   },
   {
-    files: ['**/*.spec.ts', '**/*.spec.tsx', '**/*.e2e-spec.ts', '**/vitest.setup.ts'],
+    files: [
+      '**/*.spec.ts',
+      '**/*.spec.tsx',
+      '**/*.e2e-spec.ts',
+      '**/vitest.setup.ts',
+      '**/*-e2e/**/*.ts',
+      '**/global-setup.ts',
+      '**/*.fixture.ts',
+    ],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/no-empty-function': 'off',
       'no-async-promise-executor': 'off',
+      'no-console': 'off',
+    },
+  },
+  {
+    files: ['**/prisma/**/*.ts', '**/prisma/**/*.js'],
+    rules: {
+      'no-console': 'off',
     },
   },
 ];

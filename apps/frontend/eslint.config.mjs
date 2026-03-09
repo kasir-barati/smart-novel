@@ -9,6 +9,12 @@ export default [
   ...baseConfig,
   ...nx.configs['flat/react'],
   {
+    files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
+  {
     files: ['vitest.setup.ts', '**/*.spec.{ts,tsx}'],
     rules: {
       '@typescript-eslint/no-empty-function': 'off',
