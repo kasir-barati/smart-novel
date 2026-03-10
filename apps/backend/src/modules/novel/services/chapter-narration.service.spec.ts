@@ -258,6 +258,7 @@ describe(ChapterNarrationService.name, () => {
       expect(narrationLockService.tryAcquire).toHaveBeenCalledWith(
         expect.any(String),
         3600000, // 1 hour in ms
+        false,
       );
     });
 

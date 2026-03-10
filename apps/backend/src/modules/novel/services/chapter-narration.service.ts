@@ -304,7 +304,22 @@ export class ChapterNarrationService {
     chapterId: string,
     correlationId: string,
   ): Promise<Readable | null> {
-    const twentySeconds = 20000;
+    /** @description Time to First Byte/headers (30 seconds) */
+    const TTFB_TIMEOUT_MS = 30_000;
+    /** @description No data received for this long (30 seconds) */
+    const IDLE_TIMEOUT_MS = 30_000;
+    /** @description Absolute max duration (15 minutes) */
+    const HARD_CAP_MS = 15 * 60_000;
+    const controller = new AbortController();
+    const hardCapTimer = setTimeout(
+      () => controller.abort(new Error('Hard cap exceeded')),
+      HARD_CAP_MS,
+    );
+
+    /** @description Cancel TTFB if headers take too long */
+    let ttfbTimer: NodeJS.Timeout | null = setTimeout(() => {
+      controller.abort(new Error('TTFB timeout'));
+    }, TTFB_TIMEOUT_MS);
 
     try {
       const response = await axios.post(
@@ -313,16 +328,52 @@ export class ChapterNarrationService {
         {
           headers: { 'correlation-id': correlationId },
           responseType: 'stream',
-          timeout: twentySeconds, // FIXME: is it that I have to increase this to a number that prevents this request for longer chapters from timing out? I mean we are returning a readable stream and TTS service also starts streaming immediately (it won't wait for the entire audio to be generated). TTS service accepts 10 concurrent requests, so why my tests where failing and ASAP I increased the timeout they passed?
+          timeout: 0,
+          signal: controller.signal,
         },
       );
+
+      // We have headers => clear TTFB timer
+      if (ttfbTimer) {
+        clearTimeout(ttfbTimer);
+        ttfbTimer = null;
+      }
+
+      // Set up idle timeout that resets on every chunk
+      const stream = response.data as Readable;
+      let idleTimer: NodeJS.Timeout | null = setTimeout(() => {
+        controller.abort(new Error('Idle timeout'));
+      }, IDLE_TIMEOUT_MS);
+
+      stream.on('data', () => {
+        if (idleTimer) {
+          clearTimeout(idleTimer);
+        }
+        idleTimer = setTimeout(
+          () => controller.abort(new Error('Idle timeout')),
+          IDLE_TIMEOUT_MS,
+        );
+      });
+
+      // Clean up timers when stream completes or errors
+      const cleanup = () => {
+        if (idleTimer) {
+          clearTimeout(idleTimer);
+        }
+        if (ttfbTimer) {
+          clearTimeout(ttfbTimer);
+        }
+        clearTimeout(hardCapTimer);
+      };
+      stream.once('end', cleanup);
+      stream.once('error', cleanup);
 
       this.logger.log(
         `TTS request initiated for chapter ${chapterId}`,
         { context: ChapterNarrationService.name, correlationId },
       );
 
-      return response.data as Readable;
+      return stream;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
