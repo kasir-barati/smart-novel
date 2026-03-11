@@ -2,7 +2,8 @@
 
 ## TDD
 
-- If you change something make sure to run unit tests, and e2e tests.
+- If you change/add something make sure to run and run unit/e2e tests.
+- Follow [testing conventions](./TEST_CONVENTIONS.md).
 
 ## Upgrading 3rd Party Libraries
 
