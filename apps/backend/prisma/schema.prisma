@@ -37,15 +37,16 @@ model Novel {
 }
 
 model Chapter {
-    id              String           @id @default(uuid()) @db.Uuid
-    novelId         String           @map("novel_id") @db.Uuid
-    title           String
-    content         String           @db.Text
-    narrationStatus NarrationStatus? @map("narration_status")
-    narrationUrl    String?          @map("narration_url")
-    chapterNumber   Int              @map("chapter_number")
-    createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz
-    updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+    id                 String           @id @default(uuid()) @db.Uuid
+    novelId            String           @map("novel_id") @db.Uuid
+    title              String
+    content            String           @db.Text
+    ttsFriendlyContent String?          @map("tts_friendly_content") @db.Text
+    narrationStatus    NarrationStatus? @map("narration_status")
+    narrationUrl       String?          @map("narration_url")
+    chapterNumber      Int              @map("chapter_number")
+    createdAt          DateTime         @default(now()) @map("created_at") @db.Timestamptz
+    updatedAt          DateTime         @updatedAt @map("updated_at") @db.Timestamptz
 
     novel Novel @relation(fields: [novelId], references: [id], onDelete: Cascade)
 

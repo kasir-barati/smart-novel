@@ -10,7 +10,7 @@ import {
 
 import { appConfigs } from '../../../app';
 import { PrismaService } from '../../prisma';
-import { INovelRepository } from '../interfaces';
+import { IChapterRepository } from '../interfaces';
 import { chapterNarrationUpdateSubscriptionKey } from '../utils';
 import { ChapterNarrationService } from './chapter-narration.service';
 import { MarkdownToSpeechTextService } from './markdown-to-speech-text.service';
@@ -41,7 +41,7 @@ describe(ChapterNarrationService.name, () => {
   let narrationLockService: NarrationLockService;
   let prisma: PrismaService;
   let pubSub: PubSubEngine;
-  let novelRepository: INovelRepository;
+  let chapterRepository: IChapterRepository;
   let appConfig: ConfigType<typeof appConfigs>;
   let markdownToSpeechTextService: MarkdownToSpeechTextService;
   const mockChapterId = 'e8cec22d-a2c2-4f68-ac1c-6a3cdbbfef33';
@@ -77,7 +77,7 @@ describe(ChapterNarrationService.name, () => {
       publish: vi.fn(),
       asyncIterableIterator: vi.fn(),
     } as any;
-    novelRepository = {
+    chapterRepository = {
       updateChapterNarrationComplete: vi.fn(),
       updateNarrationStatus: vi.fn(),
     } as any;
@@ -95,7 +95,7 @@ describe(ChapterNarrationService.name, () => {
       narrationLockService,
       prisma,
       pubSub,
-      novelRepository,
+      chapterRepository,
       appConfig,
       markdownToSpeechTextService,
     );

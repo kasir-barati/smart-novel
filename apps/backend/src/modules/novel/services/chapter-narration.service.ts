@@ -24,8 +24,8 @@ import {
 } from '../../object-storage';
 import { PrismaService } from '../../prisma';
 import {
-  type INovelRepository,
-  NOVEL_REPOSITORY,
+  CHAPTER_REPOSITORY,
+  type IChapterRepository,
 } from '../interfaces';
 import { PUBSUB_TOKEN } from '../providers';
 import { ChapterNarrationResponse } from '../types';
@@ -48,8 +48,8 @@ export class ChapterNarrationService {
     private readonly prisma: PrismaService,
     @Inject(PUBSUB_TOKEN)
     private readonly pubSub: PubSubEngine,
-    @Inject(NOVEL_REPOSITORY)
-    private readonly novelRepository: INovelRepository,
+    @Inject(CHAPTER_REPOSITORY)
+    private readonly chapterRepository: IChapterRepository,
     @Inject(appConfigs.KEY)
     private readonly appConfig: ConfigType<typeof appConfigs>,
     private readonly markdownToSpeechTextService: MarkdownToSpeechTextService,
@@ -230,7 +230,7 @@ export class ChapterNarrationService {
 
         // Step 3: Update DB atomically (with status check)
         const updated =
-          await this.novelRepository.updateChapterNarrationComplete(
+          await this.chapterRepository.updateChapterNarrationComplete(
             chapterId,
             publicUrl,
           );
@@ -272,7 +272,7 @@ export class ChapterNarrationService {
         );
 
         // Mark as failed in DB
-        await this.novelRepository.updateNarrationStatus(
+        await this.chapterRepository.updateNarrationStatus(
           chapterId,
           NarrationStatus.FAILED,
         );

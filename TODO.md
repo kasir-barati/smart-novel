@@ -1,3 +1,6 @@
+- Add OTel
+- Add pipe operator
+
 Auto gen a simple API client for the backend and use it in the frontend app (so I don't have to create and maintain some dumb interfaces which are essentially the same object type, and input types I have in the backend).
 
 # TODOs
@@ -9,7 +12,6 @@ I added a text to speech service, now what I need from you is to add a section i
 - Add soft delete support!
 - Add Piper TTS: https://hub.docker.com/r/9109679196/piper-tts-rest-api/
   - Auto gen the TTS each time we change the content of a chapter.
-    - Can we do something about prolonged interjections like "ahhh~" (used in manga and novels), or its other form "ahhh...", or "ahhhhhhhh"? I think right now the auto generated voice would be like "ahhh tilde".
   - Store the mp3 file in Minio.
   - Add a play button in the UI.
 - Write unit test for the frontend: https://github.com/kasir-barati/rmc/tree/main/projects/rmc-frontend/src/pages/reduction-measures

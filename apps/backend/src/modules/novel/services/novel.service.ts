@@ -7,6 +7,8 @@ import { PageInfo } from 'nestjs-backend-common';
 
 import { NovelFiltersInput } from '../inputs';
 import {
+  CHAPTER_REPOSITORY,
+  type IChapterRepository,
   type INovelRepository,
   NOVEL_REPOSITORY,
 } from '../interfaces';
@@ -17,6 +19,8 @@ export class NovelService {
   constructor(
     @Inject(NOVEL_REPOSITORY)
     private readonly novelRepository: INovelRepository,
+    @Inject(CHAPTER_REPOSITORY)
+    private readonly chapterRepository: IChapterRepository,
   ) {}
 
   async findOne(id: string): Promise<Novel> {
@@ -123,7 +127,7 @@ export class NovelService {
     novelId: string,
     chapterId: string,
   ): Promise<Chapter | null> {
-    return this.novelRepository.getChapter(novelId, chapterId);
+    return this.chapterRepository.getChapter(novelId, chapterId);
   }
 
   async getNextChapter(
@@ -143,7 +147,7 @@ export class NovelService {
 
     const nextChapterId = chapters[currentIndex + 1];
 
-    return this.novelRepository.getChapter(novelId, nextChapterId);
+    return this.chapterRepository.getChapter(novelId, nextChapterId);
   }
 
   async getPreviousChapter(
@@ -163,7 +167,7 @@ export class NovelService {
 
     const previousChapterId = chapters[currentIndex - 1];
 
-    return this.novelRepository.getChapter(
+    return this.chapterRepository.getChapter(
       novelId,
       previousChapterId,
     );

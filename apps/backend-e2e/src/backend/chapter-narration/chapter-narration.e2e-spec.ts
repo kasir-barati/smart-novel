@@ -230,4 +230,9 @@ describe('Chapter Narration (e2e)', () => {
       client.dispose();
     }
   }, 35000); // 35 second timeout for this test
+
+  it.todo(
+    'should use the ttsFriendlyContent when it is available',
+    () => {},
+  );
 });

@@ -84,4 +84,24 @@ describe('Chapter (e2e)', () => {
       CHAPTER_ONE_ID,
     );
   });
+
+  it.todo.each([])(
+    'should ONLY allow users with access to update ttsFriendlyContent',
+    () => {},
+  );
+
+  it.todo.each([])(
+    'should ONLY allow users with access to generate ttsFriendlyContent',
+    () => {},
+  );
+
+  it.todo(
+    'should throw not authorized error when user does NOT have permission to update ttsFriendlyContent',
+    () => {},
+  );
+
+  it.todo(
+    'should throw not authorized error when user does NOT have permission to generate ttsFriendlyContent',
+    () => {},
+  );
 });

@@ -1,25 +1,32 @@
 import { NotFoundException } from '@nestjs/common';
 import { isString } from 'class-validator';
 
+import type {
+  IChapterRepository,
+  INovelRepository,
+} from '../interfaces';
+
 import { NovelState } from '../enums';
-import { type INovelRepository } from '../interfaces';
 import { Chapter, Novel } from '../types';
 import { NovelService } from './novel.service';
 
 describe(NovelService.name, () => {
   let uut: NovelService;
   let novelRepository: INovelRepository;
+  let chapterRepository: IChapterRepository;
 
   beforeEach(() => {
     novelRepository = {
       findAll: vi.fn(),
       findById: vi.fn(),
-      getChapter: vi.fn(),
       getChapterList: vi.fn(),
       getCategories: vi.fn(),
     } as any;
+    chapterRepository = {
+      getChapter: vi.fn(),
+    } as any;
 
-    uut = new NovelService(novelRepository);
+    uut = new NovelService(novelRepository, chapterRepository);
   });
 
   describe('findOne', () => {
@@ -70,12 +77,14 @@ describe(NovelService.name, () => {
         updatedAt: new Date('2024-01-02').toISOString(),
         novelId: 'novel-1',
       };
-      (novelRepository.getChapter as any).mockResolvedValue(chapter);
+      vi.mocked(chapterRepository.getChapter).mockResolvedValue(
+        chapter,
+      );
 
       const result = await uut.getChapter('novel-1', 'chapter1.md');
 
       expect(result).toEqual(chapter);
-      expect(novelRepository.getChapter).toHaveBeenCalledWith(
+      expect(chapterRepository.getChapter).toHaveBeenCalledWith(
         'novel-1',
         'chapter1.md',
       );
@@ -247,7 +256,7 @@ describe(NovelService.name, () => {
         'chapter1.md',
         'chapter2.md',
       ]);
-      vi.mocked(novelRepository.getChapter).mockResolvedValue(
+      vi.mocked(chapterRepository.getChapter).mockResolvedValue(
         nextChapter,
       );
 
@@ -260,7 +269,7 @@ describe(NovelService.name, () => {
       expect(novelRepository.getChapterList).toHaveBeenCalledWith(
         'novel-1',
       );
-      expect(novelRepository.getChapter).toHaveBeenCalledWith(
+      expect(chapterRepository.getChapter).toHaveBeenCalledWith(
         'novel-1',
         'chapter2.md',
       );
@@ -281,7 +290,7 @@ describe(NovelService.name, () => {
       expect(novelRepository.getChapterList).toHaveBeenCalledWith(
         'novel-1',
       );
-      expect(novelRepository.getChapter).not.toHaveBeenCalled();
+      expect(chapterRepository.getChapter).not.toHaveBeenCalled();
     });
 
     it('should return null when current chapter is the last chapter', async () => {
@@ -299,7 +308,7 @@ describe(NovelService.name, () => {
       expect(novelRepository.getChapterList).toHaveBeenCalledWith(
         'novel-1',
       );
-      expect(novelRepository.getChapter).not.toHaveBeenCalled();
+      expect(chapterRepository.getChapter).not.toHaveBeenCalled();
     });
   });
 
@@ -317,7 +326,7 @@ describe(NovelService.name, () => {
         'chapter1.md',
         'chapter2.md',
       ]);
-      vi.mocked(novelRepository.getChapter).mockResolvedValue(
+      vi.mocked(chapterRepository.getChapter).mockResolvedValue(
         previousChapter,
       );
 
@@ -330,7 +339,7 @@ describe(NovelService.name, () => {
       expect(novelRepository.getChapterList).toHaveBeenCalledWith(
         'novel-1',
       );
-      expect(novelRepository.getChapter).toHaveBeenCalledWith(
+      expect(chapterRepository.getChapter).toHaveBeenCalledWith(
         'novel-1',
         'chapter1.md',
       );
@@ -351,7 +360,7 @@ describe(NovelService.name, () => {
       expect(novelRepository.getChapterList).toHaveBeenCalledWith(
         'novel-1',
       );
-      expect(novelRepository.getChapter).not.toHaveBeenCalled();
+      expect(chapterRepository.getChapter).not.toHaveBeenCalled();
     });
 
     it('should return null when current chapter is the first chapter', async () => {
@@ -369,7 +378,7 @@ describe(NovelService.name, () => {
       expect(novelRepository.getChapterList).toHaveBeenCalledWith(
         'novel-1',
       );
-      expect(novelRepository.getChapter).not.toHaveBeenCalled();
+      expect(chapterRepository.getChapter).not.toHaveBeenCalled();
     });
   });
 
