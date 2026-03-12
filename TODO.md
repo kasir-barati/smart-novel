@@ -1,5 +1,9 @@
 - Add OTel
 - Add pipe operator
+- Instead of a background job for TTS use RabbitMQ and quorum queues.
+  - Change your piper image to also accept listen to a routing key.
+  - Add retry and quorum queue.
+  - Add DLQ to this app too.
 
 Auto gen a simple API client for the backend and use it in the frontend app (so I don't have to create and maintain some dumb interfaces which are essentially the same object type, and input types I have in the backend).
 

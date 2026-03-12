@@ -57,6 +57,10 @@ services:
         condition: service_healthy
       tts:
         condition: service_healthy
+      zitadel:
+        condition: service_started
+      cerbos:
+        condition: service_healthy
     healthcheck:
       test:
         [
@@ -158,6 +162,76 @@ services:
       retries: 5
       start_period: 10s
 
+  init-zitadel-db:
+    image: postgres:18.2-bookworm
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        until pg_isready -h postgres -U $$PGUSER; do sleep 1; done
+        psql -h postgres -U $$PGUSER -tc "SELECT 1 FROM pg_roles WHERE rolname='zitadel'" | grep -q 1 \
+          || psql -h postgres -U $$PGUSER -c "CREATE ROLE zitadel LOGIN PASSWORD 'zitadel';"
+        psql -h postgres -U $$PGUSER -tc "SELECT 1 FROM pg_database WHERE datname='zitadel'" | grep -q 1 \
+          || psql -h postgres -U $$PGUSER -c "CREATE DATABASE zitadel OWNER zitadel;"
+        echo "ZITADEL database ready!"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  zitadel:
+    image: ghcr.io/zitadel/zitadel:v4.12.2
+    command: start-from-init --masterkeyFromEnv --tlsMode disabled
+    environment:
+      ZITADEL_DATABASE_POSTGRES_HOST: postgres
+      ZITADEL_DATABASE_POSTGRES_PORT: 5432
+      ZITADEL_DATABASE_POSTGRES_DATABASE: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_USERNAME: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: disable
+      ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: ${POSTGRES_USER}
+      ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: ${POSTGRES_PASSWORD}
+      ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: disable
+      ZITADEL_EXTERNALSECURE: false
+      ZITADEL_EXTERNALPORT: ${ZITADEL_EXTERNAL_PORT}
+      ZITADEL_EXTERNALDOMAIN: zitadel
+      ZITADEL_MASTERKEY: ${ZITADEL_MASTERKEY}
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: ${ZITADEL_ADMIN_USERNAME:-admin}
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: ${ZITADEL_ADMIN_PASSWORD:-Admin123!}
+      # Allow internal Docker-network origins so backend can reach OIDC endpoints
+      ZITADEL_DEFAULTINSTANCE_INSTANCENAME: ZITADEL
+      ZITADEL_DEFAULTINSTANCE_ORIGINS: http://localhost:${ZITADEL_EXTERNAL_PORT} http://zitadel:8080
+    ports:
+      - "${ZITADEL_EXTERNAL_PORT}:8080"
+    depends_on:
+      init-zitadel-db:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "/app/zitadel", "ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  cerbos:
+    image: ghcr.io/cerbos/cerbos:latest
+    ports:
+      - "${CERBOS_HTTP_PORT:-3592}:3592"
+      - "${CERBOS_GRPC_PORT:-3593}:3593"
+    volumes:
+      - ./local-setup/cerbos:/config
+    command: server --config=/config/.cerbos.yaml
+    healthcheck:
+      test: ["CMD", "/cerbos", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   pgadmin:
     image: dpage/pgadmin4:8.4
     restart: always
@@ -250,7 +324,7 @@ services:
   open-webui:
     image: ghcr.io/open-webui/open-webui:main
     ports:
-      - "8080:8080"
+      - "8090:8080"
     depends_on:
       ollama:
         condition: service_healthy

@@ -8,6 +8,7 @@ import {
   Resolver,
 } from '@nestjs/graphql';
 
+import { CheckPolicy, Public } from '../../auth';
 import { NovelFiltersInput } from '../inputs';
 import { NovelService } from '../services';
 import { Chapter, Novel, NovelConnection } from '../types';
@@ -16,6 +17,8 @@ import { Chapter, Novel, NovelConnection } from '../types';
 export class NovelResolver {
   constructor(private readonly novelService: NovelService) {}
 
+  @Public()
+  @CheckPolicy('novel', 'read')
   @Query(() => Novel, { description: 'Find a novel by its ID' })
   async novel(
     @Args('id', {
@@ -29,6 +32,7 @@ export class NovelResolver {
     return novel;
   }
 
+  @Public()
   @Query(() => NovelConnection)
   async novels(
     @Args('first', { type: () => Int, nullable: true })
@@ -53,6 +57,7 @@ export class NovelResolver {
     );
   }
 
+  @Public()
   @Query(() => [String], {
     description: 'Get all available novel categories',
   })

@@ -117,4 +117,16 @@ class EnvironmentVariables implements AppConfig {
   @IsOptional()
   @IsString()
   OBJECT_STORAGE_SECRET_KEY?: string;
+
+  @IsNotEmpty()
+  @IsString()
+  ZITADEL_ISSUER_URL: string;
+
+  @IsOptional()
+  @IsString()
+  ZITADEL_INTERNAL_URL?: string;
+
+  @IsNotEmpty()
+  @IsString()
+  CERBOS_URL: string;
 }

@@ -1,3 +1,4 @@
+export * from './auth';
 export * from './llm';
 export * from './novel';
 export * from './object-storage';

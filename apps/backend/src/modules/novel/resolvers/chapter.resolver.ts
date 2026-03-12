@@ -1,8 +1,10 @@
 import { Args, ID, Mutation, Resolver } from '@nestjs/graphql';
 
+import { Public } from '../../auth';
 import { ChapterService } from '../services';
 import { Chapter } from '../types';
 
+@Public()
 @Resolver(() => Chapter)
 export class ChapterResolver {
   constructor(private readonly chapterService: ChapterService) {}
@@ -22,7 +24,10 @@ export class ChapterResolver {
     return this.chapterService.convertToTtsFriendly(chapterId);
   }
 
-  @Mutation()
+  @Mutation(() => Chapter, {
+    name: 'updateTtsFriendlyContent',
+    description: 'Update the TTS-friendly content for a chapter',
+  })
   async updateTtsFriendlyContent(
     @Args('id', {
       type: () => ID,

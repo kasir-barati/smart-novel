@@ -24,4 +24,20 @@ export interface AppConfig {
   OBJECT_STORAGE_ACCESS_KEY?: string;
   OBJECT_STORAGE_SECRET_KEY?: string;
   TTS_ENDPOINT: string;
+  /**
+   * @description OIDC issuer URL
+   * @example `http://localhost:8085` for ZITADEL
+   */
+  ZITADEL_ISSUER_URL: string;
+  /**
+   * @description Internal URL for OIDC discovery/JWKS fetching inside Docker.
+   * Falls back to ZITADEL_ISSUER_URL when not set.
+   * @example `http://zitadel:8080`
+   */
+  ZITADEL_INTERNAL_URL?: string;
+  /**
+   * @description Cerbos HTTP decision endpoint
+   * @example `http://cerbos:3592`
+   */
+  CERBOS_URL: string;
 }

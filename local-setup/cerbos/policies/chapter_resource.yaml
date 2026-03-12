@@ -1,0 +1,48 @@
+---
+apiVersion: api.cerbos.dev/v1
+resourcePolicy:
+  resource: chapter
+  version: default
+  rules:
+    # Anyone can read chapters of public novels
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["*"]
+      condition:
+        match:
+          expr: request.resource.attr.visibility == "public"
+
+    # Owner can perform any action on chapters of their novels
+    - actions: ["read", "create", "update", "delete"]
+      effect: EFFECT_ALLOW
+      roles: ["user", "admin"]
+      condition:
+        match:
+          expr: request.resource.attr.ownerId == request.principal.id
+
+    # Users in the same org can read chapters from their org's novels
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["user", "admin"]
+      condition:
+        match:
+          all:
+            of:
+              - expr: request.resource.attr.orgId == request.principal.attr.orgId
+              - expr: request.resource.attr.visibility == "org"
+
+    # Users in the same region can read region-scoped chapters
+    - actions: ["read"]
+      effect: EFFECT_ALLOW
+      roles: ["user", "admin"]
+      condition:
+        match:
+          all:
+            of:
+              - expr: request.resource.attr.region == request.principal.attr.region
+              - expr: request.resource.attr.visibility == "region"
+
+    # Admins can do anything
+    - actions: ["read", "create", "update", "delete"]
+      effect: EFFECT_ALLOW
+      roles: ["admin"]

@@ -6,12 +6,14 @@ import {
   Subscription,
 } from '@nestjs/graphql';
 
+import { Public } from '../../auth';
 import { ChapterNarrationService } from '../services';
 import {
   ChapterNarrationEvent,
   ChapterNarrationResponse,
 } from '../types';
 
+@Public()
 @Resolver()
 export class ChapterNarrationResolver {
   constructor(

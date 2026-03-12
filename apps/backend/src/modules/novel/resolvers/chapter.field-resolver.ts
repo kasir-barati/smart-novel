@@ -1,8 +1,10 @@
 import { Parent, ResolveField, Resolver } from '@nestjs/graphql';
 
+import { Public } from '../../auth';
 import { NovelService } from '../services';
 import { Chapter } from '../types';
 
+@Public()
 @Resolver(() => Chapter)
 export class ChapterFieldResolver {
   constructor(private readonly novelService: NovelService) {}
