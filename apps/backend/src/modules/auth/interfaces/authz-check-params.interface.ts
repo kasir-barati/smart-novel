@@ -5,14 +5,26 @@ import { IAuthUser } from './auth-user.interface';
  * Maps naturally to Cerbos, OPA, Cedar, or any ABAC engine.
  */
 export interface AuthzCheckParams {
-  /** The authenticated user (principal) */
+  /**
+   * @description The authenticated user (principal)
+   */
   principal: IAuthUser;
-  /** The resource type being accessed (e.g., "novel", "chapter") */
+  /**
+   * @description The resource type being accessed.
+   * @example `novel` or `chapter`
+   */
   resource: string;
-  /** The resource's unique identifier */
+  /**
+   * @description The resource's unique identifier
+   */
   resourceId: string;
-  /** The action being performed (e.g., "read", "create", "update", "delete") */
+  /**
+   * @description The action being performed
+   * @example `read` or `create`, `update`, `delete`
+   */
   action: string;
-  /** Arbitrary resource attributes for ABAC decisions */
+  /**
+   * @description Arbitrary resource attributes for ABAC decisions
+   */
   resourceAttributes?: Record<string, string>;
 }

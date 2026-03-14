@@ -1,0 +1,65 @@
+{
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "always"
+  },
+  // Use Prettier as the default formatter
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  // Format on save (already enabled globally, but explicit here)
+  "editor.formatOnSave": true,
+  // Specific formatters for different file types
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[scss]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  // Prettier settings - will automatically use .prettierrc in project root
+  "prettier.requireConfig": true,
+  "prettier.useEditorConfig": false,
+  // Ensure prettier uses the project's node_modules
+  "prettier.prettierPath": "./node_modules/prettier",
+  // ESLint settings - use local installation and configs
+  "eslint.enable": true,
+  // Point to local ESLint installation (similar to prettier)
+  "eslint.nodePath": "./node_modules",
+  // Use the ESLint version from node_modules
+  "eslint.useFlatConfig": true,
+  // Validate these file types
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  // Working directories for monorepo - helps ESLint find configs in subdirectories
+  "eslint.workingDirectories": [{ "mode": "auto" }],
+  // Optional: Show ESLint status in the status bar
+  "eslint.alwaysShowStatus": true
+}

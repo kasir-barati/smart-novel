@@ -1,3 +1,5 @@
+import type { Request } from 'express';
+
 import {
   CanActivate,
   ExecutionContext,
@@ -7,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
+import { isString } from 'class-validator';
 import { CustomLoggerService } from 'nestjs-backend-common';
 
 import {
@@ -17,16 +20,14 @@ import {
 import {
   AUTHORIZATION_PROVIDER,
   type IAuthorizationProvider,
-  type IAuthUser,
 } from '../interfaces';
 
 /**
- * @description GraphQL-aware ABAC policies guard.
- * Reads @CheckPolicy() metadata and calls the injected
- * IAuthorizationProvider to make attribute-based access decisions.
+ * @description
+ * GraphQL-aware ABAC policies guard.
+ * Reads `@CheckPolicy()` metadata and calls the injected `IAuthorizationProvider` to make attribute-based access decisions.
  *
- * Expects the JwtAuthGuard to have already run and attached
- * the IAuthUser to the request.
+ * Expects the `JwtAuthGuard` to have already run and attached the `IAuthUser` to the request.
  *
  * Resource attributes are resolved from GQL args:
  * - `id` → resourceId
@@ -41,31 +42,31 @@ export class PoliciesGuard implements CanActivate {
     private readonly logger: CustomLoggerService,
   ) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Skip if route is public
+  async canActivate(
+    executionContext: ExecutionContext,
+  ): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(
       IS_PUBLIC_KEY,
-      [context.getHandler(), context.getClass()],
+      [executionContext.getHandler(), executionContext.getClass()],
     );
 
     if (isPublic) {
       return true;
     }
 
-    // Skip if no @CheckPolicy() decorator is present
     const policyMeta =
       this.reflector.getAllAndOverride<CheckPolicyMetadata>(
         CHECK_POLICY_KEY,
-        [context.getHandler(), context.getClass()],
+        [executionContext.getHandler(), executionContext.getClass()],
       );
 
     if (!policyMeta) {
       return true;
     }
 
-    const ctx = GqlExecutionContext.create(context);
-    const request = ctx.getContext().req;
-    const user = request.user as IAuthUser | undefined;
+    const context = GqlExecutionContext.create(executionContext);
+    const request: Request = context.getContext().req;
+    const user = request.user;
 
     if (!user) {
       throw new ForbiddenException(
@@ -73,14 +74,12 @@ export class PoliciesGuard implements CanActivate {
       );
     }
 
-    const args = ctx.getArgs() as Record<string, unknown>;
-    const resourceId = (args.id as string) ?? 'unknown';
-
-    // Collect any extra args as resource attributes for ABAC
+    const args = context.getArgs() as RequestArgs;
+    const resourceId = args.id ?? 'unknown';
     const resourceAttributes: Record<string, string> = {};
 
     for (const [key, value] of Object.entries(args)) {
-      if (key !== 'id' && typeof value === 'string') {
+      if (isNotId(key) && isString(value)) {
         resourceAttributes[key] = value;
       }
     }
@@ -97,6 +96,7 @@ export class PoliciesGuard implements CanActivate {
       this.logger.warn(
         `Access denied: user=${user.sub} action=${policyMeta.action} resource=${policyMeta.resource}/${resourceId}`,
       );
+
       throw new ForbiddenException(
         `You do not have permission to ${policyMeta.action} this ${policyMeta.resource}`,
       );
@@ -104,4 +104,13 @@ export class PoliciesGuard implements CanActivate {
 
     return true;
   }
+}
+
+function isNotId(key: string): boolean {
+  return key !== 'id';
+}
+
+interface RequestArgs {
+  id?: string;
+  [key: string]: unknown;
 }

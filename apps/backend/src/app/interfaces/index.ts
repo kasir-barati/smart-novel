@@ -9,12 +9,18 @@ export interface AppConfig {
   LOG_LEVEL: LogLevel;
   OLLAMA_BASE_URL: string;
   OLLAMA_MODEL: string;
-  /** @description follows https://www.npmjs.com/package/ms */
+  /**
+   * @description follows https://www.npmjs.com/package/ms
+   */
   OLLAMA_TIMEOUT: StringValue;
-  /** @description follows https://www.npmjs.com/package/ms */
+  /**
+   * @description follows https://www.npmjs.com/package/ms
+   */
   OLLAMA_CACHE_TTL: StringValue;
   OLLAMA_RETRY_COUNT: number;
-  /** @description follows https://www.npmjs.com/package/ms */
+  /**
+   * @description follows https://www.npmjs.com/package/ms
+   */
   OLLAMA_RETRY_DELAY: StringValue;
   REDIS_URL: string;
   REDIS_PASSWORD?: string;
@@ -25,13 +31,12 @@ export interface AppConfig {
   OBJECT_STORAGE_SECRET_KEY?: string;
   TTS_ENDPOINT: string;
   /**
-   * @description OIDC issuer URL
-   * @example `http://localhost:8085` for ZITADEL
+   * @description OIDC (OpenID Connect) issuer URL
+   * @example `http://localhost:8080`
    */
   ZITADEL_ISSUER_URL: string;
   /**
-   * @description Internal URL for OIDC discovery/JWKS fetching inside Docker.
-   * Falls back to ZITADEL_ISSUER_URL when not set.
+   * @description Internal URL for OIDC (OpenID Connect) discovery/JWKS fetching inside Docker. We should always fall back to `ZITADEL_ISSUER_URL` when not set.
    * @example `http://zitadel:8080`
    */
   ZITADEL_INTERNAL_URL?: string;

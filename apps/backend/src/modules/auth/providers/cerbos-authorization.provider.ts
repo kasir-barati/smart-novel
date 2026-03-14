@@ -1,5 +1,6 @@
 import { HTTP as CerbosHTTP } from '@cerbos/http';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { CustomLoggerService } from 'nestjs-backend-common';
 
 import {
   AUTH_MODULE_OPTIONS_TOKEN,
@@ -7,27 +8,23 @@ import {
 } from '../auth.module-definition';
 import {
   AuthzCheckParams,
-  IAuthorizationProvider,
+  type IAuthorizationProvider,
 } from '../interfaces';
 
 /**
- * @description Cerbos implementation of IAuthorizationProvider.
- * Makes HTTP calls to a Cerbos PDP to evaluate ABAC policies.
+ * @description
+ * Makes HTTP calls to a Cerbos PDP (Policy Decision Point) to evaluate ABAC policies.
  *
- * To switch to another authz engine (OPA, Cedar, etc.), create a
- * new class implementing IAuthorizationProvider and swap `useClass`
- * in AuthModule.
+ * To switch to another authz engine (OPA, Cedar, etc.), create a new class implementing `IAuthorizationProvider` and swap `useClass` in `AuthModule`.
  */
 @Injectable()
 export class CerbosAuthorizationProvider implements IAuthorizationProvider {
-  private readonly logger = new Logger(
-    CerbosAuthorizationProvider.name,
-  );
   private readonly cerbos: InstanceType<typeof CerbosHTTP>;
 
   constructor(
     @Inject(AUTH_MODULE_OPTIONS_TOKEN)
     private readonly options: AuthModuleOptions,
+    private readonly logger: CustomLoggerService,
   ) {
     this.cerbos = new CerbosHTTP(this.options.cerbosUrl);
     this.logger.log(
@@ -65,11 +62,10 @@ export class CerbosAuthorizationProvider implements IAuthorizationProvider {
         },
         actions: [action],
       });
-
       const allowed = result.isAllowed(action) ?? false;
 
       this.logger.debug(
-        `Cerbos check: principal=${principal.sub} action=${action} resource=${resource}/${resourceId} → ${allowed ? 'ALLOW' : 'DENY'}`,
+        `Cerbos check: principal=${principal.sub} action=${action} resource=${resource}/${resourceId} => ${allowed ? 'ALLOW' : 'DENY'}`,
       );
 
       return allowed;

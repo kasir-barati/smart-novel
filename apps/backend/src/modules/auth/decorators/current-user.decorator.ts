@@ -7,10 +7,11 @@ import { GqlExecutionContext } from '@nestjs/graphql';
 import type { IAuthUser } from '../interfaces';
 
 /**
- * @description Extract the authenticated IAuthUser from the GraphQL context.
- * Usage: @CurrentUser() user: IAuthUser
+ * @description Extract the authenticated `IAuthUser` from the GraphQL context.
  *
- * The user is placed on the context by JwtAuthGuard after token validation.
+ * The user is placed on the context by `JwtAuthGuard` after token validation.
+ *
+ * @example `@CurrentUser() user: IAuthUser`
  */
 export const CurrentUser = createParamDecorator(
   (

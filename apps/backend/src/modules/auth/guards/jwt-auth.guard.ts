@@ -13,11 +13,10 @@ import { IS_PUBLIC_KEY } from '../decorators';
 import { AUTH_PROVIDER, type IAuthProvider } from '../interfaces';
 
 /**
- * @description GraphQL-aware JWT authentication guard.
- * Extracts the Bearer token from the request, validates it via
- * the injected IAuthProvider, and attaches the IAuthUser to the request.
+ * @description
+ * GraphQL-aware JWT authentication guard.
  *
- * Use @Public() decorator to skip authentication for specific resolvers.
+ * Use `@Public()` decorator to skip authentication for specific resolvers.
  */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -28,19 +27,20 @@ export class JwtAuthGuard implements CanActivate {
     private readonly logger: CustomLoggerService,
   ) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Check if the route is marked as public
+  async canActivate(
+    executionContext: ExecutionContext,
+  ): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(
       IS_PUBLIC_KEY,
-      [context.getHandler(), context.getClass()],
+      [executionContext.getHandler(), executionContext.getClass()],
     );
 
     if (isPublic) {
       return true;
     }
 
-    const ctx = GqlExecutionContext.create(context);
-    const request = ctx.getContext().req;
+    const context = GqlExecutionContext.create(executionContext);
+    const request = context.getContext().req;
     const token = this.extractTokenFromHeader(request);
 
     if (!token) {
@@ -52,7 +52,6 @@ export class JwtAuthGuard implements CanActivate {
     try {
       const user = await this.authProvider.validateToken(token);
 
-      // Attach the normalized user to the request for downstream use
       request.user = user;
 
       return true;
