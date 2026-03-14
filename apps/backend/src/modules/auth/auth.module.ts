@@ -1,22 +1,24 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 
+import { PrismaModule } from '../prisma/prisma.module';
 import { ConfigurableModuleClass } from './auth.module-definition';
 import { AuthResolver } from './auth.resolver';
 import { JwtAuthGuard, PoliciesGuard } from './guards';
 import { AUTH_PROVIDER, AUTHORIZATION_PROVIDER } from './interfaces';
 import {
-  CerbosAuthorizationProvider,
+  RbacAuthorizationProvider,
   ZitadelAuthProvider,
 } from './providers';
 import { AuthService } from './services';
 
 @Module({
+  imports: [PrismaModule],
   providers: [
     AuthService,
     AuthResolver,
     ZitadelAuthProvider,
-    CerbosAuthorizationProvider,
+    RbacAuthorizationProvider,
     JwtAuthGuard,
     PoliciesGuard,
     {
@@ -25,7 +27,7 @@ import { AuthService } from './services';
     },
     {
       provide: AUTHORIZATION_PROVIDER,
-      useClass: CerbosAuthorizationProvider,
+      useClass: RbacAuthorizationProvider,
     },
     // Guards are registered globally, use @Public() to opt out.
     {

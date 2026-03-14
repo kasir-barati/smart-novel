@@ -42,10 +42,6 @@ export interface AuthModuleOptions {
    * @example `/zitadel-pat/token`
    */
   patFile?: string;
-  /**
-   * @description Cerbos HTTP decision endpoint (e.g. http://cerbos:3592)
-   */
-  cerbosUrl: string;
 }
 
 export type RegisterAuthModuleOptions = AuthModuleOptions &

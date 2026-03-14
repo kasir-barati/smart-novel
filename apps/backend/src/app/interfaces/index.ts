@@ -66,9 +66,4 @@ export interface AppConfig {
    * @default `/zitadel-pat/token`
    */
   ZITADEL_PAT_FILE?: string;
-  /**
-   * @description Cerbos HTTP decision endpoint
-   * @example `http://cerbos:3592`
-   */
-  CERBOS_URL: string;
 }

@@ -11,6 +11,7 @@ set -e
 ZITADEL_URL="${ZITADEL_URL}"
 PAT_FILE="/zitadel-pat/token"
 CLIENT_ID_FILE="/zitadel-pat/client-id"
+WRITER_USER_ID_FILE="/zitadel-pat/writer-user-id"
 
 # ── helpers ──────────────────────────────────────────
 # All log output goes to stderr so that function return values (captured via command substitution) stay clean on stdout.
@@ -168,6 +169,88 @@ create_project() {
     printf '%s' "$PROJECT_ID"
 }
 
+# ── create project roles ─────────────────────────────
+
+create_project_roles() {
+    _TOKEN=$1
+    _PROJECT_ID=$2
+
+    log "Creating project roles..."
+
+    # Create admin role
+    ADMIN_ROLE_RESPONSE=$(curl -s -X POST "${ZITADEL_URL}/management/v1/projects/${_PROJECT_ID}/roles" \
+        -H "Authorization: Bearer $_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"key\": \"admin\",
+            \"displayName\": \"Admin\",
+            \"group\": \"smart-novel\"
+        }")
+
+    if printf '%s' "$ADMIN_ROLE_RESPONSE" | grep -qi "already\|admin"; then
+        ok "Role 'admin' created or already exists"
+    fi
+
+    # Create writer role
+    WRITER_ROLE_RESPONSE=$(curl -s -X POST "${ZITADEL_URL}/management/v1/projects/${_PROJECT_ID}/roles" \
+        -H "Authorization: Bearer $_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"key\": \"writer\",
+            \"displayName\": \"Writer\",
+            \"group\": \"smart-novel\"
+        }")
+
+    if printf '%s' "$WRITER_ROLE_RESPONSE" | grep -qi "already\|writer"; then
+        ok "Role 'writer' created or already exists"
+    fi
+
+    # Create user role
+    USER_ROLE_RESPONSE=$(curl -s -X POST "${ZITADEL_URL}/management/v1/projects/${_PROJECT_ID}/roles" \
+        -H "Authorization: Bearer $_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"key\": \"user\",
+            \"displayName\": \"User\",
+            \"group\": \"smart-novel\"
+        }")
+
+    if printf '%s' "$USER_ROLE_RESPONSE" | grep -qi "already\|user"; then
+        ok "Role 'user' created or already exists"
+    fi
+}
+
+# ── assign role to user ──────────────────────────────
+
+assign_role_to_user() {
+    _TOKEN=$1
+    _PROJECT_ID=$2
+    _USER_ID=$3
+    _ROLE=$4
+
+    if [ -z "$_USER_ID" ]; then
+        warn "Cannot assign role $_ROLE - user ID is empty"
+        return 1
+    fi
+
+    log "Assigning role '$_ROLE' to user $_USER_ID..."
+
+    GRANT_RESPONSE=$(curl -s -X POST "${ZITADEL_URL}/management/v1/users/${_USER_ID}/grants" \
+        -H "Authorization: Bearer $_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"projectId\": \"$_PROJECT_ID\",
+            \"roleKeys\": [\"$_ROLE\"]
+        }")
+
+    if printf '%s' "$GRANT_RESPONSE" | grep -qi "already\|grantId"; then
+        ok "Role '$_ROLE' assigned to user"
+    else
+        warn "Role assignment may have failed. Response:"
+        echo "$GRANT_RESPONSE" >&2
+    fi
+}
+
 # ── create an OIDC application ───────────────────────
 
 create_oidc_app() {
@@ -296,6 +379,13 @@ fi
 
 echo "" >&2
 echo "================================================" >&2
+echo "Creating Project Roles" >&2
+echo "================================================" >&2
+
+create_project_roles "$ACCESS_TOKEN" "$PROJECT_ID"
+
+echo "" >&2
+echo "================================================" >&2
 echo "Creating Admin User" >&2
 echo "================================================" >&2
 
@@ -305,6 +395,10 @@ ADMIN_USER_ID=$(create_user \
     "User" \
     "Admin123!" \
     "$ACCESS_TOKEN")
+
+if [ -n "$ADMIN_USER_ID" ]; then
+    assign_role_to_user "$ACCESS_TOKEN" "$PROJECT_ID" "$ADMIN_USER_ID" "admin"
+fi
 
 echo "" >&2
 echo "================================================" >&2
@@ -317,6 +411,12 @@ WRITER_USER_ID=$(create_user \
     "User" \
     "Writer123!" \
     "$ACCESS_TOKEN")
+
+if [ -n "$WRITER_USER_ID" ]; then
+    assign_role_to_user "$ACCESS_TOKEN" "$PROJECT_ID" "$WRITER_USER_ID" "writer"
+    ok "Writing writer user ID to $WRITER_USER_ID_FILE"
+    printf '%s' "$WRITER_USER_ID" > "$WRITER_USER_ID_FILE"
+fi
 
 echo "" >&2
 echo "================================================" >&2

@@ -141,8 +141,4 @@ class EnvironmentVariables implements AppConfig {
   @IsOptional()
   @IsString()
   ZITADEL_PAT_FILE?: string;
-
-  @IsNotEmpty()
-  @IsString()
-  CERBOS_URL: string;
 }

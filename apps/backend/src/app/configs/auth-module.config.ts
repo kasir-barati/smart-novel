@@ -21,7 +21,6 @@ export class AuthModuleConfig implements AuthModuleOptionsFactory {
       clientIdFile: this.appConfig.ZITADEL_CLIENT_ID_FILE,
       pat: this.appConfig.ZITADEL_PAT,
       patFile: this.appConfig.ZITADEL_PAT_FILE,
-      cerbosUrl: this.appConfig.CERBOS_URL,
     };
   }
 }

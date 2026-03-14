@@ -20,10 +20,13 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      init-zitadel-users:
+        condition: service_completed_successfully
     volumes:
       - ./apps:/app/apps
       - ./apps/backend/data:/data
       - /app/node_modules
+      - zitadel-pat:/zitadel-pat:ro
 
   backend: &backend
     build:
@@ -60,8 +63,6 @@ services:
         condition: service_healthy
       zitadel:
         condition: service_started
-      cerbos:
-        condition: service_healthy
       init-zitadel-users:
         condition: service_completed_successfully
     healthcheck:
@@ -248,21 +249,6 @@ services:
       - ./local-setup/create-test-users.sh:/create-test-users.sh:ro
       - zitadel-pat:/zitadel-pat
     entrypoint: ["/bin/sh", "/create-test-users.sh"]
-
-  cerbos:
-    image: ghcr.io/cerbos/cerbos:latest
-    ports:
-      - "${CERBOS_HTTP_PORT:-3592}:3592"
-      - "${CERBOS_GRPC_PORT:-3593}:3593"
-    volumes:
-      - ./local-setup/cerbos:/config
-    command: server --config=/config/.cerbos.yaml
-    healthcheck:
-      test: ["CMD", "/cerbos", "healthcheck"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
 
   pgadmin:
     image: dpage/pgadmin4:8.4
