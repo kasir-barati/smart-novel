@@ -61,6 +61,8 @@ services:
         condition: service_started
       cerbos:
         condition: service_healthy
+      init-zitadel-users:
+        condition: service_completed_successfully
     healthcheck:
       test:
         [
@@ -202,13 +204,23 @@ services:
       ZITADEL_MASTERKEY: ${ZITADEL_MASTERKEY}
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: ${ZITADEL_ADMIN_USERNAME:-admin}
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: ${ZITADEL_ADMIN_PASSWORD:-Admin123!}
+      ZITADEL_TLS_ENABLED: false
+      # Machine user (IAM_OWNER) whose PAT is written to a shared volume so the init-zitadel-users container can read it.
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME: bot
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: Bot
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE: "9999-12-31T23:59:59Z"
+      ZITADEL_FIRSTINSTANCE_PATPATH: /zitadel-pat/token
       # Allow internal Docker-network origins so backend can reach OIDC endpoints
       ZITADEL_DEFAULTINSTANCE_INSTANCENAME: ZITADEL
       ZITADEL_DEFAULTINSTANCE_ORIGINS: http://localhost:${ZITADEL_EXTERNAL_PORT} http://zitadel:8080
+    volumes:
+      - zitadel-pat:/zitadel-pat
     ports:
       - "${ZITADEL_EXTERNAL_PORT}:8080"
     depends_on:
       init-zitadel-db:
+        condition: service_completed_successfully
+      init-zitadel-pat-vol:
         condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "/app/zitadel", "ready"]
@@ -216,6 +228,24 @@ services:
       timeout: 5s
       retries: 12
       start_period: 60s
+
+  init-zitadel-pat-vol:
+    image: busybox:1.37
+    volumes:
+      - zitadel-pat:/zitadel-pat
+    entrypoint: ["sh", "-c", "chown 1000:1000 /zitadel-pat"]
+
+  init-zitadel-users:
+    image: curlimages/curl:8.17.0
+    environment:
+      ZITADEL_URL: ${ZITADEL_INTERNAL_URL}
+    depends_on:
+      zitadel:
+        condition: service_healthy
+    volumes:
+      - ./local-setup/create-test-users.sh:/create-test-users.sh:ro
+      - zitadel-pat:/zitadel-pat:ro
+    entrypoint: ["/bin/sh", "/create-test-users.sh"]
 
   cerbos:
     image: ghcr.io/cerbos/cerbos:latest
@@ -391,6 +421,9 @@ services:
         done
         /usr/bin/mc anonymous set-json /bucket-policy.json my_minio/smart-novel
         echo 'MinIO initialization complete!'
+
+volumes:
+  zitadel-pat:
 
 configs:
   preferences.json:
