@@ -1,6 +1,6 @@
 import { Args, ID, Mutation, Resolver } from '@nestjs/graphql';
 
-import { Public } from '../../auth';
+import { CheckPolicy, Public } from '../../auth';
 import { ChapterService } from '../services';
 import { Chapter } from '../types';
 
@@ -9,6 +9,7 @@ import { Chapter } from '../types';
 export class ChapterResolver {
   constructor(private readonly chapterService: ChapterService) {}
 
+  @CheckPolicy('chapter', 'update')
   @Mutation(() => String, {
     name: 'generateTtsFriendlyContent',
     description:
@@ -24,6 +25,7 @@ export class ChapterResolver {
     return this.chapterService.convertToTtsFriendly(chapterId);
   }
 
+  @CheckPolicy('chapter', 'update')
   @Mutation(() => Chapter, {
     name: 'updateTtsFriendlyContent',
     description: 'Update the TTS-friendly content for a chapter',

@@ -10,11 +10,10 @@ export interface CheckPolicyMetadata {
   resource: string;
   /**
    * @description Action being performed
-   * @example "read", "create", "update", "delete"
    */
-  action: string;
+  action: PolicyAction;
 }
-
+type PolicyAction = 'read' | 'create' | 'update' | 'delete';
 /**
  * @description
  * Decorator to mark a resolver/handler as requiring an ABAC policy check via the `IAuthorizationProvider`.
@@ -22,7 +21,7 @@ export interface CheckPolicyMetadata {
  *
  * @example `@CheckPolicy('novel', 'read')`
  */
-export const CheckPolicy = (resource: string, action: string) =>
+export const CheckPolicy = (resource: string, action: PolicyAction) =>
   SetMetadata(CHECK_POLICY_KEY, {
     resource,
     action,
