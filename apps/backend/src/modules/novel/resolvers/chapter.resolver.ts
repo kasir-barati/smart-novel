@@ -9,7 +9,7 @@ import { Chapter } from '../types';
 export class ChapterResolver {
   constructor(private readonly chapterService: ChapterService) {}
 
-  @CheckPolicy('chapter', 'update')
+  @CheckPolicy('chapter', 'read')
   @Mutation(() => String, {
     name: 'generateTtsFriendlyContent',
     description:

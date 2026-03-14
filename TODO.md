@@ -5,6 +5,8 @@
   - Add retry and quorum queue.
   - Add DLQ to this app too.
 - Is it easier to swap with passport or is it better to stick to my current implementation?
+- I'd like to create an admin user whenever I am deploying this app in production, I guess this would be a separate thing though. I also like to keep it separate so I can easily use the same thing in my local machine and on the server.
+- Add OpenTofu for deploying to the cloud.
 
 Auto gen a simple API client for the backend and use it in the frontend app (so I don't have to create and maintain some dumb interfaces which are essentially the same object type, and input types I have in the backend).
 
