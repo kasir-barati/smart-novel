@@ -17,6 +17,10 @@ export class AuthModuleConfig implements AuthModuleOptionsFactory {
     return {
       issuerUrl: this.appConfig.ZITADEL_ISSUER_URL,
       issuerInternalUrl: this.appConfig.ZITADEL_INTERNAL_URL,
+      clientId: this.appConfig.ZITADEL_CLIENT_ID,
+      clientIdFile: this.appConfig.ZITADEL_CLIENT_ID_FILE,
+      pat: this.appConfig.ZITADEL_PAT,
+      patFile: this.appConfig.ZITADEL_PAT_FILE,
       cerbosUrl: this.appConfig.CERBOS_URL,
     };
   }

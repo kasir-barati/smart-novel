@@ -42,6 +42,7 @@ services:
       - ./apps:/app/apps
       - ./apps/backend/data:/data
       - /app/node_modules
+      - zitadel-pat:/zitadel-pat:ro
     depends_on:
       init-postgres:
         condition: service_completed_successfully
@@ -119,7 +120,8 @@ services:
       args:
         PORT: $PORT
         DATABASE_URL: ${DATABASE_URL}
-    volumes: []
+    volumes:
+      - zitadel-pat:/zitadel-pat:ro
 
   frontend-e2e:
     build:
@@ -233,7 +235,7 @@ services:
     image: busybox:1.37
     volumes:
       - zitadel-pat:/zitadel-pat
-    entrypoint: ["sh", "-c", "chown 1000:1000 /zitadel-pat"]
+    entrypoint: ["sh", "-c", "chmod 1777 /zitadel-pat"]
 
   init-zitadel-users:
     image: curlimages/curl:8.17.0
@@ -244,7 +246,7 @@ services:
         condition: service_healthy
     volumes:
       - ./local-setup/create-test-users.sh:/create-test-users.sh:ro
-      - zitadel-pat:/zitadel-pat:ro
+      - zitadel-pat:/zitadel-pat
     entrypoint: ["/bin/sh", "/create-test-users.sh"]
 
   cerbos:

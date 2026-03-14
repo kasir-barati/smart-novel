@@ -2,15 +2,19 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 
 import { ConfigurableModuleClass } from './auth.module-definition';
+import { AuthResolver } from './auth.resolver';
 import { JwtAuthGuard, PoliciesGuard } from './guards';
 import { AUTH_PROVIDER, AUTHORIZATION_PROVIDER } from './interfaces';
 import {
   CerbosAuthorizationProvider,
   ZitadelAuthProvider,
 } from './providers';
+import { AuthService } from './services';
 
 @Module({
   providers: [
+    AuthService,
+    AuthResolver,
     ZitadelAuthProvider,
     CerbosAuthorizationProvider,
     JwtAuthGuard,

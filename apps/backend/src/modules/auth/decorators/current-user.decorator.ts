@@ -1,3 +1,5 @@
+import type { Request } from 'express';
+
 import {
   createParamDecorator,
   ExecutionContext,
@@ -19,8 +21,8 @@ export const CurrentUser = createParamDecorator(
     context: ExecutionContext,
   ): IAuthUser | undefined => {
     const ctx = GqlExecutionContext.create(context);
-    const request = ctx.getContext().req;
+    const request: Request = ctx.getContext().req;
 
-    return request.user as IAuthUser | undefined;
+    return request.user;
   },
 );

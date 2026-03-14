@@ -126,6 +126,22 @@ class EnvironmentVariables implements AppConfig {
   @IsString()
   ZITADEL_INTERNAL_URL?: string;
 
+  @IsOptional()
+  @IsString()
+  ZITADEL_CLIENT_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  ZITADEL_CLIENT_ID_FILE?: string;
+
+  @IsOptional()
+  @IsString()
+  ZITADEL_PAT?: string;
+
+  @IsOptional()
+  @IsString()
+  ZITADEL_PAT_FILE?: string;
+
   @IsNotEmpty()
   @IsString()
   CERBOS_URL: string;
