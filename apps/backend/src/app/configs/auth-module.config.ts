@@ -21,6 +21,13 @@ export class AuthModuleConfig implements AuthModuleOptionsFactory {
       clientIdFile: this.appConfig.ZITADEL_CLIENT_ID_FILE,
       pat: this.appConfig.ZITADEL_PAT,
       patFile: this.appConfig.ZITADEL_PAT_FILE,
+      domain: this.appConfig.ZITADEL_DOMAIN,
+      clientSecret: this.appConfig.ZITADEL_CLIENT_SECRET,
+      callbackUrl: this.appConfig.ZITADEL_CALLBACK_URL,
+      postLoginUrl: this.appConfig.ZITADEL_POST_LOGIN_URL ?? '/',
+      postLogoutUrl: this.appConfig.ZITADEL_POST_LOGOUT_URL,
+      sessionSecret: this.appConfig.SESSION_SECRET,
+      sessionDuration: this.appConfig.SESSION_DURATION,
     };
   }
 }

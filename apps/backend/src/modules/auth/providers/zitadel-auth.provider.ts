@@ -8,8 +8,8 @@ import {
 import { existsSync, readFileSync } from 'node:fs';
 
 import {
-  AUTH_MODULE_OPTIONS_TOKEN,
   type AuthModuleOptions,
+  MODULE_OPTIONS_TOKEN,
 } from '../auth.module-definition';
 import {
   IAuthProvider,
@@ -38,7 +38,7 @@ export class ZitadelAuthProvider
   private zitadelBaseUrl!: string;
 
   constructor(
-    @Inject(AUTH_MODULE_OPTIONS_TOKEN)
+    @Inject(MODULE_OPTIONS_TOKEN)
     private readonly options: AuthModuleOptions,
     private readonly logger: CustomLoggerService,
   ) {}

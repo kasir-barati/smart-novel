@@ -1,11 +1,5 @@
-import { SetMetadata } from '@nestjs/common';
-
-export const IS_PUBLIC_KEY = 'isPublic';
-
 /**
- * @description
- * Mark a resolver/handler as public (no authentication required).
- *
- * @example `@Public()`
+ * @description Re-export the canonical `@Public()` decorator from the zitadel module
+ * so consumers only need to import from `auth/decorators`.
  */
-export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
+export { IS_PUBLIC_KEY, Public } from '../../zitadel/decorators';

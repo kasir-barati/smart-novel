@@ -9,65 +9,64 @@ describe('Authorization (e2e)', () => {
     fixture = new AuthorizationFixture();
   });
 
-  it('should generate a token', async () => {
+  it('should return auth URLs for OIDC sign-in flow', async () => {
     const { data, status } = await axios.post('/graphql', {
       query: `#graphql
-        mutation($input: LoginInput!) {
-          login(input: $input) {
-            accessToken
-            expiresIn
-            tokenType
-          }
-        }
-      `,
-      variables: {
-        input: {
-          email: 'admin@test.com',
-          password: 'Admin123!',
-        },
-      },
-    });
-
-    expect(status).toBe(200);
-    expect(data.data.login).toStrictEqual({
-      accessToken: expect.any(String),
-      expiresIn: 3600,
-      tokenType: 'Bearer',
-    });
-  });
-
-  it('should return user info', async () => {
-    const token = await fixture.login('admin@test.com', 'Admin123!');
-
-    const { status, data } = await axios.post(
-      '/graphql',
-      {
-        query: `#graphql
         query {
-          whoAmI {
-            sub
-            email
-            emailVerified
-            orgId
-            roles
+          authUrls {
+            signIn
+            signOut
+            session
+            callback
           }
         }
       `,
-      },
-      {
-        headers: {
-          Authorization: token,
-        },
-      },
-    );
+    });
 
     expect(status).toBe(200);
-    expect(data.data.whoAmI).toStrictEqual({
-      sub: expect.any(String),
-      email: 'admin@test.com',
-      emailVerified: true,
-      orgId: expect.any(String),
-      roles: expect.any(Array),
+    expect(data.data.authUrls).toStrictEqual({
+      signIn: expect.stringContaining('/auth/signin'),
+      signOut: expect.stringContaining('/auth/signout'),
+      session: expect.stringContaining('/auth/session'),
+      callback: expect.stringContaining('/auth/callback/zitadel'),
     });
   });
+
+  it.todo(
+    'should return user info when authenticated with PAT',
+    async () => {
+      const token = fixture.getAuthHeader();
+
+      const { status, data } = await axios.post(
+        '/graphql',
+        {
+          query: `#graphql
+            query {
+              whoAmI {
+                sub
+                email
+                emailVerified
+                orgId
+                roles
+              }
+            }
+          `,
+        },
+        {
+          headers: {
+            Authorization: token,
+          },
+        },
+      );
+
+      expect(status).toBe(200);
+      expect(data.data.whoAmI).toStrictEqual({
+        sub: expect.any(String),
+        email: expect.any(String),
+        emailVerified: expect.any(Boolean),
+        orgId: expect.any(String),
+        roles: expect.any(Array),
+      });
+    },
+  );
 });

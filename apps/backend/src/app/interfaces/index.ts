@@ -66,4 +66,37 @@ export interface AppConfig {
    * @default `/zitadel-pat/token`
    */
   ZITADEL_PAT_FILE?: string;
+  /**
+   * @description The base domain of your ZITADEL instance
+   * @example `https://zitadel.example.com`
+   */
+  ZITADEL_DOMAIN: string;
+  /**
+   * @description The client secret for your OIDC application (optional for public clients)
+   */
+  ZITADEL_CLIENT_SECRET?: string;
+  /**
+   * @description The full URL where ZITADEL will redirect back after authentication
+   * @example `http://localhost:3000/api/auth/callback/zitadel`
+   */
+  ZITADEL_CALLBACK_URL: string;
+  /**
+   * @description The URL to redirect after successful login
+   * @default `/`
+   */
+  ZITADEL_POST_LOGIN_URL?: string;
+  /**
+   * @description The URL to redirect after logout
+   * @example `http://localhost:3000`
+   */
+  ZITADEL_POST_LOGOUT_URL: string;
+  /**
+   * @description Secret string used to sign the session cookie (min 32 characters)
+   */
+  SESSION_SECRET: string;
+  /**
+   * @description Duration of the session in seconds
+   * @default 3600
+   */
+  SESSION_DURATION: number;
 }

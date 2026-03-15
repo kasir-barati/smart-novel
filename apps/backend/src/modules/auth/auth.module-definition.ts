@@ -42,6 +42,34 @@ export interface AuthModuleOptions {
    * @example `/zitadel-pat/token`
    */
   patFile?: string;
+  /**
+   * @description The base domain of your ZITADEL instance (e.g. https://zitadel.example.com)
+   */
+  domain: string;
+  /**
+   * @description The client secret for your OIDC application (optional for public clients)
+   */
+  clientSecret?: string;
+  /**
+   * @description The full URL where ZITADEL will redirect back after authentication
+   */
+  callbackUrl: string;
+  /**
+   * @description The URL to redirect after successful login (defaults to '/')
+   */
+  postLoginUrl?: string;
+  /**
+   * @description The URL to redirect after logout
+   */
+  postLogoutUrl: string;
+  /**
+   * @description Secret string used to sign the session cookie (min 32 characters)
+   */
+  sessionSecret: string;
+  /**
+   * @description Duration of the session in seconds
+   */
+  sessionDuration: number;
 }
 
 export type RegisterAuthModuleOptions = AuthModuleOptions &
@@ -51,7 +79,7 @@ export const MODULE_EXTRAS_TOKEN = 'AUTH_MODULE_EXTRAS_TOKEN';
 
 export const {
   ConfigurableModuleClass,
-  MODULE_OPTIONS_TOKEN: AUTH_MODULE_OPTIONS_TOKEN,
+  MODULE_OPTIONS_TOKEN,
   ASYNC_OPTIONS_TYPE,
 } = new ConfigurableModuleBuilder<AuthModuleOptions>()
   .setClassMethodName('register')

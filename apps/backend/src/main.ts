@@ -1,6 +1,7 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import cookieParser from 'cookie-parser';
 
 import { appConfigs, AppModule } from './app';
 
@@ -9,6 +10,8 @@ async function bootstrap() {
   const { PORT, CORS_ALLOWED_ORIGINS } = app.get<
     ConfigType<typeof appConfigs>
   >(appConfigs.KEY);
+
+  app.use(cookieParser());
 
   app.enableCors({
     origin: CORS_ALLOWED_ORIGINS,

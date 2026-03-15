@@ -141,4 +141,31 @@ class EnvironmentVariables implements AppConfig {
   @IsOptional()
   @IsString()
   ZITADEL_PAT_FILE?: string;
+
+  @IsNotEmpty()
+  @IsString()
+  ZITADEL_DOMAIN: string;
+
+  @IsOptional()
+  @IsString()
+  ZITADEL_CLIENT_SECRET?: string;
+
+  @IsNotEmpty()
+  @IsString()
+  ZITADEL_CALLBACK_URL: string;
+
+  @IsOptional()
+  @IsString()
+  ZITADEL_POST_LOGIN_URL?: string;
+
+  @IsNotEmpty()
+  @IsString()
+  ZITADEL_POST_LOGOUT_URL: string;
+
+  @IsNotEmpty()
+  @IsString()
+  SESSION_SECRET: string;
+
+  @IsInt()
+  SESSION_DURATION: number;
 }

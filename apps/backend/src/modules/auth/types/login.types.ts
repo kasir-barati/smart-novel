@@ -1,10 +1,12 @@
 import { Field, Int, ObjectType } from '@nestjs/graphql';
 
-@ObjectType()
+@ObjectType({
+  description: 'Result of a login or token refresh operation',
+})
 export class Login {
   @Field(() => String, {
     description:
-      'JWT access token for authenticating subsequent requests',
+      'Opaque access token for authenticating subsequent requests',
   })
   accessToken: string;
 
@@ -17,4 +19,11 @@ export class Login {
     description: 'Token type (always "Bearer")',
   })
   tokenType: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Refresh token that can be exchanged for a new access token after expiry',
+  })
+  refreshToken?: string;
 }
