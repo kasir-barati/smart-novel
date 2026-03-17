@@ -31,8 +31,8 @@ npm run start:dev
 
 Then open:
 
-- Frontend: http://localhost:4200
-- GraphQL API: http://localhost:3000/graphql
+- Frontend: http://localhost:8080
+- GraphQL API: http://localhost:8080/graphql
 - Open WebUI: http://localhost:8080/
 - RedisInsight: http://localhost:5540/
 

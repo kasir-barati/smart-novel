@@ -35,6 +35,7 @@ import { NarrationLockService } from './narration-lock.service';
 
 @Injectable()
 export class ChapterNarrationService {
+  // FIXME: read these from ConfigService
   private readonly bucketName =
     process.env.OBJECT_STORAGE_BUCKET ?? 'smart-novel';
   private readonly publicBase =

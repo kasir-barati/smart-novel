@@ -5,14 +5,13 @@ import {
   CustomLoggerService,
   urlBuilder,
 } from 'nestjs-backend-common';
-import { existsSync, readFileSync } from 'node:fs';
 
 import {
   type AuthModuleOptions,
   MODULE_OPTIONS_TOKEN,
 } from '../auth.module-definition';
 import {
-  IAuthProvider,
+  type IAuthProvider,
   IAuthUser,
   ZitadelJwtPayload,
   ZitadelOpenIdConfigurationResponse,
@@ -20,11 +19,10 @@ import {
 
 /**
  * @description
- * Validates access tokens using either ZITADEL's Session API (for session-based tokens)
- * or JWKS-based JWT verification (for standard OIDC tokens).
+ * Validates access tokens using ZITADEL's JWKS-based JWT verification.
  *
- * Session tokens are base64-encoded `sessionId:sessionToken` pairs created by `AuthService.login()`.
- * Standard JWTs are verified using the JWKS discovered from the OIDC well-known endpoint.
+ * Standard JWTs (issued by Zitadel to the frontend via OIDC Authorization Code + PKCE)
+ * are verified using the JWKS discovered from the OIDC well-known endpoint.
  *
  * To switch to another IdP, create a new class implementing `IAuthProvider` and swap `useClass` in `AuthModule`.
  */
@@ -34,7 +32,6 @@ export class ZitadelAuthProvider
 {
   private jwks!: ReturnType<typeof createRemoteJWKSet>;
   private issuer!: string;
-  private resolvedPat!: string;
   private zitadelBaseUrl!: string;
 
   constructor(
@@ -46,116 +43,11 @@ export class ZitadelAuthProvider
   async onModuleInit(): Promise<void> {
     this.zitadelBaseUrl =
       this.options.issuerInternalUrl ?? this.options.issuerUrl;
-    this.resolvePat();
     await this.discoverOidcConfig();
   }
 
   async validateToken(token: string): Promise<IAuthUser> {
-    // Try session-based validation first (base64-encoded sessionId:sessionToken)
-    const sessionCredentials = this.parseSessionToken(token);
-
-    if (sessionCredentials) {
-      return this.validateSession(
-        sessionCredentials.sessionId,
-        sessionCredentials.sessionToken,
-      );
-    }
-
-    // Fall back to JWT validation for standard OIDC tokens
     return this.validateJwt(token);
-  }
-
-  /**
-   * @description
-   * Try to parse a base64-encoded `sessionId:sessionToken` pair.
-   * Returns null if the token is not a valid session token format.
-   */
-  private parseSessionToken(
-    token: string,
-  ): { sessionId: string; sessionToken: string } | null {
-    try {
-      const decoded = Buffer.from(token, 'base64').toString('utf-8');
-      const colonIndex = decoded.indexOf(':');
-
-      if (colonIndex === -1) {
-        return null;
-      }
-
-      const sessionId = decoded.substring(0, colonIndex);
-      const sessionToken = decoded.substring(colonIndex + 1);
-
-      // Session IDs are numeric strings in ZITADEL
-      if (!/^\d+$/.test(sessionId) || !sessionToken) {
-        return null;
-      }
-
-      return { sessionId, sessionToken };
-    } catch {
-      return null;
-    }
-  }
-
-  /**
-   * @description
-   * Validate a session by calling ZITADEL's Session API.
-   * The session token is passed as the Authorization bearer token.
-   */
-  private async validateSession(
-    sessionId: string,
-    sessionToken: string,
-  ): Promise<IAuthUser> {
-    if (!this.resolvedPat) {
-      this.resolvePat();
-    }
-
-    if (!this.resolvedPat) {
-      throw new Error(
-        'ZITADEL PAT is not configured. Cannot validate session tokens.',
-      );
-    }
-
-    const sessionUrl = urlBuilder(
-      this.zitadelBaseUrl,
-      'v2',
-      'sessions',
-      sessionId,
-    );
-
-    try {
-      const { data } = await axios.get<ZitadelSessionDetailResponse>(
-        sessionUrl,
-        {
-          headers: {
-            Authorization: `Bearer ${this.resolvedPat}`,
-            'x-zitadel-session-token': sessionToken,
-          },
-        },
-      );
-
-      const session = data.session;
-
-      if (!session?.factors?.user) {
-        throw new Error('Session has no authenticated user');
-      }
-
-      const user = session.factors.user;
-
-      return {
-        sub: user.id,
-        email: user.loginName ?? '',
-        emailVerified: true,
-        orgId: user.organizationId ?? undefined,
-        roles: [],
-        metadata: {},
-      };
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        this.logger.warn(
-          `Session validation failed for ${sessionId}: ${error.response?.status} - ${JSON.stringify(error.response?.data)}`,
-        );
-      }
-      throw error;
-    }
   }
 
   /**
@@ -229,31 +121,7 @@ export class ZitadelAuthProvider
 
   /**
    * @description
-   * Resolve the service account PAT from either the module options or a file on disk.
-   */
-  private resolvePat(): void {
-    if (this.options.pat) {
-      this.resolvedPat = this.options.pat;
-      return;
-    }
-
-    if (this.options.patFile) {
-      if (existsSync(this.options.patFile)) {
-        this.resolvedPat = readFileSync(
-          this.options.patFile,
-          'utf-8',
-        ).trim();
-        return;
-      }
-    }
-  }
-
-  /**
-   * @description
    * Normalize ZITADEL-specific token claims into the provider-agnostic IAuthUser shape.
-   *
-   * ZITADEL claim references:
-   * - `` => user metadata (base64-encoded values)
    */
   private normalizeTokenClaims(claims: ZitadelJwtPayload): IAuthUser {
     this.logger.debug('='.repeat(80));
@@ -289,25 +157,4 @@ export class ZitadelAuthProvider
       metadata,
     };
   }
-}
-
-interface ZitadelSessionDetailResponse {
-  session: {
-    id: string;
-    creationDate: string;
-    changeDate: string;
-    sequence: string;
-    factors: {
-      user: {
-        id: string;
-        loginName: string;
-        displayName: string;
-        organizationId?: string;
-      };
-      password?: {
-        verifiedAt: string;
-      };
-    };
-    expirationDate?: string;
-  };
 }

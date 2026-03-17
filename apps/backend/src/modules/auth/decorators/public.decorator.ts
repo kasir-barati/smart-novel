@@ -1,5 +1,20 @@
+import { SetMetadata } from '@nestjs/common';
+
+export const IS_PUBLIC_KEY = Symbol('isPublic');
+
 /**
- * @description Re-export the canonical `@Public()` decorator from the zitadel module
- * so consumers only need to import from `auth/decorators`.
+ * @description Marks a query/mutation/resolver as publicly accessible, bypassing authentication.
+ *
+ * Routes decorated with `@Public()` will not require a valid JWT Bearer token and will be accessible to unauthenticated users.
+ *
+ * @example
+ * ```ts
+ * @Public()
+ * @Query(() => String)
+ * health() {
+ *   return 'ok';
+ * }
+ * ```
  */
-export { IS_PUBLIC_KEY, Public } from '../../zitadel/decorators';
+export const Public = (): ClassDecorator & MethodDecorator =>
+  SetMetadata(IS_PUBLIC_KEY, true);

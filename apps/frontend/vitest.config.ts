@@ -30,7 +30,7 @@ export default defineConfig({
   define: {
     'import.meta.env.VITE_EXPLAIN_SELECTION_DEBOUNCE_MS':
       JSON.stringify(
-        process.env.VITE_EXPLAIN_SELECTION_DEBOUNCE_MS || '500',
+        process.env.VITE_EXPLAIN_SELECTION_DEBOUNCE_MS ?? '500',
       ),
   },
 });

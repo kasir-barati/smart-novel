@@ -7,6 +7,10 @@ type ExplainArgs = [
   ...rest: unknown[],
 ];
 
+const EXPLAIN_CONTEXT_CHAR_SIZE = Number(
+  process.env.EXPLAIN_CONTEXT_CHAR_SIZE,
+);
+
 export function ValidateExplainInput(): MethodDecorator {
   return (_target, _propertyKey, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value as (
@@ -39,9 +43,9 @@ export function ValidateExplainInput(): MethodDecorator {
         );
       }
 
-      if (context.length > 2000) {
+      if (context.length > EXPLAIN_CONTEXT_CHAR_SIZE) {
         throw new BadRequestException(
-          'Context is too long (max 2000 characters, ~300-400 words)',
+          `Context is too long (max ${EXPLAIN_CONTEXT_CHAR_SIZE} characters)`,
         );
       }
 

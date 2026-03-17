@@ -6,6 +6,7 @@ import {
   IsInt,
   IsNotEmpty,
   IsOptional,
+  IsPositive,
   IsString,
 } from 'class-validator';
 import { type StringValue } from 'ms';
@@ -33,6 +34,10 @@ export const appConfigs = registerAs('appConfigs', (): AppConfig => {
 });
 
 class EnvironmentVariables implements AppConfig {
+  @IsInt()
+  @IsPositive()
+  EXPLAIN_CONTEXT_CHAR_SIZE: number;
+
   @IsInt()
   PORT: number;
 

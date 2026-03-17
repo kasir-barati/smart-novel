@@ -1,5 +1,3 @@
-import type { Request } from 'express';
-
 import {
   CanActivate,
   ExecutionContext,
@@ -20,6 +18,7 @@ import {
 import {
   AUTHORIZATION_PROVIDER,
   type IAuthorizationProvider,
+  type IAuthUser,
 } from '../interfaces';
 
 /**
@@ -27,7 +26,7 @@ import {
  * GraphQL-aware ABAC policies guard.
  * Reads `@CheckPolicy()` metadata and calls the injected `IAuthorizationProvider` to make attribute-based access decisions.
  *
- * Expects the `JwtAuthGuard` to have already run and attached the `IAuthUser` to the request.
+ * Expects the `JwtAuthGuard` to have already run and attached the `IAuthUser` to `request.user`.
  *
  * Resource attributes are resolved from GQL args:
  * - `id` → resourceId
@@ -65,44 +64,16 @@ export class PoliciesGuard implements CanActivate {
     }
 
     const context = GqlExecutionContext.create(executionContext);
-    const request: Request & { session?: any } =
-      context.getContext().req;
-    const session = request.session;
+    const request = context.getContext().req;
 
-    if (!session?.user) {
+    // JwtAuthGuard sets request.user after successful JWT validation
+    const user: IAuthUser | undefined = request.user;
+
+    if (!user) {
       throw new ForbiddenException(
         'No authenticated user found for policy check',
       );
     }
-
-    // Extract user info from session (using same logic as CurrentUser decorator)
-    const sessionUser = session.user as any;
-    const rolesObj =
-      sessionUser['urn:zitadel:iam:org:project:roles'] ?? {};
-    const roles = Object.keys(rolesObj);
-    const rawMetadata =
-      sessionUser['urn:zitadel:iam:user:metadata'] ?? {};
-    const metadata: Record<string, string> = {};
-
-    for (const [key, value] of Object.entries(rawMetadata)) {
-      try {
-        metadata[key] = Buffer.from(
-          value as string,
-          'base64',
-        ).toString('utf-8');
-      } catch {
-        metadata[key] = value as string;
-      }
-    }
-
-    const user = {
-      sub: sessionUser.sub ?? '',
-      email: sessionUser.email ?? '',
-      emailVerified: sessionUser.email_verified ?? false,
-      orgId: sessionUser['urn:zitadel:iam:org:id'],
-      roles,
-      metadata,
-    };
 
     const args = context.getArgs() as RequestArgs;
     const resourceId = args.id ?? 'unknown';

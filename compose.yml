@@ -37,8 +37,6 @@ services:
         PORT: $PORT
     profiles:
       - dev
-    ports:
-      - "3000:$PORT"
     env_file:
       - .env
     volumes:
@@ -61,8 +59,8 @@ services:
         condition: service_healthy
       tts:
         condition: service_healthy
-      zitadel:
-        condition: service_started
+      traefik:
+        condition: service_healthy
       init-zitadel-users:
         condition: service_completed_successfully
     healthcheck:
@@ -81,6 +79,17 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - proxy
+      - default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.services.backend.loadbalancer.server.port=$PORT
+      - traefik.http.routers.backend-web.rule=PathPrefix(`/graphql`)
+      - traefik.http.routers.backend-web.entrypoints=web
+      - traefik.http.routers.backend-web.service=backend
+      - traefik.http.routers.backend-web.priority=300
 
   frontend:
     build:
@@ -90,13 +99,35 @@ services:
       args:
         FRONTEND_PORT: $FRONTEND_PORT
         VITE_SERVICE_URL: $VITE_SERVICE_URL
+    environment:
+      VITE_OIDC_SCOPE: ${VITE_OIDC_SCOPE}
+      VITE_SERVICE_URL: ${VITE_SERVICE_URL}
+      VITE_OIDC_AUTHORITY: ${VITE_OIDC_AUTHORITY}
+      VITE_OIDC_REDIRECT_URI: ${VITE_OIDC_REDIRECT_URI}
+      VITE_EXPLAIN_CONTEXT_CHAR_SIZE: ${EXPLAIN_CONTEXT_CHAR_SIZE}
+      VITE_EXPLAIN_RATE_CAPACITY: 12
+      VITE_EXPLAIN_SELECTION_DEBOUNCE_MS: 500
+      # VITE_OIDC_CLIENT_ID is read at runtime from the file written by init-zitadel-users.
+      ZITADEL_CLIENT_ID_FILE: /zitadel-pat/client-id
+      # Read the dynamically-generated OIDC client ID from the shared volume
+      # and export it as VITE_OIDC_CLIENT_ID before starting the Vite dev server.
+    command:
+      - /bin/sh
+      - -c
+      - |
+        if [ -f "$$ZITADEL_CLIENT_ID_FILE" ]; then
+          export VITE_OIDC_CLIENT_ID=$$(cat "$$ZITADEL_CLIENT_ID_FILE" | tr -d '[:space:]')
+          echo "✓ VITE_OIDC_CLIENT_ID=$$VITE_OIDC_CLIENT_ID (from $$ZITADEL_CLIENT_ID_FILE)"
+        else
+          echo "⚠ $$ZITADEL_CLIENT_ID_FILE not found — OIDC login will not work"
+        fi
+        exec npx nx serve frontend --host=0.0.0.0
     profiles:
       - dev
-    ports:
-      - "4200:$FRONTEND_PORT"
     volumes:
       - ./apps/frontend:/app/apps/frontend
       - /app/node_modules
+      - zitadel-pat:/zitadel-pat:ro
     depends_on:
       backend:
         condition: service_healthy
@@ -108,6 +139,17 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    networks:
+      - proxy
+      - default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.services.frontend.loadbalancer.server.port=$FRONTEND_PORT
+      - traefik.http.routers.frontend-web.rule=PathPrefix(`/`)
+      - traefik.http.routers.frontend-web.entrypoints=web
+      - traefik.http.routers.frontend-web.service=frontend
+      - traefik.http.routers.frontend-web.priority=50
 
   backend-e2e:
     <<: *backend
@@ -188,10 +230,77 @@ services:
       postgres:
         condition: service_healthy
 
+  # Traefik reverse proxy — single entry point (localhost:8080) for the
+  # frontend, backend GraphQL API, Zitadel OIDC endpoints, and the Login UI.
+  traefik:
+    image: traefik:v3.6.8
+    restart: unless-stopped
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=proxy
+      - --entrypoints.web.address=:80
+      - --api.dashboard=false
+      - --api.insecure=false
+      - --ping=true
+      - --log.level=INFO
+      - --accesslog=true
+    ports:
+      - "${ZITADEL_EXTERNAL_PORT}:80"
+    networks:
+      - proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      zitadel:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  zitadel-login:
+    image: ghcr.io/zitadel/zitadel-login:v4.12.2
+    restart: unless-stopped
+    environment:
+      ZITADEL_API_URL: http://zitadel:8080
+      NEXT_PUBLIC_BASE_PATH: /ui/v2/login
+      ZITADEL_SERVICE_USER_TOKEN_FILE: /zitadel-pat/login-client.pat
+      CUSTOM_REQUEST_HEADERS: "Host:localhost,X-Forwarded-Proto:http"
+    volumes:
+      - zitadel-pat:/zitadel-pat:ro
+    depends_on:
+      zitadel:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - /bin/sh
+        - -c
+        - node /app/healthcheck.mjs http://localhost:3000/ui/v2/login/healthy
+      interval: 10s
+      timeout: 30s
+      retries: 12
+      start_period: 20s
+    networks:
+      - proxy
+      - default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.services.zitadel-login.loadbalancer.server.port=3000
+      - traefik.http.routers.zitadel-login-web.rule=PathPrefix(`/ui/v2/login`)
+      - traefik.http.routers.zitadel-login-web.entrypoints=web
+      - traefik.http.routers.zitadel-login-web.service=zitadel-login
+      - traefik.http.routers.zitadel-login-web.priority=250
+
   zitadel:
     image: ghcr.io/zitadel/zitadel:v4.12.2
     command: start-from-init --masterkeyFromEnv --tlsMode disabled
     environment:
+      ZITADEL_PORT: 8080
       ZITADEL_DATABASE_POSTGRES_HOST: postgres
       ZITADEL_DATABASE_POSTGRES_PORT: 5432
       ZITADEL_DATABASE_POSTGRES_DATABASE: zitadel
@@ -203,23 +312,31 @@ services:
       ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: disable
       ZITADEL_EXTERNALSECURE: false
       ZITADEL_EXTERNALPORT: ${ZITADEL_EXTERNAL_PORT}
-      ZITADEL_EXTERNALDOMAIN: zitadel
+      ZITADEL_EXTERNALDOMAIN: localhost
       ZITADEL_MASTERKEY: ${ZITADEL_MASTERKEY}
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: ${ZITADEL_ADMIN_USERNAME:-admin}
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: ${ZITADEL_ADMIN_PASSWORD:-Admin123!}
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED: false
       ZITADEL_TLS_ENABLED: false
       # Machine user (IAM_OWNER) whose PAT is written to a shared volume so the init-zitadel-users container can read it.
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME: bot
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: Bot
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE: "9999-12-31T23:59:59Z"
       ZITADEL_FIRSTINSTANCE_PATPATH: /zitadel-pat/token
-      # Allow internal Docker-network origins so backend can reach OIDC endpoints
       ZITADEL_DEFAULTINSTANCE_INSTANCENAME: ZITADEL
-      ZITADEL_DEFAULTINSTANCE_ORIGINS: http://localhost:${ZITADEL_EXTERNAL_PORT} http://zitadel:8080
+      # Login V2 (separate Next.js app served by the zitadel-login container)
+      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED: true
+      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_BASEURI: http://localhost:${ZITADEL_EXTERNAL_PORT}/ui/v2/login/
+      ZITADEL_OIDC_DEFAULTLOGINURLV2: http://localhost:${ZITADEL_EXTERNAL_PORT}/ui/v2/login/login?authRequest=
+      ZITADEL_OIDC_DEFAULTLOGOUTURLV2: http://localhost:${ZITADEL_EXTERNAL_PORT}/ui/v2/login/logout?post_logout_redirect=
+      # Machine user for the login service (PAT written to shared volume)
+      ZITADEL_FIRSTINSTANCE_LOGINCLIENTPATPATH: /zitadel-pat/login-client.pat
+      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_USERNAME: login-client
+      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_NAME: Automatically Initialized IAM_LOGIN_CLIENT
+      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_PAT_EXPIRATIONDATE: "9999-12-31T23:59:59Z"
     volumes:
       - zitadel-pat:/zitadel-pat
-    ports:
-      - "${ZITADEL_EXTERNAL_PORT}:8080"
+    # No host port mapping — Traefik is the single entry point.
     depends_on:
       init-zitadel-db:
         condition: service_completed_successfully
@@ -231,6 +348,20 @@ services:
       timeout: 5s
       retries: 12
       start_period: 60s
+    networks:
+      - proxy
+      - default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.services.zitadel.loadbalancer.server.port=8080
+      - traefik.http.services.zitadel.loadbalancer.server.scheme=h2c
+      # Zitadel API: only matches Zitadel's own endpoints (OIDC, OAuth, management, etc.).
+      # Everything else falls through to the frontend SPA catch-all.
+      - traefik.http.routers.zitadel-web.rule=PathPrefix(`/.well-known`) || PathPrefix(`/oauth`) || PathPrefix(`/oidc`) || PathPrefix(`/saml`) || PathPrefix(`/v2`) || PathPrefix(`/management`) || PathPrefix(`/admin`) || PathPrefix(`/auth/v1`) || PathPrefix(`/assets`) || PathPrefix(`/ui/console`) || PathPrefix(`/debug`)
+      - traefik.http.routers.zitadel-web.entrypoints=web
+      - traefik.http.routers.zitadel-web.service=zitadel
+      - traefik.http.routers.zitadel-web.priority=100
 
   init-zitadel-pat-vol:
     image: busybox:1.37
@@ -241,9 +372,13 @@ services:
   init-zitadel-users:
     image: curlimages/curl:8.17.0
     environment:
-      ZITADEL_URL: ${ZITADEL_INTERNAL_URL}
+      # Route through Traefik so the Host header is always "localhost".
+      ZITADEL_URL: http://traefik:80
+    networks:
+      - proxy
+      - default
     depends_on:
-      zitadel:
+      traefik:
         condition: service_healthy
     volumes:
       - ./local-setup/create-test-users.sh:/create-test-users.sh:ro
@@ -409,6 +544,10 @@ services:
         done
         /usr/bin/mc anonymous set-json /bucket-policy.json my_minio/smart-novel
         echo 'MinIO initialization complete!'
+
+networks:
+  proxy:
+    name: proxy
 
 volumes:
   zitadel-pat:

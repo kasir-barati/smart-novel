@@ -2,6 +2,7 @@ import { StringValue } from 'ms';
 import { LogLevel, LogMode } from 'nestjs-backend-common';
 
 export interface AppConfig {
+  EXPLAIN_CONTEXT_CHAR_SIZE: number;
   PORT: number;
   CORS_ALLOWED_ORIGINS: string[];
   NODE_ENV: 'development' | 'production' | 'test';

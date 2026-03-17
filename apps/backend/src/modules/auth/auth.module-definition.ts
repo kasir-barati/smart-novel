@@ -8,7 +8,7 @@ export type ExtraAuthModuleOptions = CommonModuleOptions;
 
 export interface AuthModuleOptions {
   /**
-   * @description OIDC issuer URL — the external/public URL used for JWT issuer validation (e.g. http://localhost:8085)
+   * @description OIDC issuer URL — the external/public URL used for JWT issuer validation (e.g. http://localhost:8080)
    */
   issuerUrl: string;
   /**
@@ -18,7 +18,7 @@ export interface AuthModuleOptions {
    */
   issuerInternalUrl?: string;
   /**
-   * @description OIDC client ID for the ZITADEL application (used for ROPC login).
+   * @description OIDC client ID for the ZITADEL application.
    * When omitted, the service reads it from `clientIdFile` at startup.
    */
   clientId?: string;
@@ -31,7 +31,7 @@ export interface AuthModuleOptions {
   clientIdFile?: string;
   /**
    * @description Personal Access Token for the ZITADEL service account (machine user).
-   * Used to create sessions on behalf of users during login.
+   * Used for admin API calls (e.g. user provisioning).
    * When omitted, the service reads it from `patFile` at startup.
    */
   pat?: string;

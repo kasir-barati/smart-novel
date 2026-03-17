@@ -1,7 +1,13 @@
+Change license to AGPLv3, it enforces everyone using your SaaS must remain open-source:
+
+- Stronger protection.
+- Forces copycats to open-source their code.
+- Still allows full monetization.
+
 - Add OTel
 - Add pipe operator
 - Instead of a background job for TTS use RabbitMQ and quorum queues.
-  - Change your piper image to also accept listen to a routing key.
+  - Change your piper image to also accept listen to a routing key on RabbitMQ.
   - Add retry and quorum queue.
   - Add DLQ to this app too.
 - Is it easier to swap with passport or is it better to stick to my current implementation?
