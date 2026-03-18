@@ -7,5 +7,5 @@ expect.extend(matchers);
 
 // Configure axios for tests to use.
 const host = process.env.HOST ?? 'localhost';
-const port = process.env.PORT ?? '8080';
+const port = process.env.TRAEFIK_EXPOSED_PORT ?? '8080';
 axios.defaults.baseURL = `http://${host}:${port}`;

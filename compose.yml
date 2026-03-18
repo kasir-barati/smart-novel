@@ -246,7 +246,7 @@ services:
       - --log.level=INFO
       - --accesslog=true
     ports:
-      - "${ZITADEL_EXTERNAL_PORT}:80"
+      - "${TRAEFIK_EXPOSED_PORT}:80"
     networks:
       - proxy
     volumes:
@@ -311,7 +311,7 @@ services:
       ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: ${POSTGRES_PASSWORD}
       ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: disable
       ZITADEL_EXTERNALSECURE: false
-      ZITADEL_EXTERNALPORT: ${ZITADEL_EXTERNAL_PORT}
+      ZITADEL_EXTERNALPORT: ${TRAEFIK_EXPOSED_PORT}
       ZITADEL_EXTERNALDOMAIN: localhost
       ZITADEL_MASTERKEY: ${ZITADEL_MASTERKEY}
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: ${ZITADEL_ADMIN_USERNAME:-admin}
@@ -326,9 +326,9 @@ services:
       ZITADEL_DEFAULTINSTANCE_INSTANCENAME: ZITADEL
       # Login V2 (separate Next.js app served by the zitadel-login container)
       ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED: true
-      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_BASEURI: http://localhost:${ZITADEL_EXTERNAL_PORT}/ui/v2/login/
-      ZITADEL_OIDC_DEFAULTLOGINURLV2: http://localhost:${ZITADEL_EXTERNAL_PORT}/ui/v2/login/login?authRequest=
-      ZITADEL_OIDC_DEFAULTLOGOUTURLV2: http://localhost:${ZITADEL_EXTERNAL_PORT}/ui/v2/login/logout?post_logout_redirect=
+      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_BASEURI: http://localhost:${TRAEFIK_EXPOSED_PORT}/ui/v2/login/
+      ZITADEL_OIDC_DEFAULTLOGINURLV2: http://localhost:${TRAEFIK_EXPOSED_PORT}/ui/v2/login/login?authRequest=
+      ZITADEL_OIDC_DEFAULTLOGOUTURLV2: http://localhost:${TRAEFIK_EXPOSED_PORT}/ui/v2/login/logout?post_logout_redirect=
       # Machine user for the login service (PAT written to shared volume)
       ZITADEL_FIRSTINSTANCE_LOGINCLIENTPATPATH: /zitadel-pat/login-client.pat
       ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_USERNAME: login-client
