@@ -6,26 +6,35 @@ export interface ZitadelOpenIdConfigurationResponse {
 }
 
 export interface ZitadelJwtPayload extends JWTPayload {
-  email?: string;
-  email_verified?: boolean;
+  /** @example "http://localhost:8080" */
+  iss: string;
+  /** @example "364554362883670018" */
+  sub: string;
   /**
-   * @description ZITADEL organization ID
-   */
-  'urn:zitadel:iam:org:id'?: string;
-  /**
-   * @description ZITADEL roles
    * @example
    * ```json
-   * { "role_name": { "orgId": "orgDomain" } }
+   * [
+   *   "364554362732740610",
+   *   "364554362682343426",
+   *   "364554334932959234"
+   * ]
    * ```
    */
-  'urn:zitadel:iam:org:project:roles'?: Record<string, unknown>;
-  /**
-   * @description ZITADEL metadata
-   * @example
-   * ```json
-   * { "key": "base64value" }
-   * ```
-   */
-  'urn:zitadel:iam:user:metadata'?: Record<string, string>;
+  aud: string[];
+  /** @example 1773839673 */
+  exp: number;
+  /** @example 1773796473 */
+  iat: number;
+  /** @example 1773796473 */
+  auth_time: number;
+  /** @example ["pwd"] */
+  amr: string[];
+  /** @example "364554362732740610" */
+  azp: string;
+  /** @example "364554362732740610" */
+  client_id: string;
+  /** @example "CLhcEcSNnBOBergGHtMHSA" */
+  at_hash: string;
+  /** @example "364569658990264322" */
+  sid: string;
 }

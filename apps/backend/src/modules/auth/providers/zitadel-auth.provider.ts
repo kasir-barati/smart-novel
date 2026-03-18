@@ -1,6 +1,11 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import axios from 'axios';
-import { createRemoteJWKSet, jwtVerify } from 'jose';
+import {
+  createLocalJWKSet,
+  type JSONWebKeySet,
+  jwtVerify,
+  type JWTVerifyGetKey,
+} from 'jose';
 import {
   CustomLoggerService,
   urlBuilder,
@@ -30,9 +35,12 @@ import {
 export class ZitadelAuthProvider
   implements IAuthProvider, OnModuleInit
 {
-  private jwks!: ReturnType<typeof createRemoteJWKSet>;
+  private jwks!: JWTVerifyGetKey;
+  private jwksUri!: string;
   private issuer!: string;
   private zitadelBaseUrl!: string;
+  /** Extra headers required when the internal URL differs from the external one. */
+  private internalHeaders: Record<string, string> | undefined;
 
   constructor(
     @Inject(MODULE_OPTIONS_TOKEN)
@@ -66,9 +74,13 @@ export class ZitadelAuthProvider
       );
     }
 
-    const { payload } = await jwtVerify(token, this.jwks, {
-      issuer: this.issuer,
-    });
+    const { payload } = await jwtVerify<ZitadelJwtPayload>(
+      token,
+      this.jwks,
+      {
+        issuer: this.issuer,
+      },
+    );
 
     return this.normalizeTokenClaims(payload);
   }
@@ -76,6 +88,10 @@ export class ZitadelAuthProvider
   /**
    * @description
    * Discover the OIDC configuration (issuer, JWKS URI) from the well-known endpoint.
+   *
+   * When an internal URL is configured (e.g. `http://traefik:80`), we must
+   * send `Host: <externalDomain>` so that Zitadel recognises the request
+   * (it only responds to its configured EXTERNALDOMAIN).
    */
   private async discoverOidcConfig(): Promise<void> {
     const internalBase =
@@ -86,6 +102,12 @@ export class ZitadelAuthProvider
       'openid-configuration',
     );
 
+    // Zitadel requires the Host header to match its EXTERNALDOMAIN.
+    // When we call via the internal Docker network the default Host
+    // would be e.g. "traefik" which Zitadel rejects.
+    const externalHost = new URL(this.options.issuerUrl).host;
+    const needsHostOverride = !!this.options.issuerInternalUrl;
+
     this.logger.log(
       `Discovering OIDC configuration from ${discoveryUrl}`,
     );
@@ -94,9 +116,16 @@ export class ZitadelAuthProvider
       const { data } =
         await axios.get<ZitadelOpenIdConfigurationResponse>(
           discoveryUrl,
+          needsHostOverride
+            ? { headers: { Host: externalHost } }
+            : undefined,
         );
-      // The JWT issuer claim matches the external URL, not the internal one
-      this.issuer = data.issuer;
+      // When accessed via an internal URL the discovered issuer may omit
+      // the external port (e.g. "http://localhost" instead of
+      // "http://localhost:8080").  Always prefer the configured issuerUrl
+      // so that JWT verification matches the `iss` claim in tokens
+      // issued to end-users via the external URL.
+      this.issuer = this.options.issuerUrl;
       // Rewrite the JWKS URI to use the internal base if needed
       let jwksUri = data.jwks_uri;
 
@@ -107,7 +136,12 @@ export class ZitadelAuthProvider
         jwksUri = jwksUri.replace(externalOrigin, internalOrigin);
       }
 
-      this.jwks = createRemoteJWKSet(new URL(jwksUri));
+      this.jwksUri = jwksUri;
+      this.internalHeaders = needsHostOverride
+        ? { Host: externalHost }
+        : undefined;
+
+      await this.refreshJwks();
 
       this.logger.log(
         `OIDC discovery complete. Issuer: ${this.issuer}, JWKS: ${jwksUri}`,
@@ -121,13 +155,23 @@ export class ZitadelAuthProvider
 
   /**
    * @description
+   * Fetch the JSON Web Key Set from the JWKS URI using axios (which,
+   * unlike Node's built-in fetch, allows overriding the Host header)
+   * and build a local JWK set for token verification.
+   */
+  private async refreshJwks(): Promise<void> {
+    const { data } = await axios.get<JSONWebKeySet>(this.jwksUri, {
+      headers: this.internalHeaders,
+    });
+
+    this.jwks = createLocalJWKSet(data);
+  }
+
+  /**
+   * @description
    * Normalize ZITADEL-specific token claims into the provider-agnostic IAuthUser shape.
    */
   private normalizeTokenClaims(claims: ZitadelJwtPayload): IAuthUser {
-    this.logger.debug('='.repeat(80));
-    this.logger.debug(JSON.stringify(claims, null, 2));
-    this.logger.debug('='.repeat(80));
-
     const sub = claims.sub as string;
     const email = claims.email ?? '';
     const emailVerified = claims.email_verified ?? false;
@@ -150,9 +194,9 @@ export class ZitadelAuthProvider
 
     return {
       sub,
-      email,
-      emailVerified,
-      orgId,
+      email: 'FIXME:',
+      emailVerified: false,
+      orgId: 'FIXME:',
       roles,
       metadata,
     };
