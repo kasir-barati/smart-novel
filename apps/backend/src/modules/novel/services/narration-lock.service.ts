@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { RedisService } from '../../redis/services';
+import { RedisService } from '../../redis';
 
 @Injectable()
 export class NarrationLockService {

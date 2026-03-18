@@ -1,4 +1,4 @@
-import { RedisService } from '../../redis/services';
+import { RedisService } from '../../redis';
 import { NarrationLockService } from './narration-lock.service';
 
 describe(NarrationLockService.name, () => {

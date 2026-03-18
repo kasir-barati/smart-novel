@@ -3,6 +3,33 @@ import type { JWTPayload } from 'jose';
 export interface ZitadelOpenIdConfigurationResponse {
   issuer: string;
   jwks_uri: string;
+  userinfo_endpoint: string;
+}
+
+/**
+ * @description
+ * OIDC response when we call `/oidc/v1/userinfo`.
+ *
+ * The actual claims depend on the scopes requested by the frontend during the Authorization Code flow. With the recommended scope string (`openid profile email urn:zitadel:iam:org:project:id:zitadel:aud urn:zitadel:iam:org:projects:roles urn:zitadel:iam:user:metadata`).
+ */
+export interface ZitadelUserInfoResponse {
+  sub: string;
+  email?: string;
+  email_verified?: boolean;
+  name?: string;
+  preferred_username?: string;
+  /** @description Organization / tenant the user belongs to */
+  'urn:zitadel:iam:org:id'?: string;
+  /**
+   * @description Project-scoped roles.
+   * Shape: `{ "roleName": { "orgId": "orgDomain" } }`
+   */
+  'urn:zitadel:iam:org:project:roles'?: Record<
+    string,
+    Record<string, string>
+  >;
+  /** @description Base-64-encoded key→value metadata */
+  'urn:zitadel:iam:user:metadata'?: Record<string, string>;
 }
 
 export interface ZitadelJwtPayload extends JWTPayload {

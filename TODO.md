@@ -1,3 +1,7 @@
+- Instead of downloading the LLM model on application bootstrap:
+  - We can mount a persistent storage to our EC2 instance.
+  - Or we can create the image (download the model while building the base image) and persist it in some registry like ECR.
+
 Change license to AGPLv3, it enforces everyone using your SaaS must remain open-source:
 
 - Stronger protection.

@@ -7,10 +7,10 @@ import { GqlExecutionContext } from '@nestjs/graphql';
 import type { IAuthUser } from '../interfaces';
 
 /**
- * @description Extract the authenticated `IAuthUser` from the GraphQL context.
+ * @description
+ * Extract the authenticated `IAuthUser` from the GraphQL context.
  *
- * The user is placed on the request by `JwtAuthGuard` after JWT validation
- * via `ZitadelAuthProvider.validateToken()`.
+ * The user is placed on the request by `JwtAuthGuard` after JWT validation via `ZitadelAuthProvider.validateToken()`.
  *
  * @example `@CurrentUser() user: IAuthUser`
  */
