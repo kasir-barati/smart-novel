@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-import { AuthorizationFixture } from './authorization.fixture';
+import { AuthorizationFixture } from './auth.fixture';
 
-describe('Authorization (e2e)', () => {
+describe('Auth (e2e)', () => {
   let fixture: AuthorizationFixture;
 
   beforeAll(() => {
