@@ -3,6 +3,7 @@ RUN apk add --no-cache curl
 ENV HUSKY=0
 WORKDIR /app
 ARG PORT
+ENV PORT=${PORT}
 EXPOSE $PORT
 COPY package*.json nx.json tsconfig*.json ./
 
