@@ -106,6 +106,8 @@ services:
       VITE_OIDC_REDIRECT_URI: ${VITE_OIDC_REDIRECT_URI}
       VITE_EXPLAIN_CONTEXT_CHAR_SIZE: ${EXPLAIN_CONTEXT_CHAR_SIZE}
       VITE_EXPLAIN_RATE_CAPACITY: 12
+      VITE_EXPLAIN_CACHE_MAX_ENTRIES: 12
+      VITE_EXPLAIN_RATE_REFILL_PER_SEC: 1.5
       VITE_EXPLAIN_SELECTION_DEBOUNCE_MS: 500
       # VITE_OIDC_CLIENT_ID is read at runtime from the file written by init-zitadel-users.
       ZITADEL_CLIENT_ID_FILE: /zitadel-pat/client-id
@@ -150,6 +152,12 @@ services:
       - traefik.http.routers.frontend-web.entrypoints=web
       - traefik.http.routers.frontend-web.service=frontend
       - traefik.http.routers.frontend-web.priority=50
+      # Serve /assets from the frontend, not Zitadel (whose catch-all also
+      # matches /assets at priority 100).
+      - traefik.http.routers.frontend-assets.rule=PathPrefix(`/assets`)
+      - traefik.http.routers.frontend-assets.entrypoints=web
+      - traefik.http.routers.frontend-assets.service=frontend
+      - traefik.http.routers.frontend-assets.priority=200
 
   backend-e2e:
     <<: *backend
@@ -172,7 +180,14 @@ services:
       dockerfile: apps/frontend/Dockerfile
       target: production
       args:
-        VITE_SERVICE_URL: http://localhost:$BACKEND_PORT
+        VITE_SERVICE_URL: ${VITE_SERVICE_URL}
+        # Use a placeholder for the client ID — it is generated at runtime by
+        # init-zitadel-users. The entrypoint below replaces the placeholder in
+        # the built JS bundle before nginx starts.
+        VITE_OIDC_CLIENT_ID: __OIDC_CLIENT_ID_PLACEHOLDER__
+        VITE_OIDC_AUTHORITY: ${VITE_OIDC_AUTHORITY}
+        VITE_OIDC_REDIRECT_URI: ${VITE_OIDC_REDIRECT_URI}
+        VITE_OIDC_SCOPE: ${VITE_OIDC_SCOPE}
     profiles:
       - frontend-e2e
     depends_on:
@@ -180,6 +195,26 @@ services:
         condition: service_healthy
       s3:
         condition: service_healthy
+      init-zitadel-users:
+        condition: service_completed_successfully
+    volumes:
+      - zitadel-pat:/zitadel-pat:ro
+    # Read the dynamically-generated OIDC client ID from the shared volume
+    # and replace the build-time placeholder in the JS bundle, then start nginx.
+    command:
+      - /bin/sh
+      - -c
+      - |
+        CLIENT_ID_FILE="/zitadel-pat/client-id"
+        if [ -f "$$CLIENT_ID_FILE" ]; then
+          CLIENT_ID=$$(cat "$$CLIENT_ID_FILE" | tr -d '[:space:]')
+          echo "✓ Injecting OIDC client ID: $$CLIENT_ID"
+          find /usr/share/nginx/html -name '*.js' -exec \
+            sed -i "s/__OIDC_CLIENT_ID_PLACEHOLDER__/$$CLIENT_ID/g" {} +
+        else
+          echo "⚠ $$CLIENT_ID_FILE not found — OIDC login will not work"
+        fi
+        exec nginx -g 'daemon off;'
     ports:
       - "4200:80"
     healthcheck:
@@ -188,6 +223,23 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    networks:
+      - proxy
+      - default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.services.frontend-e2e.loadbalancer.server.port=80
+      - traefik.http.routers.frontend-e2e-web.rule=PathPrefix(`/`)
+      - traefik.http.routers.frontend-e2e-web.entrypoints=web
+      - traefik.http.routers.frontend-e2e-web.service=frontend-e2e
+      - traefik.http.routers.frontend-e2e-web.priority=50
+      # Serve /assets from the frontend, not Zitadel (whose catch-all also
+      # matches /assets at priority 100).
+      - traefik.http.routers.frontend-e2e-assets.rule=PathPrefix(`/assets`)
+      - traefik.http.routers.frontend-e2e-assets.entrypoints=web
+      - traefik.http.routers.frontend-e2e-assets.service=frontend-e2e
+      - traefik.http.routers.frontend-e2e-assets.priority=200
 
   postgres:
     image: postgres:18.2-bookworm

@@ -19,11 +19,17 @@ const responseErrorHandler = (error: unknown) => {
 export function useApi(): { api: AxiosInstance } {
   const auth = useOidcAuth();
   const accessToken = auth.user?.access_token ?? null;
+  const VITE_SERVICE_URL = import.meta.env.VITE_SERVICE_URL;
+
+  if (!VITE_SERVICE_URL) {
+    throw new Error(
+      'VITE_SERVICE_URL environment variable is not defined',
+    );
+  }
 
   const api = useMemo(() => {
     const instance = axios.create({
-      baseURL:
-        import.meta.env.VITE_SERVICE_URL ?? 'http://localhost:3000',
+      baseURL: VITE_SERVICE_URL,
       headers: {
         'correlation-id': crypto.randomUUID(),
       },

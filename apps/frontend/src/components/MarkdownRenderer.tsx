@@ -23,23 +23,17 @@ interface SelectionTarget {
 }
 
 const explainHintKey = 'word-explain-tip-v1';
-const fallbackDebounceMs = 450;
-const fallbackContextWindow = 260;
 
 const explainDebounceMs = Math.max(
   450,
   Math.min(
     600,
-    Number(
-      import.meta.env.VITE_EXPLAIN_SELECTION_DEBOUNCE_MS ??
-        fallbackDebounceMs,
-    ),
+    Number(import.meta.env.VITE_EXPLAIN_SELECTION_DEBOUNCE_MS),
   ),
 );
 
 const contextWindowSize = Number(
-  import.meta.env.VITE_EXPLAIN_CONTEXT_CHAR_SIZE ??
-    fallbackContextWindow,
+  import.meta.env.VITE_EXPLAIN_CONTEXT_CHAR_SIZE,
 );
 
 const isNodeInsideContainer = (node: Node, container: HTMLElement) =>

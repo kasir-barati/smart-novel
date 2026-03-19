@@ -16,13 +16,13 @@ interface ExplainState {
 }
 
 const cacheEntryLimit = Number(
-  import.meta.env.VITE_EXPLAIN_CACHE_MAX_ENTRIES ?? 12,
+  import.meta.env.VITE_EXPLAIN_CACHE_MAX_ENTRIES,
 );
 
 const tokenBucket = new TokenBucket({
-  capacity: Number(import.meta.env.VITE_EXPLAIN_RATE_CAPACITY ?? 6),
+  capacity: Number(import.meta.env.VITE_EXPLAIN_RATE_CAPACITY),
   refillPerSecond: Number(
-    import.meta.env.VITE_EXPLAIN_RATE_REFILL_PER_SEC ?? 1.5,
+    import.meta.env.VITE_EXPLAIN_RATE_REFILL_PER_SEC,
   ),
 });
 
