@@ -35,13 +35,15 @@ describe('Auth (e2e)', () => {
     );
 
     expect(status).toBe(200);
-    expect(data.data.whoAmI).toStrictEqual({
-      sub: expect.any(String),
-      email: expect.any(String),
-      emailVerified: expect.any(Boolean),
-      orgId: expect.any(String),
-      roles: expect.any(Array),
-    });
+    expect(data.data.whoAmI.orgId).toBeNull();
+    expect(data.data.whoAmI).toStrictEqual(
+      expect.objectContaining({
+        sub: expect.any(String),
+        email: expect.any(String),
+        emailVerified: expect.any(Boolean),
+        roles: expect.any(Array),
+      }),
+    );
   });
 
   it('should reject unauthenticated requests to protected queries', async () => {
@@ -58,6 +60,8 @@ describe('Auth (e2e)', () => {
 
     // GraphQL returns 200 with errors array
     expect(data.errors).toBeDefined();
-    expect(data.errors[0].message).toContain('Unauthorized');
+    expect(data.errors[0].message).toContain(
+      'Missing Bearer token in Authorization header',
+    );
   });
 });

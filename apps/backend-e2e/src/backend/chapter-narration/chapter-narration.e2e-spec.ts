@@ -171,7 +171,7 @@ describe('Chapter Narration (e2e)', () => {
   it('should subscribe to chapter narration updates', async () => {
     // Arrange
     const host = process.env.HOST ?? 'localhost';
-    const port = process.env.PORT ?? '3000';
+    const port = process.env.TRAEFIK_EXPOSED_PORT ?? '8080';
     const client = createClient({
       url: `ws://${host}:${port}/graphql`,
       webSocketImpl: WebSocket,

@@ -47,3 +47,6 @@ vite.config.*.timestamp*
 
 # GraphQL auto-generated schema
 schema.gql
+
+# E2E test PATs extracted from Docker volume (created by global-setup.ts)
+local-setup/pats/

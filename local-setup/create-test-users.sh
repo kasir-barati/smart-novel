@@ -17,6 +17,8 @@ ZITADEL_HOST="${ZITADEL_HOST:-localhost}"
 PAT_FILE="/zitadel-pat/token"
 CLIENT_ID_FILE="/zitadel-pat/client-id"
 WRITER_USER_ID_FILE="/zitadel-pat/writer-user-id"
+ADMIN_PAT_FILE="/zitadel-pat/admin-pat"
+WRITER_PAT_FILE="/zitadel-pat/writer-pat"
 
 # ── helpers ──────────────────────────────────────────
 # All log output goes to stderr so that function return values (captured via command substitution) stay clean on stdout.
@@ -111,13 +113,93 @@ create_user() {
 
     if [ -z "$USER_ID" ]; then
         if printf '%s' "$USER_RESPONSE" | grep -qi "already"; then
-            ok "User $_EMAIL already exists - skipping"
+            ok "User $_EMAIL already exists - looking up existing user..."
+
+            # Search for existing user by login name
+            SEARCH_RESPONSE=$(curl -s -X POST "${ZITADEL_URL}/v2/users" \
+                -H "Host: $ZITADEL_HOST" \
+                -H "Authorization: Bearer $_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "{
+                    \"queries\": [{
+                        \"emailQuery\": {
+                            \"emailAddress\": \"$_EMAIL\",
+                            \"method\": \"TEXT_QUERY_METHOD_EQUALS\"
+                        }
+                    }]
+                }")
+            USER_ID=$(printf '%s' "$SEARCH_RESPONSE" | json_value "userId")
+
+            if [ -n "$USER_ID" ]; then
+                ok "Found existing user with ID: $USER_ID"
+            else
+                warn "Could not find existing user by email. Response:"
+                echo "$SEARCH_RESPONSE" >&2
+            fi
         else
             warn "User creation may have failed. Response:"
             echo "$USER_RESPONSE" >&2
         fi
     else
         ok "User created with ID: $USER_ID"
+    fi
+
+    printf '%s' "$USER_ID"
+}
+
+# ── create a machine user (PATs require machine type) ─
+
+create_machine_user() {
+    _USERNAME=$1
+    _NAME=$2
+    _TOKEN=$3
+
+    log "Creating machine user: $_USERNAME ..."
+
+    USER_RESPONSE=$(curl -s -X POST "${ZITADEL_URL}/management/v1/users/machine" \
+        -H "Host: $ZITADEL_HOST" \
+        -H "Authorization: Bearer $_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"userName\": \"${_USERNAME}\",
+            \"name\": \"$_NAME\",
+            \"description\": \"E2E test machine user ($_USERNAME)\",
+            \"accessTokenType\": \"ACCESS_TOKEN_TYPE_BEARER\"
+        }")
+
+    USER_ID=$(printf '%s' "$USER_RESPONSE" | json_value "userId")
+
+    if [ -z "$USER_ID" ]; then
+        if printf '%s' "$USER_RESPONSE" | grep -qi "already"; then
+            ok "Machine user $_USERNAME already exists - looking up..."
+
+            # Search for existing user by username
+            SEARCH_RESPONSE=$(curl -s -X POST "${ZITADEL_URL}/v2/users" \
+                -H "Host: $ZITADEL_HOST" \
+                -H "Authorization: Bearer $_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "{
+                    \"queries\": [{
+                        \"userNameQuery\": {
+                            \"userName\": \"$_USERNAME\",
+                            \"method\": \"TEXT_QUERY_METHOD_EQUALS\"
+                        }
+                    }]
+                }")
+            USER_ID=$(printf '%s' "$SEARCH_RESPONSE" | json_value "userId")
+
+            if [ -n "$USER_ID" ]; then
+                ok "Found existing machine user with ID: $USER_ID"
+            else
+                warn "Could not find existing machine user. Response:"
+                echo "$SEARCH_RESPONSE" >&2
+            fi
+        else
+            warn "Machine user creation may have failed. Response:"
+            echo "$USER_RESPONSE" >&2
+        fi
+    else
+        ok "Machine user created with ID: $USER_ID"
     fi
 
     printf '%s' "$USER_ID"
@@ -263,6 +345,40 @@ assign_role_to_user() {
     fi
 }
 
+# ── create a Personal Access Token for a user ────────
+
+create_user_pat() {
+    _TOKEN=$1
+    _USER_ID=$2
+    _LABEL=$3
+
+    if [ -z "$_USER_ID" ]; then
+        warn "Cannot create PAT for $_LABEL - user ID is empty"
+        return 1
+    fi
+
+    log "Creating PAT for $_LABEL (user $_USER_ID)..."
+
+    PAT_RESPONSE=$(curl -s -X POST "${ZITADEL_URL}/management/v1/users/${_USER_ID}/pats" \
+        -H "Host: $ZITADEL_HOST" \
+        -H "Authorization: Bearer $_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"expirationDate\": \"9999-12-31T23:59:59Z\"
+        }")
+
+    USER_PAT=$(printf '%s' "$PAT_RESPONSE" | json_value "token")
+
+    if [ -z "$USER_PAT" ]; then
+        warn "PAT creation for $_LABEL may have failed. Response:"
+        echo "$PAT_RESPONSE" >&2
+    else
+        ok "PAT created for $_LABEL (${#USER_PAT} chars)"
+    fi
+
+    printf '%s' "$USER_PAT"
+}
+
 # ── create an OIDC application ───────────────────────
 
 create_oidc_app() {
@@ -399,38 +515,78 @@ echo "================================================" >&2
 
 create_project_roles "$ACCESS_TOKEN" "$PROJECT_ID"
 
+# Small delay for Zitadel eventual consistency after role creation
+sleep 2
+
 echo "" >&2
 echo "================================================" >&2
-echo "Creating Admin User" >&2
+echo "Creating Human Users (for interactive login)" >&2
 echo "================================================" >&2
 
-ADMIN_USER_ID=$(create_user \
+ADMIN_HUMAN_ID=$(create_user \
     "admin@test.com" \
     "Admin" \
     "User" \
     "Admin123!" \
     "$ACCESS_TOKEN")
 
-if [ -n "$ADMIN_USER_ID" ]; then
-    assign_role_to_user "$ACCESS_TOKEN" "$PROJECT_ID" "$ADMIN_USER_ID" "admin"
+if [ -n "$ADMIN_HUMAN_ID" ]; then
+    assign_role_to_user "$ACCESS_TOKEN" "$PROJECT_ID" "$ADMIN_HUMAN_ID" "admin"
 fi
 
-echo "" >&2
-echo "================================================" >&2
-echo "Creating Writer User" >&2
-echo "================================================" >&2
-
-WRITER_USER_ID=$(create_user \
+WRITER_HUMAN_ID=$(create_user \
     "writer@test.com" \
     "Writer" \
     "User" \
     "Writer123!" \
     "$ACCESS_TOKEN")
 
-if [ -n "$WRITER_USER_ID" ]; then
-    assign_role_to_user "$ACCESS_TOKEN" "$PROJECT_ID" "$WRITER_USER_ID" "writer"
+if [ -n "$WRITER_HUMAN_ID" ]; then
+    assign_role_to_user "$ACCESS_TOKEN" "$PROJECT_ID" "$WRITER_HUMAN_ID" "writer"
     ok "Writing writer user ID to $WRITER_USER_ID_FILE"
-    printf '%s' "$WRITER_USER_ID" > "$WRITER_USER_ID_FILE"
+    printf '%s' "$WRITER_HUMAN_ID" > "$WRITER_USER_ID_FILE"
+fi
+
+echo "" >&2
+echo "================================================" >&2
+echo "Creating Machine Users for E2E (PATs require machine type)" >&2
+echo "================================================" >&2
+
+# Zitadel only allows PAT creation for machine users, not human users.
+# We create separate machine users for e2e test authentication.
+
+ADMIN_MACHINE_ID=$(create_machine_user \
+    "e2e-admin" \
+    "E2E Admin" \
+    "$ACCESS_TOKEN")
+
+if [ -n "$ADMIN_MACHINE_ID" ]; then
+    assign_role_to_user "$ACCESS_TOKEN" "$PROJECT_ID" "$ADMIN_MACHINE_ID" "admin"
+
+    ADMIN_PAT=$(create_user_pat "$ACCESS_TOKEN" "$ADMIN_MACHINE_ID" "admin")
+    if [ -n "$ADMIN_PAT" ]; then
+        ok "Writing admin PAT to $ADMIN_PAT_FILE"
+        printf '%s' "$ADMIN_PAT" > "$ADMIN_PAT_FILE"
+    else
+        warn "Could not create admin PAT - admin e2e tests will not work!"
+    fi
+fi
+
+WRITER_MACHINE_ID=$(create_machine_user \
+    "e2e-writer" \
+    "E2E Writer" \
+    "$ACCESS_TOKEN")
+
+if [ -n "$WRITER_MACHINE_ID" ]; then
+    assign_role_to_user "$ACCESS_TOKEN" "$PROJECT_ID" "$WRITER_MACHINE_ID" "writer"
+
+    WRITER_PAT=$(create_user_pat "$ACCESS_TOKEN" "$WRITER_MACHINE_ID" "writer")
+    if [ -n "$WRITER_PAT" ]; then
+        ok "Writing writer PAT to $WRITER_PAT_FILE"
+        printf '%s' "$WRITER_PAT" > "$WRITER_PAT_FILE"
+    else
+        warn "Could not create writer PAT - writer e2e tests will not work!"
+    fi
 fi
 
 echo "" >&2
@@ -443,10 +599,15 @@ echo "" >&2
 echo "Admin User:" >&2
 echo "  Email: admin@test.com" >&2
 echo "  Password: Admin123!" >&2
+echo "  PAT: $ADMIN_PAT_FILE" >&2
 echo "" >&2
 echo "Writer User:" >&2
 echo "  Email: writer@test.com" >&2
 echo "  Password: Writer123!" >&2
+echo "  PAT: $WRITER_PAT_FILE" >&2
+echo "" >&2
+echo "Bot (machine user):" >&2
+echo "  PAT: $PAT_FILE" >&2
 echo "" >&2
 echo "OIDC Application:" >&2
 echo "  Project: smart-novel" >&2
