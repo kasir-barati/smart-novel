@@ -54,7 +54,7 @@
   "scripts": {
     "start:dev": "docker compose --profile dev up --build -d",
     "stop:dev": "docker compose --profile dev down -v",
-    "prepare": "husky",
+    "prepare": "husky || true",
     "format": "prettier . -w -u",
     "lint": "nx run-many -t lint --fix --skip-nx-cache",
     "lint-prepush": "nx run-many -t lint",
