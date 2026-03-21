@@ -414,6 +414,9 @@ services:
       - traefik.http.routers.zitadel-web.entrypoints=web
       - traefik.http.routers.zitadel-web.service=zitadel
       - traefik.http.routers.zitadel-web.priority=100
+      - traefik.http.middlewares.zitadel-fwd.headers.customrequestheaders.X-Forwarded-Host=localhost:${TRAEFIK_EXPOSED_PORT}
+      - traefik.http.middlewares.zitadel-fwd.headers.customrequestheaders.X-Forwarded-Proto=http
+      - traefik.http.routers.zitadel-web.middlewares=zitadel-fwd
 
   init-zitadel-pat-vol:
     image: busybox:1.37

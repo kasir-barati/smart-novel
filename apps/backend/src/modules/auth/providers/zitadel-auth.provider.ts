@@ -44,8 +44,6 @@ export class ZitadelAuthProvider
   private jwksUri!: string;
   private userinfoEndpoint!: string;
   private issuer!: string;
-  /** @description Extra headers required when the internal URL differs from the external one. */
-  private internalHeaders: Record<string, string> | undefined;
   /** @description Cache TTL for userinfo responses (in seconds). */
   private static readonly USERINFO_CACHE_TTL_SECONDS = 60;
 
@@ -155,12 +153,6 @@ export class ZitadelAuthProvider
       'openid-configuration',
     );
 
-    // Zitadel requires the Host header to match its EXTERNALDOMAIN.
-    // When we call via the internal Docker network the default Host
-    // would be e.g. "traefik" which Zitadel rejects.
-    const externalHost = new URL(this.options.issuerUrl).host;
-    const needsHostOverride = !!this.options.issuerInternalUrl;
-
     this.logger.log(
       `Discovering OIDC configuration from ${discoveryUrl}`,
     );
@@ -169,9 +161,6 @@ export class ZitadelAuthProvider
       const { data } =
         await axios.get<ZitadelOpenIdConfigurationResponse>(
           discoveryUrl,
-          needsHostOverride
-            ? { headers: { Host: externalHost } }
-            : undefined,
         );
       /**
        * @description
@@ -203,9 +192,6 @@ export class ZitadelAuthProvider
 
       this.jwksUri = jwksUri;
       this.userinfoEndpoint = userinfoEndpoint;
-      this.internalHeaders = needsHostOverride
-        ? { Host: externalHost }
-        : undefined;
 
       await this.refreshJwks();
 
@@ -224,9 +210,7 @@ export class ZitadelAuthProvider
    * Fetch the JSON Web Key Set from the JWKS URI using axios (which, unlike Node's built-in fetch, allows overriding the Host header) and build a local JWK set for token verification.
    */
   private async refreshJwks(): Promise<void> {
-    const { data } = await axios.get<JSONWebKeySet>(this.jwksUri, {
-      headers: this.internalHeaders,
-    });
+    const { data } = await axios.get<JSONWebKeySet>(this.jwksUri);
 
     this.jwks = createLocalJWKSet(data);
   }
@@ -255,7 +239,6 @@ export class ZitadelAuthProvider
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          ...this.internalHeaders,
         },
       },
     );

@@ -13,7 +13,6 @@ ZITADEL_URL="${ZITADEL_URL}"
 # the Host header defaults to the proxy's service name (e.g. "traefik").
 # Zitadel matches incoming requests by ExternalDomain, so we must override
 # the Host header to match ZITADEL_EXTERNALDOMAIN.
-ZITADEL_HOST="${ZITADEL_HOST:-localhost}"
 PAT_FILE="/zitadel-pat/token"
 CLIENT_ID_FILE="/zitadel-pat/client-id"
 WRITER_USER_ID_FILE="/zitadel-pat/writer-user-id"
@@ -40,7 +39,7 @@ wait_for_zitadel() {
     RETRIES=0
     MAX_RETRIES=30
     while [ "$RETRIES" -lt "$MAX_RETRIES" ]; do
-        if curl -sf -H "Host: $ZITADEL_HOST" "${ZITADEL_URL}/debug/ready" >/dev/null 2>&1; then
+        if curl -sf "${ZITADEL_URL}/debug/ready" >/dev/null 2>&1; then
             ok "ZITADEL is ready"
             return 0
         fi
@@ -89,7 +88,6 @@ create_user() {
     log "Creating user: $_EMAIL ..."
 
     USER_RESPONSE=$(curl -s -X POST "${ZITADEL_URL}/v2/users/human" \
-        -H "Host: $ZITADEL_HOST" \
         -H "Authorization: Bearer $_TOKEN" \
         -H "Content-Type: application/json" \
         -d "{
@@ -117,7 +115,6 @@ create_user() {
 
             # Search for existing user by login name
             SEARCH_RESPONSE=$(curl -s -X POST "${ZITADEL_URL}/v2/users" \
-                -H "Host: $ZITADEL_HOST" \
                 -H "Authorization: Bearer $_TOKEN" \
                 -H "Content-Type: application/json" \
                 -d "{
@@ -157,7 +154,6 @@ create_machine_user() {
     log "Creating machine user: $_USERNAME ..."
 
     USER_RESPONSE=$(curl -s -X POST "${ZITADEL_URL}/management/v1/users/machine" \
-        -H "Host: $ZITADEL_HOST" \
         -H "Authorization: Bearer $_TOKEN" \
         -H "Content-Type: application/json" \
         -d "{
@@ -175,7 +171,6 @@ create_machine_user() {
 
             # Search for existing user by username
             SEARCH_RESPONSE=$(curl -s -X POST "${ZITADEL_URL}/v2/users" \
-                -H "Host: $ZITADEL_HOST" \
                 -H "Authorization: Bearer $_TOKEN" \
                 -H "Content-Type: application/json" \
                 -d "{
@@ -214,7 +209,6 @@ create_project() {
     log "Creating project: $_PROJECT_NAME ..."
 
     PROJECT_RESPONSE=$(curl -s -X POST "${ZITADEL_URL}/management/v1/projects" \
-        -H "Host: $ZITADEL_HOST" \
         -H "Authorization: Bearer $_TOKEN" \
         -H "Content-Type: application/json" \
         -d "{
@@ -229,7 +223,6 @@ create_project() {
             ok "Project $_PROJECT_NAME already exists"
             # Try to find existing project
             PROJECTS_RESPONSE=$(curl -s -X POST "${ZITADEL_URL}/management/v1/projects/_search" \
-                -H "Host: $ZITADEL_HOST" \
                 -H "Authorization: Bearer $_TOKEN" \
                 -H "Content-Type: application/json" \
                 -d "{
@@ -269,7 +262,6 @@ create_project_roles() {
 
     # Create admin role
     ADMIN_ROLE_RESPONSE=$(curl -s -X POST "${ZITADEL_URL}/management/v1/projects/${_PROJECT_ID}/roles" \
-        -H "Host: $ZITADEL_HOST" \
         -H "Authorization: Bearer $_TOKEN" \
         -H "Content-Type: application/json" \
         -d "{
@@ -284,7 +276,6 @@ create_project_roles() {
 
     # Create writer role
     WRITER_ROLE_RESPONSE=$(curl -s -X POST "${ZITADEL_URL}/management/v1/projects/${_PROJECT_ID}/roles" \
-        -H "Host: $ZITADEL_HOST" \
         -H "Authorization: Bearer $_TOKEN" \
         -H "Content-Type: application/json" \
         -d "{
@@ -299,7 +290,6 @@ create_project_roles() {
 
     # Create user role
     USER_ROLE_RESPONSE=$(curl -s -X POST "${ZITADEL_URL}/management/v1/projects/${_PROJECT_ID}/roles" \
-        -H "Host: $ZITADEL_HOST" \
         -H "Authorization: Bearer $_TOKEN" \
         -H "Content-Type: application/json" \
         -d "{
@@ -329,7 +319,6 @@ assign_role_to_user() {
     log "Assigning role '$_ROLE' to user $_USER_ID..."
 
     GRANT_RESPONSE=$(curl -s -X POST "${ZITADEL_URL}/management/v1/users/${_USER_ID}/grants" \
-        -H "Host: $ZITADEL_HOST" \
         -H "Authorization: Bearer $_TOKEN" \
         -H "Content-Type: application/json" \
         -d "{
@@ -360,7 +349,6 @@ create_user_pat() {
     log "Creating PAT for $_LABEL (user $_USER_ID)..."
 
     PAT_RESPONSE=$(curl -s -X POST "${ZITADEL_URL}/management/v1/users/${_USER_ID}/pats" \
-        -H "Host: $ZITADEL_HOST" \
         -H "Authorization: Bearer $_TOKEN" \
         -H "Content-Type: application/json" \
         -d "{
@@ -393,7 +381,6 @@ create_oidc_app() {
     # Grant types: OIDC_GRANT_TYPE_AUTHORIZATION_CODE + password (ROPC)
     # Response types: OIDC_RESPONSE_TYPE_CODE
     APP_RESPONSE=$(curl -s -X POST "${ZITADEL_URL}/management/v1/projects/${_PROJECT_ID}/apps/oidc" \
-        -H "Host: $ZITADEL_HOST" \
         -H "Authorization: Bearer $_TOKEN" \
         -H "Content-Type: application/json" \
         -d "{
@@ -414,7 +401,6 @@ create_oidc_app() {
             ok "Application $_APP_NAME already exists"
             # Try to find existing apps
             APPS_RESPONSE=$(curl -s -X GET "${ZITADEL_URL}/management/v1/projects/${_PROJECT_ID}/apps/_search" \
-                -H "Host: $ZITADEL_HOST" \
                 -H "Authorization: Bearer $_TOKEN" \
                 -H "Content-Type: application/json")
             CLIENT_ID=$(printf '%s' "$APPS_RESPONSE" | json_value "clientId")
@@ -463,7 +449,6 @@ VERIFY_SUCCESS=0
 
 while [ "$RETRIES" -lt "$MAX_RETRIES" ]; do
     VERIFY_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-        -H "Host: $ZITADEL_HOST" \
         -H "Authorization: Bearer $ACCESS_TOKEN" \
         "${ZITADEL_URL}/auth/v1/users/me")
     
@@ -483,7 +468,7 @@ done
 
 if [ "$VERIFY_SUCCESS" -eq 0 ]; then
     err "PAT verification failed after $MAX_RETRIES attempts (HTTP $VERIFY_CODE)"
-    curl -s -H "Host: $ZITADEL_HOST" -H "Authorization: Bearer $ACCESS_TOKEN" "${ZITADEL_URL}/auth/v1/users/me" >&2
+    curl -s -H "Authorization: Bearer $ACCESS_TOKEN" "${ZITADEL_URL}/auth/v1/users/me" >&2
     exit 1
 fi
 
