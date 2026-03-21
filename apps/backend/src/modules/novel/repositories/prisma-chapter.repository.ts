@@ -96,13 +96,14 @@ export class PrismaChapterRepository implements IChapterRepository {
     return result.count;
   }
 
-  async updateChapterTtsFriendlyContent(
+  async updateContent(
     id: string,
+    content: string,
     ttsFriendlyContent: string,
   ) {
     const chapter = await this.prisma.chapter.update({
       where: { id },
-      data: { ttsFriendlyContent },
+      data: { ttsFriendlyContent, content },
     });
 
     if (isNil(chapter)) {

@@ -47,16 +47,17 @@ export class ChapterService {
   //   // 2. If makeNecessaryAdjustments is present then make sure the novel's chapter number make sense even after chapter creation.
   // }
 
-  async updateTtsFriendlyContent(
+  async updateContent(
     chapterId: string,
+    content: string,
     ttsFriendlyContent: string,
   ): Promise<IChapter> {
-    // TODO: validate the ttsFriendlyContent make sense, just a light weight check!
-    const chapter =
-      await this.chapterRepository.updateChapterTtsFriendlyContent(
-        chapterId,
-        ttsFriendlyContent,
-      );
+    // TODO: validate the ttsFriendlyContent make sense (the content should match the TTS-friendly version)!
+    const chapter = await this.chapterRepository.updateContent(
+      chapterId,
+      content,
+      ttsFriendlyContent,
+    );
 
     if (!chapter) {
       throw new NotFoundException(

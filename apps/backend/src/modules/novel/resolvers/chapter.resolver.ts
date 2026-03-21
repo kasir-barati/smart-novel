@@ -27,23 +27,29 @@ export class ChapterResolver {
 
   @CheckPolicy('chapter', 'update')
   @Mutation(() => Chapter, {
-    name: 'updateTtsFriendlyContent',
-    description: 'Update the TTS-friendly content for a chapter',
+    description:
+      'Update both the content and its TTS-friendly version for a chapter.',
   })
-  async updateTtsFriendlyContent(
+  async updateContent(
     @Args('id', {
       type: () => ID,
       description: 'Chapter ID',
     })
     chapterId: string,
+    @Args('content', {
+      type: () => String,
+      description: 'Chapter content in markdown format',
+    })
+    content: string,
     @Args('ttsFriendlyContent', {
       type: () => String,
       description: 'Content in a TTS friendly format',
     })
     ttsFriendlyContent: string,
   ) {
-    return this.chapterService.updateTtsFriendlyContent(
+    return this.chapterService.updateContent(
       chapterId,
+      content,
       ttsFriendlyContent,
     );
   }

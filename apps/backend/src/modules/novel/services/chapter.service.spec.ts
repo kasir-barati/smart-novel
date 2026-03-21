@@ -28,34 +28,36 @@ describe(ChapterService.name, () => {
       updateNarrationStatus: vi.fn(),
       updateChapterNarrationUrl: vi.fn(),
       updateChapterNarrationComplete: vi.fn(),
-      updateChapterTtsFriendlyContent: vi.fn(),
+      updateContent: vi.fn(),
     };
 
     uut = new ChapterService(chapterRepository);
   });
 
-  describe('updateTtsFriendlyContent', () => {
-    it("should update the chapter's ttsFriendlyContent field", async () => {
-      vi.mocked(
-        chapterRepository.updateChapterTtsFriendlyContent,
-      ).mockResolvedValue({} as any);
+  describe('updateContent', () => {
+    it("should update the chapter's content and ttsFriendlyContent fields", async () => {
+      vi.mocked(chapterRepository.updateContent).mockResolvedValue(
+        {} as any,
+      );
 
-      const res = await uut.updateTtsFriendlyContent(
+      const res = await uut.updateContent(
         '4bbc4da9-107c-4872-9809-78f6191a092d',
-        'Hooray',
+        '# Chapter 1\n\nHooray',
+        'Chapter 1\n\nHooray',
       );
 
       expect(res).toBeDefined();
     });
 
     it('should raise an exception if chapter does NOT exist', async () => {
-      vi.mocked(
-        chapterRepository.updateChapterTtsFriendlyContent,
-      ).mockResolvedValue(null);
+      vi.mocked(chapterRepository.updateContent).mockResolvedValue(
+        null,
+      );
 
-      const res = uut.updateTtsFriendlyContent(
+      const res = uut.updateContent(
         '761ba2ab-8d2f-46b0-8cf2-11f072be3bba',
-        'Hello',
+        '# Chapter 1\n\nHello',
+        'Chapter 1\n\nHello',
       );
 
       await expect(res).rejects.toThrow(NotFoundException);

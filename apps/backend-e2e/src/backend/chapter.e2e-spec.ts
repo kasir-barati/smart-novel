@@ -86,7 +86,7 @@ describe('Chapter (e2e)', () => {
   });
 
   it.todo.each([])(
-    'should ONLY allow users with access to update ttsFriendlyContent',
+    'should ONLY allow users with access to update content & ttsFriendlyContent',
     () => {},
   );
 
@@ -96,7 +96,7 @@ describe('Chapter (e2e)', () => {
   );
 
   it.todo(
-    'should throw not authorized error when user does NOT have permission to update ttsFriendlyContent',
+    'should throw not authorized error when user does NOT have permission to update content & ttsFriendlyContent',
     () => {},
   );
 

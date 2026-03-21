@@ -17,8 +17,9 @@ export interface IChapterRepository {
     id: string,
     url: string,
   ): Promise<number>;
-  updateChapterTtsFriendlyContent(
+  updateContent(
     id: string,
+    content: string,
     ttsFriendlyContent: string,
   ): Promise<IChapter | null>;
 }

@@ -346,19 +346,22 @@ describe(PrismaChapterRepository.name, () => {
     });
   });
 
-  describe('updateChapterTtsFriendlyContent', () => {
+  describe('updateContent', () => {
     it('should update the ttsFriendlyContent', async () => {
       const chapterId = 'ad8856c2-fb32-45e9-b673-80a9ba07494e';
-      const ttsFriendlyContent = 'hmm';
+      const content = '# Chapter 1\n\nhmm';
+      const ttsFriendlyContent = 'Chapter 1\n\nhmm';
       vi.mocked(prismaService.chapter.update).mockResolvedValue({
         id: chapterId,
         ttsFriendlyContent,
+        content,
         createdAt: new Date(),
         updatedAt: new Date(),
       } as any);
 
-      const chapter = await uut.updateChapterTtsFriendlyContent(
+      const chapter = await uut.updateContent(
         chapterId,
+        content,
         ttsFriendlyContent,
       );
 
@@ -372,20 +375,25 @@ describe(PrismaChapterRepository.name, () => {
       ]);
       expect(chapter?.createdAt).toBeDateString();
       expect(chapter?.updatedAt).toBeDateString();
+      expect(prismaService.chapter.update).toHaveBeenCalledWith({
+        where: { id: chapterId },
+        data: { content, ttsFriendlyContent },
+      });
     });
-  });
 
-  it('should raise an exception if it chapter does NOT exist', async () => {
-    vi.mocked(prismaService.chapter.update).mockResolvedValue(
-      null as any,
-    );
+    it('should raise an exception if it chapter does NOT exist', async () => {
+      vi.mocked(prismaService.chapter.update).mockResolvedValue(
+        null as any,
+      );
 
-    const res = await uut.updateChapterTtsFriendlyContent(
-      '7da11683-4ba4-4007-b4d9-abdcb22fe156',
-      'crack',
-    );
+      const res = await uut.updateContent(
+        '7da11683-4ba4-4007-b4d9-abdcb22fe156',
+        '# Chapter 1\n\ncrack',
+        'crack',
+      );
 
-    expect(res).toBeNull();
+      expect(res).toBeNull();
+    });
   });
 });
 
