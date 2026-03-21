@@ -314,7 +314,7 @@ services:
       start_period: 15s
 
   zitadel-login:
-    image: ghcr.io/zitadel/zitadel-login:v4.12.2
+    image: ghcr.io/zitadel/zitadel-login:v4.12.3
     restart: unless-stopped
     environment:
       ZITADEL_API_URL: http://zitadel:8080
@@ -349,7 +349,7 @@ services:
       - traefik.http.routers.zitadel-login-web.priority=250
 
   zitadel:
-    image: ghcr.io/zitadel/zitadel:v4.12.2
+    image: ghcr.io/zitadel/zitadel:v4.12.3
     command: start-from-init --masterkeyFromEnv --tlsMode disabled
     environment:
       ZITADEL_PORT: 8080
