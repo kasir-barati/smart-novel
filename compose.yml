@@ -348,9 +348,14 @@ services:
       - traefik.http.routers.zitadel-login-web.service=zitadel-login
       - traefik.http.routers.zitadel-login-web.priority=250
 
-  zitadel:
+  zitadel-init:
     image: ghcr.io/zitadel/zitadel:v4.12.3
-    command: start-from-init --masterkeyFromEnv --tlsMode disabled
+    command: "init"
+    depends_on:
+      init-zitadel-db:
+        condition: service_completed_successfully
+      init-zitadel-pat-vol:
+        condition: service_completed_successfully
     environment:
       ZITADEL_PORT: 8080
       ZITADEL_DATABASE_POSTGRES_HOST: postgres
@@ -362,14 +367,11 @@ services:
       ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: ${POSTGRES_USER}
       ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: ${POSTGRES_PASSWORD}
       ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: disable
-      ZITADEL_EXTERNALSECURE: false
-      ZITADEL_EXTERNALPORT: ${TRAEFIK_EXPOSED_PORT}
       ZITADEL_EXTERNALDOMAIN: localhost
       ZITADEL_MASTERKEY: ${ZITADEL_MASTERKEY}
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: ${ZITADEL_ADMIN_USERNAME:-admin}
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: ${ZITADEL_ADMIN_PASSWORD:-Admin123!}
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED: false
-      ZITADEL_TLS_ENABLED: false
       # Machine user (IAM_OWNER) whose PAT is written to a shared volume so the init-zitadel-users container can read it.
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME: bot
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: Bot
@@ -386,23 +388,35 @@ services:
       ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_USERNAME: login-client
       ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_NAME: Automatically Initialized IAM_LOGIN_CLIENT
       ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_PAT_EXPIRATIONDATE: "9999-12-31T23:59:59Z"
-    volumes:
-      - zitadel-pat:/zitadel-pat
-    # No host port mapping — Traefik is the single entry point.
-    depends_on:
-      init-zitadel-db:
-        condition: service_completed_successfully
-      init-zitadel-pat-vol:
-        condition: service_completed_successfully
+    networks:
+      - default
     healthcheck:
       test: ["CMD", "/app/zitadel", "ready"]
       interval: 10s
       timeout: 5s
       retries: 12
       start_period: 60s
+    volumes:
+      - zitadel-pat:/zitadel-pat
+
+  zitadel:
+    extends:
+      service: zitadel-init
+    command: "start-from-setup --masterkeyFromEnv --tlsMode disabled"
+    environment:
+      ZITADEL_EXTERNALPORT: ${TRAEFIK_EXPOSED_PORT}
+      ZITADEL_EXTERNALSECURE: false
+      ZITADEL_TLS_ENABLED: false
     networks:
       - proxy
       - default
+    depends_on:
+      zitadel-init:
+        condition: service_completed_successfully
+      init-zitadel-db:
+        condition: service_completed_successfully
+      init-zitadel-pat-vol:
+        condition: service_completed_successfully
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
