@@ -32,8 +32,8 @@ export class ZitadelAuthV1Service {
 
     const data = await response.json();
     return {
-      id: data.id || null,
-      username: data.userName || null,
+      id: data.user.id || null,
+      username: data.user.userName || null,
     };
   }
 

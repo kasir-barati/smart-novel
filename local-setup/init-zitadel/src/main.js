@@ -7,7 +7,14 @@ import {
   ZitadelManagementV1Service,
   ZitadelV2Service,
 } from './services/index.js';
-import { FileUtil, Logger, sleep, WaitUtil } from './utils/index.js';
+import {
+  FileUtil,
+  isEmpty,
+  isNotEmpty,
+  Logger,
+  sleep,
+  WaitUtil,
+} from './utils/index.js';
 
 async function main() {
   const configService = new ConfigService();
@@ -24,7 +31,7 @@ async function main() {
     const accessToken = await FileUtil.readPatWithRetries(
       configService.patFile,
     );
-    if (!accessToken) {
+    if (isEmpty(accessToken)) {
       Logger.error('Failed to load PAT. Exiting.');
       process.exit(1);
     }
@@ -57,7 +64,9 @@ async function main() {
 
     Logger.section('Granting bot user impersonation permission');
     const botUser = await authV1Service.getCurrentUser();
-    if (botUser.id) {
+    let botUserId = null;
+    if (isNotEmpty(botUser.id)) {
+      botUserId = botUser.id;
       Logger.log(
         `Bot user ID: ${botUser.id} — assigning IAM_END_USER_IMPERSONATOR...`,
       );
@@ -79,7 +88,7 @@ async function main() {
     Logger.log('Creating project: smart-novel ...');
     const projectId =
       await managementV1Service.createProject('smart-novel');
-    if (!projectId) {
+    if (isEmpty(projectId)) {
       Logger.error('Failed to create or find project. Exiting.');
       process.exit(1);
     }
@@ -90,7 +99,7 @@ async function main() {
       projectId,
       'smart-novel-app',
     );
-    if (clientId) {
+    if (isNotEmpty(clientId)) {
       Logger.ok(`Application created with client ID: ${clientId}`);
       Logger.ok(`Writing client ID to ${configService.clientIdFile}`);
       await FileUtil.writeFile(configService.clientIdFile, clientId);
@@ -109,7 +118,7 @@ async function main() {
         projectId,
         'e2e-smart-novel-app',
       );
-    if (e2eClientId) {
+    if (isNotEmpty(e2eClientId)) {
       Logger.ok(
         `Confidential application created with client ID: ${e2eClientId}`,
       );
@@ -125,7 +134,7 @@ async function main() {
         'Could not determine e2e client ID - impersonation in e2e tests will not work!',
       );
     }
-    if (e2eClientSecret) {
+    if (isNotEmpty(e2eClientSecret)) {
       Logger.ok(
         `Writing e2e client secret to ${configService.e2eClientSecretFile} (${e2eClientSecret.length} chars)`,
       );
@@ -173,7 +182,7 @@ async function main() {
       lastName: 'User',
       password: 'Admin123!',
     });
-    if (adminUserId) {
+    if (isNotEmpty(adminUserId)) {
       Logger.ok(`User created with ID: ${adminUserId}`);
       Logger.log(
         "Assigning role 'admin' to user " + adminUserId + '...',
@@ -200,7 +209,7 @@ async function main() {
       lastName: 'User',
       password: 'Writer123!',
     });
-    if (writerUserId) {
+    if (isNotEmpty(writerUserId)) {
       Logger.ok(`User created with ID: ${writerUserId}`);
       Logger.log(
         "Assigning role 'writer' to user " + writerUserId + '...',
@@ -227,7 +236,7 @@ async function main() {
       lastName: 'User',
       password: 'User123!',
     });
-    if (regularUserId) {
+    if (isNotEmpty(regularUserId)) {
       Logger.ok(`User created with ID: ${regularUserId}`);
       Logger.log(
         "Assigning role 'user' to user " + regularUserId + '...',

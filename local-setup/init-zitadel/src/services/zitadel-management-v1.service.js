@@ -1,7 +1,5 @@
 // @ts-check
 
-import { Logger } from '../utils/index.js';
-
 /**
  * Service for interacting with ZITADEL Management V1 API endpoints
  */
@@ -261,8 +259,6 @@ export class ZitadelManagementV1Service {
     );
 
     const data = await response.json();
-
-    Logger.log(JSON.stringify(data, null, 2));
 
     return {
       clientId: data.clientId ?? null,
