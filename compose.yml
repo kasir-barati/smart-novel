@@ -20,7 +20,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      init-zitadel-users:
+      init-zitadel:
         condition: service_completed_successfully
     volumes:
       - ./apps:/app/apps
@@ -61,7 +61,7 @@ services:
         condition: service_healthy
       traefik:
         condition: service_healthy
-      init-zitadel-users:
+      init-zitadel:
         condition: service_completed_successfully
     healthcheck:
       test:
@@ -109,7 +109,7 @@ services:
       VITE_EXPLAIN_CACHE_MAX_ENTRIES: 12
       VITE_EXPLAIN_RATE_REFILL_PER_SEC: 1.5
       VITE_EXPLAIN_SELECTION_DEBOUNCE_MS: 500
-      # VITE_OIDC_CLIENT_ID is read at runtime from the file written by init-zitadel-users.
+      # VITE_OIDC_CLIENT_ID is read at runtime from the file written by init-zitadel.
       ZITADEL_CLIENT_ID_FILE: /zitadel-pat/client-id
       # Read the dynamically-generated OIDC client ID from the shared volume
       # and export it as VITE_OIDC_CLIENT_ID before starting the Vite dev server.
@@ -182,7 +182,7 @@ services:
       args:
         VITE_SERVICE_URL: ${VITE_SERVICE_URL}
         # Use a placeholder for the client ID — it is generated at runtime by
-        # init-zitadel-users. The entrypoint below replaces the placeholder in
+        # init-zitadel. The entrypoint below replaces the placeholder in
         # the built JS bundle before nginx starts.
         VITE_OIDC_CLIENT_ID: __OIDC_CLIENT_ID_PLACEHOLDER__
         VITE_OIDC_AUTHORITY: ${VITE_OIDC_AUTHORITY}
@@ -195,7 +195,7 @@ services:
         condition: service_healthy
       s3:
         condition: service_healthy
-      init-zitadel-users:
+      init-zitadel:
         condition: service_completed_successfully
     volumes:
       - zitadel-pat:/zitadel-pat:ro
@@ -372,7 +372,7 @@ services:
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: ${ZITADEL_ADMIN_USERNAME:-admin}
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: ${ZITADEL_ADMIN_PASSWORD:-Admin123!}
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED: false
-      # Machine user (IAM_OWNER) whose PAT is written to a shared volume so the init-zitadel-users container can read it.
+      # Machine user (IAM_OWNER) whose PAT is written to a shared volume so the init-zitadel container can read it.
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME: bot
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: Bot
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE: "9999-12-31T23:59:59Z"
@@ -438,8 +438,8 @@ services:
       - zitadel-pat:/zitadel-pat
     entrypoint: ["sh", "-c", "chmod 1777 /zitadel-pat"]
 
-  init-zitadel-users:
-    image: curlimages/curl:8.17.0
+  init-zitadel:
+    image: node:24.14-bookworm-slim
     environment:
       # Route through Traefik so the Host header is always "localhost".
       ZITADEL_URL: http://traefik:80
@@ -449,10 +449,11 @@ services:
     depends_on:
       traefik:
         condition: service_healthy
+    working_dir: /app
     volumes:
-      - ./local-setup/create-test-users.sh:/create-test-users.sh:ro
+      - ./local-setup/init-zitadel:/app:ro
       - zitadel-pat:/zitadel-pat
-    entrypoint: ["/bin/sh", "/create-test-users.sh"]
+    entrypoint: ["npm", "start"]
 
   pgadmin:
     image: dpage/pgadmin4:8.4

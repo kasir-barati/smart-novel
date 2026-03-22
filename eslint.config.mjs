@@ -117,7 +117,7 @@ export default [
     },
   },
   {
-    files: ['**/prisma/**/*.ts', '**/prisma/**/*.js'],
+    files: ['**/prisma/**/*.ts', '**/prisma/**/*.js', '**/*.js'],
     rules: {
       'no-console': 'off',
     },
