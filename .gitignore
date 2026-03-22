@@ -50,5 +50,6 @@ schema.gql
 
 # E2E secrets extracted from Docker volume (created by global-setup.ts)
 local-setup/pats/
+local-setup/logs/
 local-setup/client/
 local-setup/user-ids/

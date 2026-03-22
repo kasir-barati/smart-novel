@@ -1,52 +1,18 @@
-import { isEmpty } from 'class-validator';
 import { execSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import path from 'node:path';
+
+import { DockerFixture } from './docker.fixture';
 
 declare global {
   var __TEARDOWN_MESSAGE__: string;
 }
 
-/**
- * @description
- * Extract a PAT from the shared `zitadel-pat` Docker volume via the `backend-e2e` container (which mounts it read-only).
- */
-function extractPat(
-  workspaceRoot: string,
-  containerPath: string,
-  localFile: string,
-): void {
-  try {
-    const pat = execSync(
-      `docker compose --profile backend-e2e exec -T backend-e2e cat ${containerPath}`,
-      {
-        cwd: workspaceRoot,
-        encoding: 'utf-8',
-        stdio: ['pipe', 'pipe', 'pipe'],
-      },
-    ).trim();
-
-    if (isEmpty(pat)) {
-      console.warn(`  ⚠ ${containerPath} was empty`);
-      return;
-    }
-
-    const outPath = path.resolve(workspaceRoot, localFile);
-
-    writeFileSync(outPath, pat, 'utf-8');
-    console.log(
-      `  ✓ Extracted ${containerPath} → ${localFile} (${pat.length} chars)`,
-    );
-  } catch (error) {
-    console.warn(`  ⚠ Could not extract ${containerPath}: ${error}`);
-  }
-}
+const workspaceRoot = path.resolve(__dirname, '../../../../');
 
 export default async function setup() {
-  // Start services that that the app needs to run (e.g. database, docker-compose, etc.).
   console.log('\nSetting up...\n');
 
-  const workspaceRoot = path.resolve(__dirname, '../../../../');
   execSync(
     'docker compose --profile backend-e2e up -d --build --wait backend-e2e',
     {
@@ -55,48 +21,79 @@ export default async function setup() {
     },
   );
 
-  // Extract per-user PATs from the Docker volume so e2e tests can
-  // authenticate as different roles (admin, writer, bot/machine user).
-  console.log('\nExtracting PATs from Docker volume...\n');
-
+  console.log('\nExtracting PAT from Docker volume...\n');
   mkdirSync(path.resolve(workspaceRoot, 'local-setup/pats'), {
     recursive: true,
   });
-  extractPat(
+  DockerFixture.extractFile(
     workspaceRoot,
     '/zitadel-pat/token',
     'local-setup/pats/bot',
-  );
-  extractPat(
-    workspaceRoot,
-    '/zitadel-pat/admin-pat',
-    'local-setup/pats/admin',
-  );
-  extractPat(
-    workspaceRoot,
-    '/zitadel-pat/writer-pat',
-    'local-setup/pats/writer',
+    'backend-e2e',
   );
 
-  // Hint: Use `globalThis` to pass variables to global teardown.
+  console.log(
+    '\nExtracting e2e client credentials from Docker volume...\n',
+  );
+  mkdirSync(path.resolve(workspaceRoot, 'local-setup/client'), {
+    recursive: true,
+  });
+  DockerFixture.extractFile(
+    workspaceRoot,
+    '/zitadel-pat/client/e2e-smart-novel-app-id',
+    'local-setup/client/e2e-id',
+    'backend-e2e',
+  );
+  DockerFixture.extractFile(
+    workspaceRoot,
+    '/zitadel-pat/client/e2e-smart-novel-app-secret',
+    'local-setup/client/e2e-secret',
+    'backend-e2e',
+  );
+
+  console.log('\nExtracting user IDs from Docker volume...\n');
+  mkdirSync(path.resolve(workspaceRoot, 'local-setup/user-ids'), {
+    recursive: true,
+  });
+  DockerFixture.extractFile(
+    workspaceRoot,
+    '/zitadel-pat/admin-user-id',
+    'local-setup/user-ids/admin',
+    'backend-e2e',
+  );
+  DockerFixture.extractFile(
+    workspaceRoot,
+    '/zitadel-pat/writer-user-id',
+    'local-setup/user-ids/writer',
+    'backend-e2e',
+  );
+  DockerFixture.extractFile(
+    workspaceRoot,
+    '/zitadel-pat/user-user-id',
+    'local-setup/user-ids/user',
+    'backend-e2e',
+  );
+
   globalThis.__TEARDOWN_MESSAGE__ = '\nTearing down...\n';
 
-  // Return teardown function for Vitest
+  // Clean up logic here (e.g. stopping services, docker-compose, etc.).
   return async () => {
-    // Put clean up logic here (e.g. stopping services, docker-compose, etc.).
-    // Hint: `globalThis` is shared between setup and teardown.
-    const workspaceRoot = path.resolve(__dirname, '../../../../');
-    execSync(
-      'docker compose --profile backend-e2e logs backend-e2e',
-      {
-        cwd: workspaceRoot,
-        stdio: 'inherit',
-      },
-    );
-    execSync('docker compose --profile backend-e2e down', {
-      cwd: workspaceRoot,
-      stdio: 'inherit',
+    mkdirSync(path.resolve(workspaceRoot, 'local-setup/logs'), {
+      recursive: true,
     });
+    DockerFixture.persistLogs(
+      workspaceRoot,
+      'zitadel',
+      'local-setup/logs/zitadel.log',
+      'backend-e2e',
+    );
+    DockerFixture.persistLogs(
+      workspaceRoot,
+      'backend-e2e',
+      'local-setup/logs/backend.log',
+      'backend-e2e',
+    );
+    DockerFixture.stopCompose(workspaceRoot, 'backend-e2e');
     console.log(globalThis.__TEARDOWN_MESSAGE__);
   };
 }
