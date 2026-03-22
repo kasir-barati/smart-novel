@@ -1,5 +1,7 @@
 // @ts-check
 
+import { Logger } from '../utils/index.js';
+
 /**
  * Service for interacting with ZITADEL Management V1 API endpoints
  */
@@ -245,16 +247,13 @@ export class ZitadelManagementV1Service {
           name: appName,
           redirectUris: ['http://localhost:8080/e2e/callback'],
           postLogoutRedirectUris: [],
-          responseTypes: [
-            'OIDC_RESPONSE_TYPE_TOKEN',
-            'OIDC_RESPONSE_TYPE_CODE',
-          ],
+          responseTypes: ['OIDC_RESPONSE_TYPE_CODE'],
           grantTypes: [
-            'OIDC_GRANT_TYPE_IMPLICIT',
+            'OIDC_GRANT_TYPE_REFRESH_TOKEN',
             'OIDC_GRANT_TYPE_TOKEN_EXCHANGE',
-            'OIDC_GRANT_TYPE_CLIENT_CREDENTIALS',
+            'OIDC_GRANT_TYPE_AUTHORIZATION_CODE',
           ],
-          appType: 'OIDC_APP_TYPE_NATIVE',
+          appType: 'OIDC_APP_TYPE_WEB',
           authMethodType: 'OIDC_AUTH_METHOD_TYPE_BASIC',
           devMode: true,
         }),
@@ -263,9 +262,11 @@ export class ZitadelManagementV1Service {
 
     const data = await response.json();
 
+    Logger.log(JSON.stringify(data, null, 2));
+
     return {
-      clientId: data.clientId || null,
-      clientSecret: data.clientSecret || null,
+      clientId: data.clientId ?? null,
+      clientSecret: data.clientSecret ?? null,
     };
   }
 
