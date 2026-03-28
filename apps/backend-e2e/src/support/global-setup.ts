@@ -27,8 +27,8 @@ export default async function setup() {
   });
   DockerFixture.extractFile(
     workspaceRoot,
-    '/zitadel-pat/token',
-    'local-setup/pats/bot',
+    '/zitadel-pat/e2e-bot-token',
+    'local-setup/pats/e2e-bot',
     'backend-e2e',
   );
 

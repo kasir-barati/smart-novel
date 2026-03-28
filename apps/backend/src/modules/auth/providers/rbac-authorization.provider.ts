@@ -85,29 +85,42 @@ export class RbacAuthorizationProvider implements IAuthorizationProvider {
     novelId: string,
     action: string,
   ): Promise<boolean> {
+    this.logger.log(
+      '{ userId, userRoles, novelId, action }: ' +
+        JSON.stringify(
+          { userId, userRoles, novelId, action },
+          null,
+          2,
+        ),
+    );
+
     switch (action) {
       case 'read':
-        // Any authenticated user can read
+        this.logger.log(
+          'read: ' + hasMinimumRole(userRoles, Role.USER),
+        );
         return hasMinimumRole(userRoles, Role.USER);
-
       case 'create':
-        // Writers and admins can create
+        this.logger.log(
+          'create: ' + hasMinimumRole(userRoles, Role.WRITER),
+        );
         return hasMinimumRole(userRoles, Role.WRITER);
-
       case 'update':
       case 'delete':
         // Admins can do anything
         if (isAdmin(userRoles)) {
+          this.logger.log('update/delete: admin => allow');
           return true;
         }
 
         // Writers can only update/delete their own novels
         if (hasMinimumRole(userRoles, Role.WRITER)) {
-          return await this.isNovelOwner(userId, novelId);
+          const res = await this.isNovelOwner(userId, novelId);
+          this.logger.log('update/delete: writer => ' + res);
+          return res;
         }
 
         return false;
-
       default:
         this.logger.warn(`Unknown novel action: ${action}`);
         return false;
@@ -126,12 +139,15 @@ export class RbacAuthorizationProvider implements IAuthorizationProvider {
   ): Promise<boolean> {
     switch (action) {
       case 'read':
-        // Any authenticated user can read
+        this.logger.log(
+          'chapter read: ' + hasMinimumRole(userRoles, Role.USER),
+        );
         return hasMinimumRole(userRoles, Role.USER);
 
       case 'update':
         // Admins can do anything
         if (isAdmin(userRoles)) {
+          this.logger.log('chapter update: admin => allow');
           return true;
         }
 
@@ -147,12 +163,19 @@ export class RbacAuthorizationProvider implements IAuthorizationProvider {
             },
           });
 
+          this.logger.log(
+            'Fetched chapter for ownership check: ' +
+              JSON.stringify(chapter, null, 2),
+          );
+
           if (!chapter) {
             this.logger.warn(`Chapter not found: ${chapterId}`);
             return false;
           }
 
-          return chapter.novel.ownerId === userId;
+          const isOwner = chapter.novel.ownerId === userId;
+          this.logger.log('chapter update: writer => ' + isOwner);
+          return isOwner;
         }
 
         return false;

@@ -101,8 +101,13 @@ export class ZitadelAuthProvider
      * The Zitadel access-token JWT only contains basic claims (sub, aud, iss…). Rich claims (email, roles, metadata, org) are available via the standard OIDC UserInfo endpoint.
      */
     const userInfo = await this.fetchUserInfo(token);
+    const user = this.normalizeUserInfo(payload.sub, userInfo);
 
-    return this.normalizeUserInfo(payload.sub, userInfo);
+    if (user.roles.length === 0) {
+      user.roles = await this.fetchUserRoles(token);
+    }
+
+    return user;
   }
 
   /**
@@ -124,8 +129,20 @@ export class ZitadelAuthProvider
     }
 
     const userInfo = await this.fetchUserInfo(token);
+    const user = this.normalizeUserInfo(userInfo.sub, userInfo);
 
-    return this.normalizeUserInfo(userInfo.sub, userInfo);
+    this.logger.log(
+      `useruseruser : ${JSON.stringify(user, null, 2)}`,
+    );
+
+    if (user.roles.length === 0) {
+      user.roles = await this.fetchUserRoles(token);
+      this.logger.log(
+        `user.roles : ${JSON.stringify(user, null, 2)}`,
+      );
+    }
+
+    return user;
   }
 
   /**
@@ -151,10 +168,6 @@ export class ZitadelAuthProvider
       internalBase,
       '.well-known',
       'openid-configuration',
-    );
-
-    this.logger.log(
-      `Discovering OIDC configuration from ${discoveryUrl}`,
     );
 
     try {
@@ -254,6 +267,53 @@ export class ZitadelAuthProvider
     }
 
     return data;
+  }
+
+  /**
+   * @description
+   * Fallback for retrieving project roles when the UserInfo endpoint does not include them (e.g. when the token is a PAT — Personal Access Token).
+   *
+   * Calls the Zitadel **Auth API** (`POST /auth/v1/usergrants/me/_search`)
+   * which works with any valid bearer token, including PATs.
+   *
+   * @see https://zitadel.com/docs/reference/api/auth/zitadel.auth.v1.AuthService.ListMyUserGrants
+   */
+  private async fetchUserRoles(
+    accessToken: string,
+  ): Promise<string[]> {
+    // Authorization v2beta (resource-based). Lists caller’s authorizations.
+    // REST gateway path (HTTP/JSON) is available; exact path may vary by gateway version.
+    // See v2 ListAuthorizations discussion reference.
+    const url = urlBuilder(
+      this.options.issuerInternalUrl ?? this.options.issuerUrl,
+      'zitadel.authorization.v2beta.AuthorizationService',
+      'ListAuthorizations',
+    );
+
+    try {
+      const { data } = await axios.post(
+        url,
+        { pagination: { limit: 100, asc: true } },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            // In multi-org setups you may need: 'x-zitadel-orgid': '<org-id>'
+          },
+        },
+      );
+
+      const items = data.authorizations ?? data.result ?? [];
+      const roles = new Set<string>();
+
+      for (const a of items) {
+        const keys = a.roleKeys ?? a.roles ?? [];
+        for (const k of keys) roles.add(k);
+      }
+      return Array.from(roles);
+    } catch {
+      return [];
+    }
   }
 
   /**

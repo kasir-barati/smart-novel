@@ -32,6 +32,41 @@ export interface ZitadelUserInfoResponse {
   'urn:zitadel:iam:user:metadata'?: Record<string, string>;
 }
 
+export interface ZitadelPatUserInfoResponse {
+  /** @example "364554362883670018" */
+  sub: string;
+  updated_at?: number;
+  name?: string;
+  preferred_username?: string;
+  /** @description Organization / tenant the user belongs to */
+  'urn:zitadel:iam:user:resourceowner:id'?: string;
+  /**
+   * @description Project-scoped roles.
+   * Shape: `{ "roleName": { "orgId": "orgDomain" } }`
+   */
+  'urn:zitadel:iam:user:resourceowner:name'?: 'ZITADEL';
+  /** @description Base-64-encoded key→value metadata */
+  'urn:zitadel:iam:user:resourceowner:primary_domain'?: Record<
+    string,
+    string
+  >;
+}
+
+/**
+ * @description
+ * Response shape returned by `POST /auth/v1/usergrants/me/_search`.
+ *
+ * Used as a **fallback** to retrieve project roles when the standard UserInfo
+ * endpoint does not include them (e.g. when the token is a PAT).
+ */
+export interface ZitadelUserGrantsResponse {
+  result?: Array<{
+    projectId: string;
+    roles: string[];
+    roleKeys: string[];
+  }>;
+}
+
 export interface ZitadelJwtPayload extends JWTPayload {
   /** @example "http://localhost:8080" */
   iss: string;

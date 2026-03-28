@@ -110,7 +110,7 @@ services:
       VITE_EXPLAIN_RATE_REFILL_PER_SEC: 1.5
       VITE_EXPLAIN_SELECTION_DEBOUNCE_MS: 500
       # VITE_OIDC_CLIENT_ID is read at runtime from the file written by init-zitadel.
-      ZITADEL_CLIENT_ID_FILE: /zitadel-pat/client-id
+      ZITADEL_CLIENT_ID_FILE: /zitadel-pat/client/smart-novel-app-id
       # Read the dynamically-generated OIDC client ID from the shared volume
       # and export it as VITE_OIDC_CLIENT_ID before starting the Vite dev server.
     command:
@@ -205,7 +205,7 @@ services:
       - /bin/sh
       - -c
       - |
-        CLIENT_ID_FILE="/zitadel-pat/client-id"
+        CLIENT_ID_FILE="/zitadel-pat/client/smart-novel-app-id"
         if [ -f "$$CLIENT_ID_FILE" ]; then
           CLIENT_ID=$$(cat "$$CLIENT_ID_FILE" | tr -d '[:space:]')
           echo "✓ Injecting OIDC client ID: $$CLIENT_ID"
@@ -261,7 +261,7 @@ services:
       retries: 5
       start_period: 10s
 
-  init-zitadel-db:
+  create-zitadel-database:
     image: postgres:18.2-bookworm
     environment:
       PGHOST: postgres
@@ -272,7 +272,6 @@ services:
       - /bin/sh
       - -c
       - |
-        until pg_isready -h postgres -U $$PGUSER; do sleep 1; done
         psql -h postgres -U $$PGUSER -tc "SELECT 1 FROM pg_roles WHERE rolname='zitadel'" | grep -q 1 \
           || psql -h postgres -U $$PGUSER -c "CREATE ROLE zitadel LOGIN PASSWORD 'zitadel';"
         psql -h postgres -U $$PGUSER -tc "SELECT 1 FROM pg_database WHERE datname='zitadel'" | grep -q 1 \
@@ -352,7 +351,7 @@ services:
     image: ghcr.io/zitadel/zitadel:v4.12.3
     command: "init"
     depends_on:
-      init-zitadel-db:
+      create-zitadel-database:
         condition: service_completed_successfully
       init-zitadel-pat-vol:
         condition: service_completed_successfully
@@ -388,6 +387,9 @@ services:
       ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_USERNAME: login-client
       ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_NAME: Automatically Initialized IAM_LOGIN_CLIENT
       ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_PAT_EXPIRATIONDATE: "9999-12-31T23:59:59Z"
+      # Enable token exchange (RFC 8693) so e2e tests can impersonate human users via the bot's PAT.
+      ZITADEL_DEFAULTINSTANCE_FEATURES_TOKENEXCHANGE_ENABLED: true
+      ZITADEL_DEFAULTINSTANCE_FEATURES_IMPERSONATION_ENABLED: true
     networks:
       - default
     healthcheck:
@@ -412,8 +414,6 @@ services:
       - default
     depends_on:
       zitadel-init:
-        condition: service_completed_successfully
-      init-zitadel-db:
         condition: service_completed_successfully
       init-zitadel-pat-vol:
         condition: service_completed_successfully

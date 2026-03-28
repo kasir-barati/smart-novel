@@ -4,34 +4,71 @@ import { urlBuilder } from 'nestjs-backend-common';
 import * as qs from 'node:querystring';
 
 export class AuthorizationFixture {
-  static async getUserAuthorizationHeader(): Promise<string> {
-    return AuthorizationFixture.impersonateUser(
-      process.env.E2E_USER_USER_ID!,
+  private async getActorAccessToken() {
+    /**
+     * @description Decode the keyContent from base64 to get the actual key data. keyContent is base64-encoded JSON.
+     * @type {DecodedKeyContent}
+     */
+    const decodedKey = JSON.parse(
+      Buffer.from(
+        integrationTestBotKey.keyContent,
+        'base64',
+      ).toString('utf-8'),
     );
-  }
+    const { keyId, key, userId } = decodedKey;
 
-  static async getAdminAuthorizationHeader(): Promise<string> {
-    return AuthorizationFixture.impersonateUser(
-      process.env.E2E_ADMIN_USER_ID!,
-    );
-  }
+    // Convert RSA private key to PKCS8 format that jose can use
+    const privateKey = createPrivateKey({ key, format: 'pem' });
+    const pkcs8Key = privateKey
+      .export({ type: 'pkcs8', format: 'pem' })
+      .toString();
+    const pk = await importPKCS8(pkcs8Key, 'RS256');
 
-  static async getWriterAuthorizationHeader(): Promise<string> {
-    return AuthorizationFixture.impersonateUser(
-      process.env.E2E_WRITER_USER_ID!,
+    const now = Math.floor(Date.now() / 1000);
+
+    // aud must be the issuer base URL (Zitadel's external URL)
+    const assertion = await new SignJWT({})
+      .setProtectedHeader({ alg: 'RS256', kid: keyId })
+      .setIssuedAt(now)
+      .setExpirationTime(now + 60)
+      .setIssuer(userId)
+      .setSubject(userId)
+      .setAudience(zitadelIssuer)
+      .sign(pk);
+
+    const body = new URLSearchParams();
+
+    body.set(
+      'grant_type',
+      'urn:ietf:params:oauth:grant-type:jwt-bearer',
     );
+    body.set('assertion', assertion);
+    // Add client credentials for JWT Profile grant
+    body.set('client_id', clientId);
+    body.set('client_secret', clientSecret);
+    // Ask for audiences + roles to ease later introspection, though not strictly needed for actor
+    body.set('scope', scopes);
+
+    const response = await fetch(tokenEndpoint, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      body,
+    });
+    const json = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        `JWT Profile token failed: ${response.status} ${JSON.stringify(json)}`,
+      );
+    }
+
+    return json.access_token;
   }
 
   /**
    * Impersonate a human user via RFC 8693 token exchange.
-   *
-   * The bot machine-user's PAT (E2E_OIDC_PAT) is used as the
-   * `actor_token`. The bot must have the IAM_END_USER_IMPERSONATOR
-   * role assigned at the instance level.
-   *
-   * The e2e confidential OIDC app (E2E_OIDC_CLIENT_ID) is used as
-   * the `client_id` in the token-exchange request, and authenticates
-   * via HTTP Basic with E2E_OIDC_CLIENT_SECRET.
    */
   private static async impersonateUser(
     userId: string,
@@ -64,28 +101,31 @@ export class AuthorizationFixture {
       );
     }
 
-    const botPat = process.env.E2E_OIDC_PAT;
-    if (isEmpty(botPat)) {
-      throw new Error(
-        `E2E_OIDC_PAT environment variable is required to impersonate users (bot PAT as actor token).`,
-      );
-    }
-
-    // Use the bot's PAT as the actor_token and the e2e confidential
-    // app's credentials for HTTP Basic auth.
     const tokenEndpoint = urlBuilder(iss!, 'oauth', 'v2', 'token');
-    const body = qs.stringify({
+    const jwtBody = qs.stringify({
+      grant_type: 'client_credentials',
+      scope:
+        'openid profile email urn:zitadel:iam:org:project:id:zitadel:aud',
+    });
+    const jwtResponse = await axios.post(tokenEndpoint, jwtBody, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      auth: { username: clientId!, password: clientSecret! },
+    });
+    const botJwt = jwtResponse.data.access_token;
+    const exchangeBody = qs.stringify({
       grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
       subject_token_type:
         'urn:zitadel:params:oauth:token-type:user_id',
       subject_token: userId,
-      actor_token: botPat,
+      actor_token: botJwt,
       actor_token_type:
         'urn:ietf:params:oauth:token-type:access_token',
-      requested_token_type: 'urn:ietf:params:oauth:token-type:jwt',
+      requested_token_type: 'urn:ietf:params:oauth:token-type:jwt', // https://zitadel.com/docs/guides/integrate/token-exchange#requested-token-type
       scope: scopes,
     });
-    const { data } = await axios.post(tokenEndpoint, body, {
+    const { data } = await axios.post(tokenEndpoint, exchangeBody, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },

@@ -65,9 +65,9 @@ export class PoliciesGuard implements CanActivate {
 
     const context = GqlExecutionContext.create(executionContext);
     const request = context.getContext().req;
-
-    // JwtAuthGuard sets request.user after successful JWT validation
     const user: IAuthUser | undefined = request.user;
+
+    this.logger.log(`user: ${JSON.stringify(user, null, 2)}`);
 
     if (!user) {
       throw new ForbiddenException(
@@ -78,8 +78,11 @@ export class PoliciesGuard implements CanActivate {
     const args = context.getArgs() as RequestArgs;
     const resourceId = args.id ?? 'unknown';
     const resourceAttributes: Record<string, string> = {};
-
+    // this.logger.log("=".repeat(222))
+    // this.logger.log(resourceId)
+    // this.logger.log(resourceAttributes)
     for (const [key, value] of Object.entries(args)) {
+      this.logger.log(resourceId);
       if (isNotId(key) && isString(value)) {
         resourceAttributes[key] = value;
       }
@@ -92,6 +95,8 @@ export class PoliciesGuard implements CanActivate {
       action: policyMeta.action,
       resourceAttributes,
     });
+    // this.logger.log(allowed)
+    // this.logger.log("=".repeat(222))
 
     if (!allowed) {
       this.logger.warn(

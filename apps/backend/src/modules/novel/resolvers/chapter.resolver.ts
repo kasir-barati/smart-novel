@@ -1,10 +1,9 @@
 import { Args, ID, Mutation, Resolver } from '@nestjs/graphql';
 
-import { CheckPolicy, Public } from '../../auth';
+import { CheckPolicy } from '../../auth';
 import { ChapterService } from '../services';
 import { Chapter } from '../types';
 
-@Public()
 @Resolver(() => Chapter)
 export class ChapterResolver {
   constructor(private readonly chapterService: ChapterService) {}

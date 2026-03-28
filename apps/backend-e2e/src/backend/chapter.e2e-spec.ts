@@ -1,5 +1,7 @@
 import axios from 'axios';
 
+import { AuthorizationFixture } from '../support';
+
 describe('Chapter (e2e)', () => {
   const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829'; // example-novel from seed data
   const CHAPTER_ONE_ID = '4dd92f16-4743-47b9-960c-6529678e9bc5'; // chapter1 from seed data
@@ -85,9 +87,53 @@ describe('Chapter (e2e)', () => {
     );
   });
 
-  it.todo.each([])(
-    'should ONLY allow users with access to update content & ttsFriendlyContent',
-    () => {},
+  it.each([
+    {
+      role: 'admin',
+      getAuthorizationHeader:
+        AuthorizationFixture.getAdminAuthorizationHeader,
+    },
+    {
+      role: 'writer',
+      getAuthorizationHeader:
+        AuthorizationFixture.getWriterAuthorizationHeader,
+    },
+  ])(
+    'should ONLY allow $role to update content & ttsFriendlyContent',
+    async ({ getAuthorizationHeader }) => {
+      const authorizationHeader = await getAuthorizationHeader();
+
+      const { status, data } = await axios.post(
+        '/graphql',
+        {
+          query: `#graphql
+            mutation UpdateContent($id: ID!, $content: String!, $ttsFriendlyContent: String!) {
+              updateContent(id: $id, content: $content, ttsFriendlyContent: $ttsFriendlyContent) {
+                id
+                content
+                updatedAt
+              }
+            }
+          `,
+          variables: {
+            id: CHAPTER_ONE_ID,
+            content: '# Chapter 1\n\nUpdated content',
+            ttsFriendlyContent: 'Chapter 1\n\nUpdated content',
+          },
+        },
+        { headers: { Authorization: authorizationHeader } },
+      );
+
+      expect(status).toBe(200);
+      expect(data.errors).toBeUndefined();
+      expect(data.data.updateContent).toStrictEqual(
+        expect.objectContaining({
+          id: CHAPTER_ONE_ID,
+          content: '# Chapter 1\n\nUpdated content',
+        }),
+      );
+      expect(data.data.updateContent.updatedAt).toBeDateString();
+    },
   );
 
   it.todo.each([])(
