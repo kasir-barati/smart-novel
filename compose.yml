@@ -355,6 +355,8 @@ services:
         condition: service_completed_successfully
       init-zitadel-pat-vol:
         condition: service_completed_successfully
+      setup-zitadel:
+        condition: service_completed_successfully
     environment:
       ZITADEL_PORT: 8080
       ZITADEL_DATABASE_POSTGRES_HOST: postgres
@@ -438,11 +440,12 @@ services:
       - zitadel-pat:/zitadel-pat
     entrypoint: ["sh", "-c", "chmod 1777 /zitadel-pat"]
 
-  init-zitadel:
+  setup-zitadel:
     image: node:24.14-bookworm-slim
     environment:
       # Route through Traefik so the Host header is always "localhost".
       ZITADEL_URL: http://traefik:80
+      ZITADEL_APP_NAME: ${SERVICE_NAME}
     networks:
       - proxy
       - default
@@ -451,7 +454,7 @@ services:
         condition: service_healthy
     working_dir: /app
     volumes:
-      - ./local-setup/init-zitadel:/app:ro
+      - ./local-setup/setup-zitadel:/app:ro
       - zitadel-pat:/zitadel-pat
     entrypoint: ["npm", "start"]
 
