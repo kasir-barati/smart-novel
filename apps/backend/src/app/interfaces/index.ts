@@ -49,9 +49,7 @@ export interface AppConfig {
    */
   ZITADEL_CLIENT_ID?: string;
   /**
-   * @description Absolute path to a file containing the OIDC client ID.
-   * Used in Docker where `init-zitadel-users` writes the auto-generated client ID to a shared volume.
-   * @default `/zitadel-pat/client-id`
+   * @description Absolute path to a file containing the OIDC client ID. Used only in dev env.
    */
   ZITADEL_CLIENT_ID_FILE?: string;
   /**

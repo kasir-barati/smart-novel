@@ -1,5 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { type ConfigType } from '@nestjs/config';
+import { readFile } from 'fs/promises';
 
 import {
   type AuthModuleOptions,
@@ -13,14 +14,34 @@ export class AuthModuleConfig implements AuthModuleOptionsFactory {
     private readonly appConfig: ConfigType<typeof appConfigs>,
   ) {}
 
-  create(): AuthModuleOptions {
+  async create(): Promise<AuthModuleOptions> {
+    const clientId =
+      this.appConfig.ZITADEL_CLIENT_ID ??
+      (
+        await readFile(this.appConfig.ZITADEL_CLIENT_ID_FILE!, {
+          encoding: 'utf-8',
+        })
+      ).trim();
+    const pat =
+      this.appConfig.ZITADEL_PAT ??
+      (
+        await readFile(this.appConfig.ZITADEL_PAT_FILE!, {
+          encoding: 'utf-8',
+        })
+      ).trim();
+
+    if (!clientId) {
+      throw new Error('ZITADEL client ID is required');
+    }
+    if (!pat) {
+      throw new Error('ZITADEL personal access token is required');
+    }
+
     return {
       issuerUrl: this.appConfig.ZITADEL_ISSUER_URL,
       issuerInternalUrl: this.appConfig.ZITADEL_INTERNAL_URL,
-      clientId: this.appConfig.ZITADEL_CLIENT_ID,
-      clientIdFile: this.appConfig.ZITADEL_CLIENT_ID_FILE,
-      pat: this.appConfig.ZITADEL_PAT,
-      patFile: this.appConfig.ZITADEL_PAT_FILE,
+      clientId,
+      pat,
       domain: this.appConfig.ZITADEL_DOMAIN,
       clientSecret: this.appConfig.ZITADEL_CLIENT_SECRET,
       callbackUrl: this.appConfig.ZITADEL_CALLBACK_URL,

@@ -4,7 +4,6 @@
 # - The plain tag works for CPU and for NVIDIA GPUs when run with the NVIDIA Container Toolkit.
 FROM ollama/ollama:0.17.7
 
-# Allow overriding the model at build time (e.g., --build-arg OLLAMA_MODEL=llama3.2:1b)
 ARG OLLAMA_MODEL=llama3.2:1b
 ENV OLLAMA_MODEL=${OLLAMA_MODEL}
 # CAUTION: 0.0.0.0 means Ollama will listen on all network interfaces. This allows

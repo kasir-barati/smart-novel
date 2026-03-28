@@ -19,29 +19,13 @@ export interface AuthModuleOptions {
   issuerInternalUrl?: string;
   /**
    * @description OIDC client ID for the ZITADEL application.
-   * When omitted, the service reads it from `clientIdFile` at startup.
    */
   clientId?: string;
   /**
-   * @description Absolute path to a file containing the OIDC client ID.
-   * Used in Docker where `init-zitadel-users` writes the client ID to a shared volume.
-   * Ignored when `clientId` is provided directly.
-   * @example `/zitadel-pat/client-id`
-   */
-  clientIdFile?: string;
-  /**
    * @description Personal Access Token for the ZITADEL service account (machine user).
    * Used for admin API calls (e.g. user provisioning).
-   * When omitted, the service reads it from `patFile` at startup.
    */
   pat?: string;
-  /**
-   * @description Absolute path to a file containing the service account PAT.
-   * Used in Docker where ZITADEL writes the PAT to a shared volume.
-   * Ignored when `pat` is provided directly.
-   * @example `/zitadel-pat/token`
-   */
-  patFile?: string;
   /**
    * @description The base domain of your ZITADEL instance (e.g. https://zitadel.example.com)
    */
