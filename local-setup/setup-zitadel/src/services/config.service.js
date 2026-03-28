@@ -3,7 +3,7 @@
 import { mkdirSync } from 'fs';
 import { join } from 'path';
 
-import { isEmpty } from '../utils/index.js';
+import { isEmpty, Logger } from '../utils/index.js';
 
 export const zitadelDir = '/zitadel-pat';
 const clientDir = join(zitadelDir, 'client');
@@ -18,32 +18,26 @@ if (isEmpty(zitadelUrl)) {
   throw new Error('ZITADEL_URL environment variable is not set');
 }
 
-export class ConfigService {
-  constructor() {
-    mkdirSync(clientDir, { recursive: true });
-    mkdirSync(integrationTestDir, { recursive: true });
-  }
+Logger.section('Configuration');
+Logger.log('Ensuring necessary directories exist...');
+mkdirSync(clientDir, { recursive: true });
+mkdirSync(integrationTestDir, { recursive: true });
 
-  appName = appName;
-  zitadelUrl = zitadelUrl;
-  projectName = `${this.appName}-project`;
+export const config = {
+  appName: appName,
+  zitadelUrl: zitadelUrl,
+  projectName: `${appName}-project`,
 
-  patFile = join(zitadelDir, 'token');
-  projectIdFile = join(zitadelDir, 'project-id');
+  patFile: join(zitadelDir, 'token'),
+  projectIdFile: join(zitadelDir, 'project-id'),
 
-  clientIdFile = join(clientDir, `${this.appName}-client-id`);
+  clientIdFile: join(clientDir, `${appName}-client-id`),
 
-  integrationTest = {
-    appName: `${this.appName}-integration-test`,
+  integrationTest: {
+    appName: `${appName}-integration-test`,
     botPatFile: join(integrationTestDir, 'bot-token'),
     botKeyPath: join(integrationTestDir, 'bot-key.json'),
-    clientIdFile: join(
-      integrationTestDir,
-      `${this.appName}-client-id`,
-    ),
-    clientSecretFile: join(
-      integrationTestDir,
-      `${this.appName}-secret`,
-    ),
-  };
-}
+    clientIdFile: join(integrationTestDir, `${appName}-client-id`),
+    clientSecretFile: join(integrationTestDir, `${appName}-secret`),
+  },
+};

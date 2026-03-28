@@ -355,8 +355,6 @@ services:
         condition: service_completed_successfully
       init-zitadel-pat-vol:
         condition: service_completed_successfully
-      setup-zitadel:
-        condition: service_completed_successfully
     environment:
       ZITADEL_PORT: 8080
       ZITADEL_DATABASE_POSTGRES_HOST: postgres
@@ -451,6 +449,8 @@ services:
       - default
     depends_on:
       traefik:
+        condition: service_healthy
+      zitadel:
         condition: service_healthy
     working_dir: /app
     volumes:

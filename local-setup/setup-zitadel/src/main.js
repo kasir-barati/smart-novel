@@ -2,7 +2,7 @@
 
 import { roles, users } from './data/index.js';
 import {
-  ConfigService,
+  config,
   ZitadelAdminV1Service,
   ZitadelAuthV1Service,
   ZitadelManagementV1Service,
@@ -16,68 +16,65 @@ import {
   sleep,
 } from './utils/index.js';
 
-const configService = new ConfigService();
-const accessToken = await FileUtil.readPatWithRetries(
-  configService.patFile,
-);
+const accessToken = await FileUtil.readPatWithRetries(config.patFile);
 const usersV2Service = new ZitadelUsersV2Service(
-  configService.zitadelUrl,
+  config.zitadelUrl,
   accessToken,
 );
 const managementV1Service = new ZitadelManagementV1Service(
-  configService.zitadelUrl,
+  config.zitadelUrl,
   accessToken,
 );
 const adminV1Service = new ZitadelAdminV1Service(
-  configService.zitadelUrl,
+  config.zitadelUrl,
   accessToken,
 );
 const authV1Service = new ZitadelAuthV1Service(
-  configService.zitadelUrl,
+  config.zitadelUrl,
   accessToken,
 );
 
 Logger.section('Creating OIDC Project & Application');
 Logger.log(
-  `Creating ${configService.projectName} project for ${configService.appName} app...`,
+  `Creating ${config.projectName} project for ${config.appName} app...`,
 );
 const projectId =
   await managementV1Service.createProject('smart-novel');
-Logger.log(`Creating OIDC application: ${configService.appName} ...`);
+Logger.log(`Creating OIDC application: ${config.appName} ...`);
 const { clientId } = await managementV1Service.createOidcApp(
   projectId,
-  configService.appName,
+  config.appName,
 );
-Logger.ok(`Writing client ID to ${configService.clientIdFile}`);
-await FileUtil.writeFile(configService.clientIdFile, clientId);
+Logger.ok(`Writing client ID to ${config.clientIdFile}`);
+await FileUtil.writeFile(config.clientIdFile, clientId);
 
 Logger.section(
   'Creating Confidential OIDC Application for Integration Tests',
 );
 Logger.log(
-  `Creating confidential OIDC application: ${configService.integrationTest.appName}...`,
+  `Creating confidential OIDC application: ${config.integrationTest.appName}...`,
 );
 const {
   clientId: integrationTestClientId,
   clientSecret: integrationTestClientSecret,
 } = await managementV1Service.createOidcApp(
   projectId,
-  configService.integrationTest.appName,
+  config.integrationTest.appName,
   'confidential',
 );
 Logger.log(
-  `Writing integration test client ID to ${configService.integrationTest.clientIdFile}`,
+  `Writing integration test client ID to ${config.integrationTest.clientIdFile}`,
 );
 await FileUtil.writeFile(
-  configService.integrationTest.clientIdFile,
+  config.integrationTest.clientIdFile,
   integrationTestClientId,
 );
 if (isNotEmpty(integrationTestClientSecret)) {
   Logger.log(
-    `Writing integration test client secret to ${configService.integrationTest.clientSecretFile}...`,
+    `Writing integration test client secret to ${config.integrationTest.clientSecretFile}...`,
   );
   await FileUtil.writeFile(
-    configService.integrationTest.clientSecretFile,
+    config.integrationTest.clientSecretFile,
     integrationTestClientSecret,
   );
 }
@@ -85,7 +82,7 @@ if (isNotEmpty(integrationTestClientSecret)) {
 Logger.section('Creating Project Roles');
 for (const role of roles) {
   await managementV1Service.createProjectRole(projectId, {
-    group: configService.appName,
+    group: config.appName,
     ...role,
   });
   Logger.ok(`Role '${role.roleKey}' created or already exists`);
@@ -129,7 +126,7 @@ const botKey = await usersV2Service.addKey(
   '9999-12-31T23:59:59Z',
 );
 await FileUtil.writeFile(
-  configService.integrationTest.botKeyPath,
+  config.integrationTest.botKeyPath,
   JSON.stringify(botKey, null, 2),
 );
 Logger.log(
@@ -149,10 +146,10 @@ const integrationTestBotPat = await managementV1Service.createUserPat(
   integrationTestBotUserId,
 );
 Logger.ok(
-  `Writing integration test bot PAT to ${configService.integrationTest.botPatFile}`,
+  `Writing integration test bot PAT to ${config.integrationTest.botPatFile}`,
 );
 await FileUtil.writeFile(
-  configService.integrationTest.botPatFile,
+  config.integrationTest.botPatFile,
   integrationTestBotPat,
 );
 Logger.log('Waiting 3 seconds for project grant to propagate...');
