@@ -1,3 +1,8 @@
+- Can we develop our own model to be really proficient in interjections and sanitizing a given text to something really TTS friendly? Then I guess we really need to push it somewhere!
+- Ask AI to fix the issues we encounter for generating a TTS friendly content with a very through prompt.
+  - This requires me to refactor the existing `normalizeTtsText`. AKA we should send those to AI to do it for us. E.g. we cannot really count for every variation of interjections.
+- Ask AI to create a context for the novel, there maintain a list of characters with their pronoun, a list of cities, and all other things that repeat themselves again and again. So we can feed that in to the AI so it can suggest to use that e.g. we have a typo or maybe we are modifying the name of a character which has been stablish to be IDK Alex. Then we can have another API to update all chapters before that to use the new name and also update the context to update that name.
+
 - Instead of downloading the LLM model on application bootstrap:
   - We can mount a persistent storage to our EC2 instance.
   - Or we can create the image (download the model while building the base image) and persist it in some registry like ECR.
@@ -14,9 +19,9 @@ Change license to AGPLv3, it enforces everyone using your SaaS must remain open-
   - Change your piper image to also accept listen to a routing key on RabbitMQ.
   - Add retry and quorum queue.
   - Add DLQ to this app too.
+  - Add inbox/outbox patterns.
 - Is it easier to swap with passport or is it better to stick to my current implementation?
 - I'd like to create an admin user whenever I am deploying this app in production, I guess this would be a separate thing though. I also like to keep it separate so I can easily use the same thing in my local machine and on the server.
-- Add OpenTofu for deploying to the cloud.
 
 Auto gen a simple API client for the backend and use it in the frontend app (so I don't have to create and maintain some dumb interfaces which are essentially the same object type, and input types I have in the backend).
 
