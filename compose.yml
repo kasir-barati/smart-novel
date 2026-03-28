@@ -1,5 +1,5 @@
 services:
-  # You'd do something similar to this in CI/CD pipeline to apply your migrations and seed your database before your app starts (does not matter if it is QA, prod, or dev env).
+  # 👇 You'd do something similar to this in CI/CD pipeline to apply your migrations.
   init-postgres: &init-postgres
     build:
       context: .
@@ -20,7 +20,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      init-zitadel:
+      setup-zitadel:
         condition: service_completed_successfully
     volumes:
       - ./apps:/app/apps
@@ -61,7 +61,7 @@ services:
         condition: service_healthy
       traefik:
         condition: service_healthy
-      init-zitadel:
+      setup-zitadel:
         condition: service_completed_successfully
     healthcheck:
       test:
@@ -109,27 +109,15 @@ services:
       VITE_EXPLAIN_CACHE_MAX_ENTRIES: 12
       VITE_EXPLAIN_RATE_REFILL_PER_SEC: 1.5
       VITE_EXPLAIN_SELECTION_DEBOUNCE_MS: 500
-      # VITE_OIDC_CLIENT_ID is read at runtime from the file written by init-zitadel.
-      ZITADEL_CLIENT_ID_FILE: /zitadel-pat/client/smart-novel-app-id
-      # Read the dynamically-generated OIDC client ID from the shared volume
-      # and export it as VITE_OIDC_CLIENT_ID before starting the Vite dev server.
-    command:
-      - /bin/sh
-      - -c
-      - |
-        if [ -f "$$ZITADEL_CLIENT_ID_FILE" ]; then
-          export VITE_OIDC_CLIENT_ID=$$(cat "$$ZITADEL_CLIENT_ID_FILE" | tr -d '[:space:]')
-          echo "✓ VITE_OIDC_CLIENT_ID=$$VITE_OIDC_CLIENT_ID (from $$ZITADEL_CLIENT_ID_FILE)"
-        else
-          echo "⚠ $$ZITADEL_CLIENT_ID_FILE not found — OIDC login will not work"
-        fi
-        exec npx nx serve frontend --host=0.0.0.0
+      ZITADEL_CLIENT_ID_FILE: ${ZITADEL_CLIENT_ID_FILE}
+    command: ["/bin/sh", "/app/start-frontend-dev.sh"]
     profiles:
       - dev
     volumes:
       - ./apps/frontend:/app/apps/frontend
       - /app/node_modules
       - zitadel-pat:/zitadel-pat:ro
+      - ./local-setup/start-frontend-dev.sh:/app/start-frontend-dev.sh:ro
     depends_on:
       backend:
         condition: service_healthy
@@ -188,6 +176,7 @@ services:
         VITE_OIDC_AUTHORITY: ${VITE_OIDC_AUTHORITY}
         VITE_OIDC_REDIRECT_URI: ${VITE_OIDC_REDIRECT_URI}
         VITE_OIDC_SCOPE: ${VITE_OIDC_SCOPE}
+        ZITADEL_CLIENT_ID_FILE: ${ZITADEL_CLIENT_ID_FILE}
     profiles:
       - frontend-e2e
     depends_on:
@@ -198,25 +187,9 @@ services:
       init-zitadel:
         condition: service_completed_successfully
     volumes:
+      - ./local-setup/start-frontend-e2e.sh:/app/start-frontend-e2e.sh:ro
       - zitadel-pat:/zitadel-pat:ro
-    # Read the dynamically-generated OIDC client ID from the shared volume
-    # and replace the build-time placeholder in the JS bundle, then start nginx.
-    command:
-      - /bin/sh
-      - -c
-      - |
-        CLIENT_ID_FILE="/zitadel-pat/client/smart-novel-app-id"
-        if [ -f "$$CLIENT_ID_FILE" ]; then
-          CLIENT_ID=$$(cat "$$CLIENT_ID_FILE" | tr -d '[:space:]')
-          echo "✓ Injecting OIDC client ID: $$CLIENT_ID"
-          find /usr/share/nginx/html -name '*.js' -exec \
-            sed -i "s/__OIDC_CLIENT_ID_PLACEHOLDER__/$$CLIENT_ID/g" {} +
-        else
-          echo "⚠ $$CLIENT_ID_FILE not found — OIDC login will not work"
-        fi
-        exec nginx -g 'daemon off;'
-    ports:
-      - "4200:80"
+    command: ["/bin/sh", "/app/start-frontend-e2e.sh"]
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:80"]
       interval: 30s
@@ -248,8 +221,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:
       test:
         [
@@ -268,15 +239,9 @@ services:
       PGPORT: 5432
       PGUSER: ${POSTGRES_USER}
       PGPASSWORD: ${POSTGRES_PASSWORD}
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        psql -h postgres -U $$PGUSER -tc "SELECT 1 FROM pg_roles WHERE rolname='zitadel'" | grep -q 1 \
-          || psql -h postgres -U $$PGUSER -c "CREATE ROLE zitadel LOGIN PASSWORD 'zitadel';"
-        psql -h postgres -U $$PGUSER -tc "SELECT 1 FROM pg_database WHERE datname='zitadel'" | grep -q 1 \
-          || psql -h postgres -U $$PGUSER -c "CREATE DATABASE zitadel OWNER zitadel;"
-        echo "ZITADEL database ready!"
+    volumes:
+      - ./local-setup/create-zitadel-db.sh:/app/create-zitadel-db.sh:ro
+    entrypoint: ["/bin/sh", "/app/create-zitadel-db.sh"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -468,7 +433,7 @@ services:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: admin
     ports:
-      - ${PGADMIN_EXPOSED_PORT}:80
+      - ${PGADMIN_EXPOSED_PORT:-5050}:80
     configs:
       - source: servers.json
         target: /pgadmin4/servers.json
@@ -478,15 +443,13 @@ services:
   redis:
     image: redis:8.6-alpine3.23
     restart: always
-    command: >
-      sh -c "redis-server
-      --maxmemory $${REDIS_MAXMEMORY:-512mb}
-      --maxmemory-policy $${REDIS_MAXMEMORY_POLICY:-allkeys-lfu}
-      $${REDIS_PASSWORD:+--requirepass $$REDIS_PASSWORD}"
+    command: ["/bin/sh", "/app/start-redis.sh"]
     ports:
       - "${REDIS_PORT:-6379}:6379"
     env_file:
       - ./.env
+    volumes:
+      - ./local-setup/start-redis.sh:/app/start-redis.sh:ro
     deploy:
       resources:
         limits:
@@ -537,8 +500,7 @@ services:
       context: local-setup/ollama
       dockerfile: Dockerfile
       args:
-        # Change this 👇 if you want a different model baked in
-        OLLAMA_MODEL: llama3.2:1b
+        OLLAMA_MODEL: ${OLLAMA_MODEL}
     healthcheck:
       test: ["CMD-SHELL", "/usr/local/bin/healthcheck.sh"]
       interval: 30s
@@ -546,11 +508,11 @@ services:
       retries: 5
       start_period: 45s
 
-  # Takes up to 1 minute to start!
+  # 👇 Takes up to 1 minute to start!
   open-webui:
     image: ghcr.io/open-webui/open-webui:main
     ports:
-      - "8090:8080"
+      - 8090:8080
     depends_on:
       ollama:
         condition: service_healthy
@@ -582,8 +544,8 @@ services:
   s3:
     image: minio/minio:RELEASE.2025-02-07T23-21-09Z-cpuv1
     ports:
-      - "9000:9000"
-      - "9001:9001" # Dashboard
+      - 9000:9000
+      - 9001:9001 # Dashboard
     environment:
       MINIO_ROOT_USER: ${OBJECT_STORAGE_ACCESS_KEY}
       MINIO_ROOT_PASSWORD: ${OBJECT_STORAGE_SECRET_KEY}
