@@ -1,6 +1,6 @@
 services:
   # 👇 You'd do something similar to this in CI/CD pipeline to apply your migrations.
-  init-postgres: &init-postgres
+  init-postgres:
     build:
       context: .
       dockerfile: apps/backend/Dockerfile

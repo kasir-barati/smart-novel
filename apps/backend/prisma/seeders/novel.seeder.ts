@@ -105,11 +105,14 @@ async function batchInsertChapters(
 }
 
 /**
- * @description Get the user's ID from the file written by `create-test-users.sh`. The user ID is the actual Zitadel user's `sub` claim, ensuring ownership checks work correctly.
+ * @description Get the writer's ID. The writer ID is the actual ZITADEL user's `sub` claim, ensuring ownership checks work correctly.
+ *
  */
-async function getUserId(): Promise<string> {
+async function getWriterId(): Promise<string> {
+  const zitadelDir = '/zitadel-pat';
+  const userIdsDir = join(zitadelDir, 'user-ids');
   const writerUserId = await readFile(
-    '/zitadel-pat/writer-user-id',
+    join(userIdsDir, 'writer'),
     'utf-8',
   );
   const trimmedId = writerUserId.trim();
@@ -165,7 +168,7 @@ export async function seedNovels(
       }
 
       await prisma.$transaction(async (tx) => {
-        const ownerId = await getUserId();
+        const ownerId = await getWriterId();
 
         await tx.novel.create({
           data: {
