@@ -1,5 +1,7 @@
 // @ts-check
 
+import { Logger } from '../utils/index.js';
+
 /**
  * Service for interacting with ZITADEL Auth V1 API endpoints
  */
@@ -15,7 +17,7 @@ export class ZitadelAuthV1Service {
 
   /**
    * Get current authenticated user information
-   * @returns {Promise<{id: string|null, username: string|null}>} User info
+   * @returns {Promise<CurrentUserInfo>} User ID and organization ID of the accessToken
    */
   async getCurrentUser() {
     const response = await fetch(`${this.baseUrl}/auth/v1/users/me`, {
@@ -25,30 +27,24 @@ export class ZitadelAuthV1Service {
         'Content-Type': 'application/json',
       },
     });
+    const data = await response.json();
 
     if (!response.ok) {
-      return { id: null, username: null };
+      Logger.error(
+        `Error fetching current user: ${JSON.stringify(data, null, 2)}`,
+      );
+      throw new Error(`Failed to get current user`);
     }
 
-    const data = await response.json();
     return {
-      id: data.user.id || null,
-      username: data.user.userName || null,
+      userId: data.user.id,
+      organizationId: data.user.details?.resourceOwner,
     };
   }
-
-  /**
-   * Verify that the access token is valid
-   * @returns {Promise<boolean>} True if token is valid
-   */
-  async verifyToken() {
-    const response = await fetch(`${this.baseUrl}/auth/v1/users/me`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${this.accessToken}`,
-      },
-    });
-
-    return response.ok;
-  }
 }
+
+/**
+ * @typedef {Object} CurrentUserInfo
+ * @property {string} userId - User ID
+ * @property {string} organizationId - Organization (resource owner) ID
+ */

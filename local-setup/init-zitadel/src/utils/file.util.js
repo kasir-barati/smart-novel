@@ -1,6 +1,6 @@
 // @ts-check
 
-import { mkdir, readFile, writeFile } from 'fs/promises';
+import { readFile, writeFile } from 'fs/promises';
 
 import { Logger } from './logger.util.js';
 import { sleep } from './sleep.util.js';
@@ -48,13 +48,5 @@ export class FileUtil {
    */
   static async writeFile(filePath, content) {
     await writeFile(filePath, content, 'utf-8');
-  }
-
-  /**
-   * Create directory recursively
-   * @param {string} dirPath - Directory path
-   */
-  static async ensureDir(dirPath) {
-    await mkdir(dirPath, { recursive: true });
   }
 }
