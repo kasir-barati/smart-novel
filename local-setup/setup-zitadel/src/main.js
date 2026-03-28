@@ -1,5 +1,6 @@
 // @ts-check
 
+import { roles, users } from './data/index.js';
 import {
   ConfigService,
   ZitadelAdminV1Service,
@@ -82,11 +83,6 @@ if (isNotEmpty(integrationTestClientSecret)) {
 }
 
 Logger.section('Creating Project Roles');
-const roles = [
-  { roleKey: 'user', displayName: 'User' },
-  { roleKey: 'admin', displayName: 'Admin' },
-  { roleKey: 'writer', displayName: 'Writer' },
-];
 for (const role of roles) {
   await managementV1Service.createProjectRole(projectId, {
     group: configService.appName,
@@ -98,38 +94,6 @@ Logger.log('Small delay for eventual consistency...');
 await sleep(2000);
 
 Logger.section('Creating Human Users (for interactive login)');
-const users = [
-  {
-    userInfo: {
-      email: 'admin@test.com',
-      firstName: 'Admin',
-      lastName: 'User',
-      password: 'Admin123!',
-    },
-    role: 'admin',
-    userIdFile: configService.userIds.admin,
-  },
-  {
-    userInfo: {
-      email: 'writer@test.com',
-      firstName: 'Writer',
-      lastName: 'User',
-      password: 'Writer123!',
-    },
-    role: 'writer',
-    userIdFile: configService.userIds.writer,
-  },
-  {
-    userInfo: {
-      email: 'user@test.com',
-      firstName: 'Regular',
-      lastName: 'User',
-      password: 'User123!',
-    },
-    role: 'user',
-    userIdFile: configService.userIds.user,
-  },
-];
 for (const { userInfo, role, userIdFile } of users) {
   Logger.log(`Creating ${userInfo.email} user...`);
   const userId = await usersV2Service.createHumanUser(userInfo);

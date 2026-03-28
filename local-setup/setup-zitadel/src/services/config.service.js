@@ -3,15 +3,13 @@
 import { mkdirSync } from 'fs';
 import { join } from 'path';
 
-const zitadelDir = '/zitadel-pat';
+export const zitadelDir = '/zitadel-pat';
 const clientDir = join(zitadelDir, 'client');
-const userIdsDir = join(zitadelDir, 'user-ids');
 const integrationTestDir = join(zitadelDir, 'integration-test');
 
 export class ConfigService {
   constructor() {
     mkdirSync(clientDir, { recursive: true });
-    mkdirSync(userIdsDir, { recursive: true });
     mkdirSync(integrationTestDir, { recursive: true });
   }
 
@@ -23,12 +21,6 @@ export class ConfigService {
   projectIdFile = join(zitadelDir, 'project-id');
 
   clientIdFile = join(clientDir, `${this.appName}-id`);
-
-  userIds = {
-    user: join(userIdsDir, 'user'),
-    admin: join(userIdsDir, 'admin'),
-    writer: join(userIdsDir, 'writer'),
-  };
 
   integrationTest = {
     appName: `${this.appName}-integration-test`,
