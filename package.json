@@ -10,6 +10,7 @@
     "tdd",
     "docker",
     "minio",
+    "zitadel",
     "object-storage",
     "monorepo",
     "fullstack",
