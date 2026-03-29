@@ -1,19 +1,19 @@
 /**
  * @description Application roles with implicit hierarchy
  *
- * Hierarchy: ADMIN > WRITER > USER
+ * Hierarchy: admin > writer > user
  */
 export enum Role {
-  ADMIN = 'ADMIN',
-  USER = 'USER',
-  WRITER = 'WRITER',
+  admin = 'admin',
+  user = 'user',
+  writer = 'writer',
 }
 
 /**
  * @description Role hierarchy levels (higher number = more privileges)
  */
 export const ROLE_HIERARCHY: Record<Role, number> = {
-  [Role.ADMIN]: 3,
-  [Role.WRITER]: 2,
-  [Role.USER]: 1,
+  [Role.admin]: 3,
+  [Role.writer]: 2,
+  [Role.user]: 1,
 };

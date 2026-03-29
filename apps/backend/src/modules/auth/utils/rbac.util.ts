@@ -4,9 +4,9 @@ import { Role, ROLE_HIERARCHY } from '../enums';
  * @description Check if user has at least the minimum required role based on hierarchy
  *
  * @example
- * hasMinimumRole(['writer'], Role.USER) // true (writer >= user)
- * hasMinimumRole(['user'], Role.WRITER) // false (user < writer)
- * hasMinimumRole(['admin'], Role.WRITER) // true (admin >= writer)
+ * hasMinimumRole(['writer'], Role.user) // true (writer >= user)
+ * hasMinimumRole(['user'], Role.writer) // false (user < writer)
+ * hasMinimumRole(['admin'], Role.writer) // true (admin >= writer)
  */
 export function hasMinimumRole(
   userRoles: string[],
@@ -26,12 +26,12 @@ export function hasMinimumRole(
  * @description Check if user has admin role
  */
 export function isAdmin(userRoles: string[]): boolean {
-  return userRoles.includes(Role.ADMIN);
+  return userRoles.includes(Role.admin);
 }
 
 /**
  * @description Check if user has writer role or higher
  */
 export function isWriterOrHigher(userRoles: string[]): boolean {
-  return hasMinimumRole(userRoles, Role.WRITER);
+  return hasMinimumRole(userRoles, Role.writer);
 }
