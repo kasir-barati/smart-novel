@@ -29,7 +29,7 @@ export class ChapterNarrationFixture {
   async waitFor(
     novelId: string,
     chapterId: string,
-    toBe: NarrationStatus,
+    _toBe: NarrationStatus,
   ): Promise<string> {
     const maxAttempts = 15;
 
