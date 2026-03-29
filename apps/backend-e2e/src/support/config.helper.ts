@@ -1,10 +1,21 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { isEmpty } from 'class-validator';
+import { mkdirSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+
+import { DockerFixture } from './docker.fixture';
+import { Logger } from './logger';
+
+const appName = process.env.SERVICE_NAME; // It should have been set to ZITADEL_APP_NAME
+
+if (isEmpty(appName)) {
+  throw new Error('SERVICE_NAME environment variable is required');
+}
 
 const zitadelDir = '/zitadel-pat';
-const appName = process.env.ZITADEL_APP_NAME;
 const userIdsDir = join(zitadelDir, 'user-ids');
 const integrationTestDir = join(zitadelDir, 'integration-test');
+const workspaceRoot = resolve(__dirname, '../../../../');
+const localSetupDir = resolve(workspaceRoot, 'local-setup');
 const apiUrl = 'http://traefik:80/api';
 /**
  * @description Zitadel's issuer URL (for JWT audience) must match `ZITADEL_EXTERNALDOMAIN:TRAEFIK_EXPOSED_PORT`
@@ -16,28 +27,52 @@ const zitadelIssuer =
  * @description Internal URLs for making actual HTTP requests from within Docker network
  */
 const tokenEndpoint = 'http://traefik:80/oauth/v2/token';
+
+Logger.section('Extract data from Docker volume');
+extractConfigFromDocker();
+
+Logger.section('Read config values from files');
+Logger.log('Reading integration test client ID from config file...');
 const integrationTestClientId = readFileSync(
-  join(integrationTestDir, `${appName}-client-id`),
+  join(localSetupDir, 'client', `${appName}-client-id`),
   'utf-8',
+);
+Logger.log(
+  'Reading integration test client secret from config file...',
 );
 const integrationTestClientSecret = readFileSync(
-  join(integrationTestDir, 'integration-test-book-app-secret'),
+  join(localSetupDir, 'client', `${appName}-secret`),
   'utf-8',
 );
+Logger.log('Reading project ID from config file...');
 const projectId = readFileSync(
-  join(zitadelDir, 'project-id'),
+  join(localSetupDir, 'pats', 'project-id'),
   'utf-8',
 );
-const userUserId = readFileSync(join(userIdsDir, 'user'), 'utf-8');
-const adminUserId = readFileSync(join(userIdsDir, 'admin'), 'utf-8');
+// TODO: 👇 Should I use VITE_OIDC_SCOPE?
+const scopes = `openid profile email urn:zitadel:iam:org:project:id:${projectId}:aud urn:zitadel:iam:org:project:id:${projectId}:roles urn:zitadel:iam:user:metadata`;
+Logger.log('Reading user ID from config file...');
+const userUserId = readFileSync(
+  join(localSetupDir, 'user-ids', 'user'),
+  'utf-8',
+);
+Logger.log('Reading admin user ID from config file...');
+const adminUserId = readFileSync(
+  join(localSetupDir, 'user-ids', 'admin'),
+  'utf-8',
+);
+Logger.log('Reading writer user ID from config file...');
 const writerUserId = readFileSync(
-  join(userIdsDir, 'writer'),
+  join(localSetupDir, 'user-ids', 'writer'),
   'utf-8',
 );
+Logger.log('Reading integration test bot key from config file...');
 const integrationTestBotKeyRaw = readFileSync(
-  join(zitadelDir, 'integration-test-bot.key.json'),
+  join(localSetupDir, 'pats', 'bot-key.json'),
   'utf-8',
 );
+
+Logger.section('Enrich bot key with decoded content');
 const integrationTestBotKey: Omit<
   IntegrationTestBotKey,
   'decodedKeyContent'
@@ -50,9 +85,6 @@ const enrichedIntegrationTestBotKey: IntegrationTestBotKey = {
     ),
   ),
 };
-
-// TODO: Should I use VITE_OIDC_SCOPE?
-const scopes = `openid profile email urn:zitadel:iam:org:project:id:${projectId}:aud urn:zitadel:iam:org:project:id:${projectId}:roles urn:zitadel:iam:user:metadata`;
 
 export const config = {
   apiUrl,
@@ -71,7 +103,7 @@ export const config = {
   zitadelIssuer,
 };
 
-export interface IntegrationTestBotKey {
+interface IntegrationTestBotKey {
   /** @example "2026-03-25T13:07:58.286916Z" */
   creationDate: string;
   /** @example "365656198390743043" */
@@ -99,4 +131,67 @@ interface DecodedKeyContent {
   key: string;
   /** @example "9999-12-31T23:59:59Z" */
   expirationDate: string;
+}
+
+function extractConfigFromDocker() {
+  const hostDirectories = ['pats', 'client', 'user-ids'];
+
+  for (const dir of hostDirectories) {
+    mkdirSync(resolve(workspaceRoot, `local-setup/${dir}`), {
+      recursive: true,
+    });
+  }
+
+  const files = [
+    {
+      log: 'Extracting integration test bot token...',
+      containerPath: join(integrationTestDir, 'bot-token'),
+      hostFilePath: 'local-setup/pats/bot-token',
+    },
+    {
+      log: 'Extracting integration test client ID...',
+      containerPath: join(integrationTestDir, `${appName}-client-id`),
+      hostFilePath: `local-setup/client/${appName}-client-id`,
+    },
+    {
+      log: 'Extracting integration test client secret...',
+      containerPath: join(integrationTestDir, `${appName}-secret`),
+      hostFilePath: `local-setup/client/${appName}-secret`,
+    },
+    {
+      log: 'Extracting admin user ID...',
+      containerPath: join(userIdsDir, 'admin'),
+      hostFilePath: 'local-setup/user-ids/admin',
+    },
+    {
+      log: 'Extracting regular user ID...',
+      containerPath: join(userIdsDir, 'user'),
+      hostFilePath: 'local-setup/user-ids/user',
+    },
+    {
+      log: 'Extracting writer user ID...',
+      containerPath: join(userIdsDir, 'writer'),
+      hostFilePath: 'local-setup/user-ids/writer',
+    },
+    {
+      log: 'Extracting project ID...',
+      containerPath: join(zitadelDir, 'project-id'),
+      hostFilePath: 'local-setup/pats/project-id',
+    },
+    {
+      log: 'Extracting integration test bot key...',
+      containerPath: join(integrationTestDir, 'bot-key.json'),
+      hostFilePath: 'local-setup/pats/bot-key.json',
+    },
+  ];
+
+  for (const { log, containerPath, hostFilePath } of files) {
+    Logger.log(log);
+    DockerFixture.extractFile(
+      workspaceRoot,
+      containerPath,
+      hostFilePath,
+      'backend-e2e',
+    );
+  }
 }

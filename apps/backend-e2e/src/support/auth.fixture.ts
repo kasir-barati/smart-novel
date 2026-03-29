@@ -5,7 +5,27 @@ import { createPrivateKey } from 'node:crypto';
 import { config } from './config.helper';
 
 export class AuthorizationFixture {
-  private async getActorAccessToken() {
+  static async getAdminAuthorizationHeader() {
+    const actorToken = await this.getActorAccessToken();
+    const accessToken = await this.impersonate(
+      actorToken,
+      config.userIds.admin,
+    );
+
+    return `Bearer ${accessToken}`;
+  }
+
+  static async getWriterAuthorizationHeader() {
+    const actorToken = await this.getActorAccessToken();
+    const accessToken = await this.impersonate(
+      actorToken,
+      config.userIds.writer,
+    );
+
+    return `Bearer ${accessToken}`;
+  }
+
+  private static async getActorAccessToken() {
     const { keyId, key, userId } =
       config.integrationTest.userBotKey.decodedKeyContent;
 
@@ -46,7 +66,10 @@ export class AuthorizationFixture {
     return response.data.access_token;
   }
 
-  private async impersonate(actorToken: string, userId: string) {
+  private static async impersonate(
+    actorToken: string,
+    userId: string,
+  ) {
     const body = new URLSearchParams();
 
     body.set(

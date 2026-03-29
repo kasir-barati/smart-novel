@@ -40,12 +40,14 @@ Logger.log(
 );
 const projectId =
   await managementV1Service.createProject('smart-novel');
+Logger.log(`Writing project ID to ${config.projectIdFile}...`);
+await FileUtil.writeFile(config.projectIdFile, projectId);
 Logger.log(`Creating OIDC application: ${config.appName} ...`);
 const { clientId } = await managementV1Service.createOidcApp(
   projectId,
   config.appName,
 );
-Logger.ok(`Writing client ID to ${config.clientIdFile}`);
+Logger.log(`Writing client ID to ${config.clientIdFile}...`);
 await FileUtil.writeFile(config.clientIdFile, clientId);
 
 Logger.section(
@@ -63,7 +65,7 @@ const {
   'confidential',
 );
 Logger.log(
-  `Writing integration test client ID to ${config.integrationTest.clientIdFile}`,
+  `Writing integration test client ID to ${config.integrationTest.clientIdFile}...`,
 );
 await FileUtil.writeFile(
   config.integrationTest.clientIdFile,

@@ -3,7 +3,9 @@ import { execSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-type ServiceName = 'backend-e2e' | 'zitadel';
+/** @description the service name comes from the compose file */
+type ServiceName = 'backend-e2e' | 'zitadel' | 'init-postgres';
+/** @description the profile name comes from the compose file */
 type ProfileName = 'backend-e2e' | 'frontend-e2e' | 'dev';
 
 export class DockerFixture {
