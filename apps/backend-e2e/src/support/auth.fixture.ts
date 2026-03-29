@@ -6,8 +6,9 @@ import { config } from './config.helper';
 
 export class AuthorizationFixture {
   static async getAdminAuthorizationHeader() {
-    const actorToken = await this.getActorAccessToken();
-    const accessToken = await this.impersonate(
+    const actorToken =
+      await AuthorizationFixture.getActorAccessToken();
+    const accessToken = await AuthorizationFixture.impersonate(
       actorToken,
       config.userIds.admin,
     );
@@ -16,8 +17,9 @@ export class AuthorizationFixture {
   }
 
   static async getWriterAuthorizationHeader() {
-    const actorToken = await this.getActorAccessToken();
-    const accessToken = await this.impersonate(
+    const actorToken =
+      await AuthorizationFixture.getActorAccessToken();
+    const accessToken = await AuthorizationFixture.impersonate(
       actorToken,
       config.userIds.writer,
     );
