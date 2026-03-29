@@ -5,7 +5,6 @@ import {
 } from 'nestjs-backend-common';
 
 import { PrismaService } from '../../prisma';
-import { NovelState } from '../enums';
 import { PrismaChapterRepository } from './prisma-chapter.repository';
 
 describe(PrismaChapterRepository.name, () => {
@@ -54,49 +53,33 @@ describe(PrismaChapterRepository.name, () => {
   });
 
   describe('findById', () => {
-    it('should return novel by id with transformed data', async () => {
-      const { novel } = getMockedData();
-      vi.mocked(prismaService.novel.findUnique).mockResolvedValue(
-        novel as any,
+    it('should return chapter by id with transformed data', async () => {
+      const { chapter } = getMockedData();
+      vi.mocked(prismaService.chapter.findFirst).mockResolvedValue(
+        chapter as any,
       );
 
       const result = await uut.findById(
-        '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
+        'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
       );
 
       expect(result).toEqual({
-        id: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
-        name: 'Test Novel',
-        author: 'John Doe',
-        description: 'A test novel description',
-        state: NovelState.ONGOING,
-        coverUrl: 'https://example.com/cover.jpg',
-        category: ['fantasy', 'adventure'],
-        chapters: [
-          'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
-          '904bf826-33be-4172-b63f-665bba9007b9',
-        ],
+        id: 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
+        novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
+        title: 'Chapter 1: The Beginning',
+        content: '# Chapter 1\n\nThis is the content.',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-02T00:00:00.000Z',
+        narrationStatus: 'READY',
+        narrationUrl: 'https://example.com/narration.mp3',
       });
-      expect(prismaService.novel.findUnique).toHaveBeenCalledWith({
-        where: { id: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec' },
-        include: {
-          categories: {
-            select: {
-              category: {
-                select: { name: true },
-              },
-            },
-          },
-          chapters: {
-            select: { id: true },
-            orderBy: { chapterNumber: 'asc' },
-          },
-        },
+      expect(prismaService.chapter.findFirst).toHaveBeenCalledWith({
+        where: { id: 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c' },
       });
     });
 
     it('should return null when novel is not found', async () => {
-      vi.mocked(prismaService.novel.findUnique).mockResolvedValue(
+      vi.mocked(prismaService.chapter.findFirst).mockResolvedValue(
         null,
       );
 
@@ -107,19 +90,15 @@ describe(PrismaChapterRepository.name, () => {
 
     it('should return null and log error when database fails', async () => {
       const error = new Error('Database error');
-      vi.mocked(prismaService.novel.findUnique).mockRejectedValue(
+      vi.mocked(prismaService.chapter.findFirst).mockRejectedValue(
         error,
       );
 
-      const result = await uut.findById(
+      const result = uut.findById(
         '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
       );
 
-      expect(result).toBeNull();
-      expect(logger.error).toHaveBeenCalledWith(
-        `Error reading novel 248c9fee-cad0-43fc-9abb-c2ab8ff002ec: ${error}`,
-        { correlationId: mockCorrelationId },
-      );
+      await expect(result).rejects.toThrowError(error);
     });
   });
 

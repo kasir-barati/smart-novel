@@ -7,11 +7,11 @@ type ExplainArgs = [
   ...rest: unknown[],
 ];
 
-const EXPLAIN_CONTEXT_CHAR_SIZE = Number(
-  process.env.EXPLAIN_CONTEXT_CHAR_SIZE,
-);
-
 export function ValidateExplainInput(): MethodDecorator {
+  const EXPLAIN_CONTEXT_CHAR_SIZE = Number(
+    process.env.EXPLAIN_CONTEXT_CHAR_SIZE,
+  );
+
   return (_target, _propertyKey, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value as (
       ...args: ExplainArgs

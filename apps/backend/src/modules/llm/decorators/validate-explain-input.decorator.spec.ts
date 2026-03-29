@@ -1,3 +1,5 @@
+process.env.EXPLAIN_CONTEXT_CHAR_SIZE = 5000;
+
 import { BadRequestException } from '@nestjs/common';
 
 import { ValidateExplainInput } from './validate-explain-input.decorator';
@@ -20,8 +22,10 @@ describe(ValidateExplainInput.name, () => {
   ])(
     'should throw when word ($word) or context ($context) is invalid',
     ({ word, context }) => {
+      // Act
       const uut = new TestResolver();
 
+      // Assert
       expect(() => uut.explain(word, context)).toThrow(
         new BadRequestException('Word and context must be provided'),
       );
@@ -29,8 +33,10 @@ describe(ValidateExplainInput.name, () => {
   );
 
   it('should throw when context does not include word', () => {
+    // Act
     const uut = new TestResolver();
 
+    // Assert
     expect(() =>
       uut.explain('melee', 'I need to analyze the data carefully.'),
     ).toThrow(
@@ -41,10 +47,14 @@ describe(ValidateExplainInput.name, () => {
   });
 
   it('should throw when word is longer than 64 characters', () => {
-    const uut = new TestResolver();
+    // Arrange
     const word = 'a'.repeat(65);
     const context = `This context includes ${word}.`;
 
+    // Act
+    const uut = new TestResolver();
+
+    // Assert
     expect(() => uut.explain(word, context)).toThrow(
       new BadRequestException(
         'Word is too long (max 64 characters, 1-3 words (compound/hyphenated terms))',
@@ -52,23 +62,30 @@ describe(ValidateExplainInput.name, () => {
     );
   });
 
-  it('should throw when context is longer than 2000 characters', () => {
-    const uut = new TestResolver();
+  it('should throw when context is longer than EXPLAIN_CONTEXT_CHAR_SIZE characters', () => {
+    // Arrange
     const word = 'analyze';
+    const maxSize = Number(process.env.EXPLAIN_CONTEXT_CHAR_SIZE);
     const context =
       `This is a very long context that includes the word ${word}. ` +
-      'a'.repeat(2000);
+      'a'.repeat(maxSize);
 
+    // Act
+    const uut = new TestResolver();
+
+    // Assert
     expect(() => uut.explain(word, context)).toThrow(
       new BadRequestException(
-        'Context is too long (max 2000 characters, ~300-400 words)',
+        `Context is too long (max ${maxSize} characters)`,
       ),
     );
   });
 
   it('should allow valid input', () => {
+    // Act
     const uut = new TestResolver();
 
+    // Assert
     expect(
       uut.explain(
         'scrutinize',

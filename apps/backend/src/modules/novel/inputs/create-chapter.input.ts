@@ -9,13 +9,13 @@ import {
 
 @InputType()
 export class CreateChapterInput {
-  @Field({ description: 'Chapter title' })
+  @Field(() => String, { description: 'Chapter title' })
   @IsString()
   @IsNotEmpty()
   @Transform(({ value }) => value.trim())
   title: string;
 
-  @Field()
+  @Field(() => String)
   @IsNotEmpty()
   @IsString()
   @Transform(({ value }) => value.trim())
