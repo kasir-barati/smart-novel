@@ -1,10 +1,17 @@
 import { isEmpty } from 'class-validator';
+import { urlBuilder } from 'nestjs-backend-common';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 import { DockerFixture } from './docker.fixture';
 import { Logger } from './logger';
 
+/**
+ * @description Zitadel's issuer URL (for JWT audience) must match `ZITADEL_EXTERNALDOMAIN:TRAEFIK_EXPOSED_PORT`
+ * FIXME: If we dockerize our integration tests, then there is a chance that I have to override or modify the URL in the backend.
+ */
+const zitadelIssuer =
+  process.env.ZITADEL_ISSUER_URL ?? 'http://localhost:8080';
 const appName = process.env.SERVICE_NAME; // It should have been set to ZITADEL_APP_NAME
 
 if (isEmpty(appName)) {
@@ -16,17 +23,16 @@ const userIdsDir = join(zitadelDir, 'user-ids');
 const integrationTestDir = join(zitadelDir, 'integration-test');
 const workspaceRoot = resolve(__dirname, '../../../../');
 const localSetupDir = resolve(workspaceRoot, 'local-setup');
-const apiUrl = 'http://traefik:80/api';
-/**
- * @description Zitadel's issuer URL (for JWT audience) must match `ZITADEL_EXTERNALDOMAIN:TRAEFIK_EXPOSED_PORT`
- * FIXME: If we dockerize our integration tests, then there is a chance that I have to override or modify the URL in the backend.
- */
-const zitadelIssuer =
-  process.env.ZITADEL_ISSUER_URL ?? 'http://localhost:8080';
+const apiUrl = urlBuilder(zitadelIssuer, 'api');
 /**
  * @description Internal URLs for making actual HTTP requests from within Docker network
  */
-const tokenEndpoint = 'http://traefik:80/oauth/v2/token';
+const tokenEndpoint = urlBuilder(
+  zitadelIssuer,
+  'oauth',
+  'v2',
+  'token',
+);
 
 Logger.section('Extract data from Docker volume');
 extractConfigFromDocker();
