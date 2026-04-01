@@ -1,4 +1,3 @@
-import { UnauthorizedException } from '@nestjs/common';
 import { Query, Resolver } from '@nestjs/graphql';
 import { CustomLoggerService } from 'nestjs-backend-common';
 
@@ -15,16 +14,13 @@ export class AuthResolver {
     description:
       "Return the authenticated user's profile from the JWT",
   })
-  whoAmI(@CurrentUser() user?: IAuthUser): WhoAmI {
-    // FIXME: This should be already part of the guard.
-    if (!user) {
-      throw new UnauthorizedException('Not authenticated');
-    }
-
+  whoAmI(@CurrentUser() user: IAuthUser): WhoAmI {
     return {
       sub: user.sub,
+      name: user.name,
       email: user.email,
       emailVerified: user.emailVerified,
+      preferredUsername: user.preferredUsername,
       orgId: user.orgId,
       roles: user.roles,
     };

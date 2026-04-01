@@ -9,6 +9,14 @@ export interface IAuthUser {
    */
   sub: string;
   /**
+   * @description User's full display name (e.g. "Admin User")
+   */
+  name: string;
+  /**
+   * @description User's preferred username / login name
+   */
+  preferredUsername: string;
+  /**
    * @description User's email address
    */
   email: string;

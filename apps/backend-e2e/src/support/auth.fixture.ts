@@ -5,6 +5,17 @@ import { createPrivateKey } from 'node:crypto';
 import { config } from './config.helper';
 
 export class AuthorizationFixture {
+  static async getUserAuthorizationHeader() {
+    const actorToken =
+      await AuthorizationFixture.getActorAccessToken();
+    const accessToken = await AuthorizationFixture.impersonate(
+      actorToken,
+      config.userIds.user,
+    );
+
+    return `Bearer ${accessToken}`;
+  }
+
   static async getAdminAuthorizationHeader() {
     const actorToken =
       await AuthorizationFixture.getActorAccessToken();

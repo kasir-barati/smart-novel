@@ -1,6 +1,7 @@
 import {
   createParamDecorator,
   ExecutionContext,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
 
@@ -21,8 +22,16 @@ export const CurrentUser = createParamDecorator(
   ): IAuthUser | undefined => {
     const ctx = GqlExecutionContext.create(context);
     const request = ctx.getContext().req;
+    /**
+     * @description
+     * JwtAuthGuard sets request.user after successful JWT validation
+     */
+    const user: IAuthUser | undefined = request.user;
 
-    // JwtAuthGuard sets request.user after successful JWT validation
-    return request.user as IAuthUser | undefined;
+    if (!user) {
+      throw new UnauthorizedException('Not authenticated');
+    }
+
+    return user;
   },
 );

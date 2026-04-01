@@ -96,27 +96,19 @@ export class RbacAuthorizationProvider implements IAuthorizationProvider {
 
     switch (action) {
       case 'read':
-        this.logger.log(
-          'read: ' + hasMinimumRole(userRoles, Role.USER),
-        );
-        return hasMinimumRole(userRoles, Role.USER);
+        return hasMinimumRole(userRoles, Role.user);
       case 'create':
-        this.logger.log(
-          'create: ' + hasMinimumRole(userRoles, Role.WRITER),
-        );
-        return hasMinimumRole(userRoles, Role.WRITER);
+        return hasMinimumRole(userRoles, Role.writer);
       case 'update':
       case 'delete':
         // Admins can do anything
         if (isAdmin(userRoles)) {
-          this.logger.log('update/delete: admin => allow');
           return true;
         }
 
         // Writers can only update/delete their own novels
-        if (hasMinimumRole(userRoles, Role.WRITER)) {
+        if (hasMinimumRole(userRoles, Role.writer)) {
           const res = await this.isNovelOwner(userId, novelId);
-          this.logger.log('update/delete: writer => ' + res);
           return res;
         }
 
@@ -139,20 +131,15 @@ export class RbacAuthorizationProvider implements IAuthorizationProvider {
   ): Promise<boolean> {
     switch (action) {
       case 'read':
-        this.logger.log(
-          'chapter read: ' + hasMinimumRole(userRoles, Role.USER),
-        );
-        return hasMinimumRole(userRoles, Role.USER);
-
+        return hasMinimumRole(userRoles, Role.user);
       case 'update':
         // Admins can do anything
         if (isAdmin(userRoles)) {
-          this.logger.log('chapter update: admin => allow');
           return true;
         }
 
         // Writers can only update chapters of novels they own
-        if (hasMinimumRole(userRoles, Role.WRITER)) {
+        if (hasMinimumRole(userRoles, Role.writer)) {
           // Fetch the chapter's parent novel and check ownership
           const chapter = await this.prisma.chapter.findUnique({
             where: { id: chapterId },
@@ -163,18 +150,13 @@ export class RbacAuthorizationProvider implements IAuthorizationProvider {
             },
           });
 
-          this.logger.log(
-            'Fetched chapter for ownership check: ' +
-              JSON.stringify(chapter, null, 2),
-          );
-
           if (!chapter) {
             this.logger.warn(`Chapter not found: ${chapterId}`);
             return false;
           }
 
           const isOwner = chapter.novel.ownerId === userId;
-          this.logger.log('chapter update: writer => ' + isOwner);
+
           return isOwner;
         }
 

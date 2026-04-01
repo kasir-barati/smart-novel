@@ -131,15 +131,8 @@ export class ZitadelAuthProvider
     const userInfo = await this.fetchUserInfo(token);
     const user = this.normalizeUserInfo(userInfo.sub, userInfo);
 
-    this.logger.log(
-      `useruseruser : ${JSON.stringify(user, null, 2)}`,
-    );
-
     if (user.roles.length === 0) {
       user.roles = await this.fetchUserRoles(token);
-      this.logger.log(
-        `user.roles : ${JSON.stringify(user, null, 2)}`,
-      );
     }
 
     return user;
@@ -208,7 +201,7 @@ export class ZitadelAuthProvider
 
       await this.refreshJwks();
 
-      this.logger.log(
+      this.logger.debug(
         `OIDC discovery complete. Issuer: ${this.issuer}, JWKS: ${jwksUri}`,
       );
     } catch (error) {
@@ -324,6 +317,8 @@ export class ZitadelAuthProvider
     sub: string,
     info: ZitadelUserInfoResponse,
   ): IAuthUser {
+    const name = info.name ?? '';
+    const preferredUsername = info.preferred_username ?? '';
     const email = info.email ?? '';
     const emailVerified = info.email_verified ?? false;
     const orgId = info['urn:zitadel:iam:org:id'] ?? undefined;
@@ -344,6 +339,8 @@ export class ZitadelAuthProvider
 
     return {
       sub,
+      name,
+      preferredUsername,
       email,
       emailVerified,
       orgId,

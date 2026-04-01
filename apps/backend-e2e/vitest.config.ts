@@ -29,6 +29,6 @@ export default defineConfig({
     },
 
     // Test file patterns
-    include: ['src/backend/**/chapter.e2e-spec.ts'],
+    include: ['src/backend/**/*.e2e-spec.ts'],
   },
 });

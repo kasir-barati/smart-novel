@@ -8,6 +8,16 @@ export class WhoAmI {
   sub: string;
 
   @Field(() => String, {
+    description: 'User\'s full display name (e.g. "Admin User")',
+  })
+  name: string;
+
+  @Field(() => String, {
+    description: "User's preferred username / login name",
+  })
+  preferredUsername: string;
+
+  @Field(() => String, {
     description: "User's email address",
   })
   email: string;

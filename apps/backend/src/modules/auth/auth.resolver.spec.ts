@@ -15,6 +15,8 @@ describe(AuthResolver.name, () => {
   it('should return authenticated user info', () => {
     const result = uut.whoAmI({
       sub: '234980127461293847',
+      name: 'Admin User',
+      preferredUsername: 'admin@admin.com',
       email: 'admin@admin.com',
       emailVerified: true,
       metadata: {},
@@ -23,6 +25,8 @@ describe(AuthResolver.name, () => {
 
     expect(result).toEqual({
       sub: '234980127461293847',
+      name: 'Admin User',
+      preferredUsername: 'admin@admin.com',
       email: 'admin@admin.com',
       roles: [],
       orgId: undefined,
