@@ -8,38 +8,40 @@ import { useAuth as useOidcAuth } from 'react-oidc-context';
  */
 export function useAuth() {
   const auth = useOidcAuth();
+  const user = auth.user?.profile
+    ? {
+        sub: auth.user.profile.sub,
+        name: auth.user.profile.name ?? '',
+        preferredUsername: auth.user.profile.preferred_username ?? '',
+        email: auth.user.profile.email ?? '',
+        emailVerified: !!auth.user.profile.email_verified,
+        orgId: auth.user.profile['urn:zitadel:iam:org:id'] as
+          | string
+          | undefined,
+        roles: Object.keys(
+          auth.user.profile['urn:zitadel:iam:org:project:roles'] ??
+            {},
+        ),
+      }
+    : null;
 
   return {
-    /** Decoded user profile from the ID token */
-    user: auth.user?.profile
-      ? {
-          sub: auth.user.profile.sub,
-          email: (auth.user.profile.email as string) ?? '',
-          emailVerified: !!auth.user.profile.email_verified,
-          orgId: auth.user.profile['urn:zitadel:iam:org:id'] as
-            | string
-            | undefined,
-          roles: Object.keys(
-            (auth.user.profile[
-              'urn:zitadel:iam:org:project:roles'
-            ] as Record<string, unknown>) ?? {},
-          ),
-        }
-      : null,
-    /** Raw OIDC access token (Bearer) to send to the backend */
+    /** @description Decoded user profile from the ID token */
+    user,
+    /** @description Raw OIDC access token (Bearer) to send to the backend */
     accessToken: auth.user?.access_token ?? null,
-    /** True while the silent-renew / redirect check is in progress */
+    /** @description True while the silent-renew / redirect check is in progress */
     loading: auth.isLoading,
-    /** User has a valid session */
+    /** @description User has a valid session */
     isAuthenticated: auth.isAuthenticated,
-    /** Kick off the Authorization Code + PKCE redirect */
+    /** @description Kick off the Authorization Code + PKCE redirect */
     login: () => auth.signinRedirect(),
-    /** End session at the IdP and clear local state */
+    /** @description End session at the IdP and clear local state */
     logout: () =>
       auth.signoutRedirect({
         post_logout_redirect_uri: window.location.origin,
       }),
-    /** Re-check the session (useful after callback) */
+    /** @description Re-check the session (useful after callback) */
     checkSession: () => auth.signinSilent(),
   };
 }

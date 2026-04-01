@@ -10,13 +10,10 @@ import './styles.css';
  * @description OIDC configuration.
  *
  * Uses Authorization Code + PKCE (public client — no client_secret needed on the frontend). The Zitadel Login UI handles the actual login form / MFA / etc. Environment variables (set in `.env`):
- *
- * - `VITE_OIDC_CLIENT_ID`: OIDC application client ID.
- * - `VITE_OIDC_AUTHORITY`: Zitadel issuer URL  (e.g. http://localhost:8080).
- * - `VITE_OIDC_REDIRECT_URI`: Where Zitadel redirects after login (e.g. http://localhost:8080/auth/callback).
- * - `VITE_OIDC_SCOPE`: OIDC scopes (e.g. 'openid profile email').
  */
 const oidcConfig: AuthProviderProps = {
+  loadUserInfo: true,
+  filterProtocolClaims: false,
   client_id: import.meta.env.VITE_OIDC_CLIENT_ID,
   authority: import.meta.env.VITE_OIDC_AUTHORITY,
   redirect_uri:
