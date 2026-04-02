@@ -5,6 +5,8 @@ import { defineConfig } from 'vitest/config';
 
 const VITE_EXPLAIN_SELECTION_DEBOUNCE_MS =
   process.env.VITE_EXPLAIN_SELECTION_DEBOUNCE_MS ?? '500';
+const VITE_EXPLAIN_CONTEXT_CHAR_SIZE =
+  process.env.VITE_EXPLAIN_CONTEXT_CHAR_SIZE ?? '250';
 
 export default defineConfig({
   root: import.meta.dirname,
@@ -33,5 +35,8 @@ export default defineConfig({
   define: {
     'import.meta.env.VITE_EXPLAIN_SELECTION_DEBOUNCE_MS':
       JSON.stringify(VITE_EXPLAIN_SELECTION_DEBOUNCE_MS),
+    'import.meta.env.VITE_EXPLAIN_CONTEXT_CHAR_SIZE': JSON.stringify(
+      VITE_EXPLAIN_CONTEXT_CHAR_SIZE,
+    ),
   },
 });
