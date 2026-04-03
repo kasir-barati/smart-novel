@@ -1,6 +1,6 @@
 import { Args, ID, Mutation, Resolver } from '@nestjs/graphql';
 
-import { CheckPolicy } from '../../auth';
+import { CheckPolicy, RequireRole, Role } from '../../auth';
 import { ChapterService } from '../services';
 import { Chapter } from '../types';
 
@@ -8,20 +8,20 @@ import { Chapter } from '../types';
 export class ChapterResolver {
   constructor(private readonly chapterService: ChapterService) {}
 
-  @CheckPolicy('chapter', 'read')
+  @RequireRole(Role.writer)
   @Mutation(() => String, {
-    name: 'generateTtsFriendlyContent',
     description:
-      'Convert chapter markdown into TTS-friendly text and return the result for preview',
+      'Convert markdown content into TTS-friendly text and return the result for preview',
   })
-  async generateTtsFriendlyContent(
-    @Args('id', {
-      type: () => ID,
-      description: 'The ID of the chapter to convert',
+  generateTtsFriendlyText(
+    @Args('text', {
+      type: () => String,
+      description:
+        'Markdown content to convert into TTS-friendly text',
     })
-    chapterId: string,
-  ): Promise<string> {
-    return this.chapterService.convertToTtsFriendly(chapterId);
+    text: string,
+  ): string {
+    return this.chapterService.normalizeTtsText(text);
   }
 
   @CheckPolicy('chapter', 'update')

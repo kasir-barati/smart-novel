@@ -75,17 +75,6 @@ export class ChapterService {
   }
 
   /**
-   * @description Fetches a chapter by ID, converts its markdown content
-   * into a TTS-friendly version, and returns the converted text.
-   */
-  async convertToTtsFriendly(chapterId: string): Promise<string> {
-    const chapterContent =
-      await this.chapterContentRepository.findByChapterId(chapterId);
-
-    return this.normalizeTtsText(chapterContent.content);
-  }
-
-  /**
    * @description Applies a pipeline of regex-based transformations that
    * turn manga / web-novel markdown into text a TTS engine (Piper)
    * can pronounce naturally.
@@ -93,7 +82,7 @@ export class ChapterService {
    * The transformations are applied in a deliberate order so that
    * earlier passes simplify patterns for later ones.
    */
-  private normalizeTtsText(text: string): string {
+  normalizeTtsText(text: string): string {
     let result = text;
 
     // TODO: Use pipe operator here!

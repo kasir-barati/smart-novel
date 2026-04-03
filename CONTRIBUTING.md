@@ -1,5 +1,16 @@
 # Contributing to smart-novel
 
+## Design & Code Philosophy
+
+All contributors (including AI-assisted tools) should follow the project's coding philosophy:
+
+- Write code at a senior engineer level.
+- Prefer early returns over nested conditionals.
+- Optimize for readability and maintainability.
+- Avoid unnecessary abstractions.
+- Use descriptive variable, function, and class names.
+- Follow linting, formatting, and test conventions.
+
 ## Test Conventions
 
 - If you change/add something make sure to write/update and then run the unit/e2e tests.

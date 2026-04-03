@@ -8,7 +8,7 @@ import {
   MODULE_OPTIONS_TOKEN,
 } from './auth.module-definition';
 import { AuthResolver } from './auth.resolver';
-import { JwtAuthGuard, PoliciesGuard } from './guards';
+import { JwtAuthGuard, PoliciesGuard, RolesGuard } from './guards';
 import { AUTH_PROVIDER, AUTHORIZATION_PROVIDER } from './interfaces';
 import {
   RbacAuthorizationProvider,
@@ -19,11 +19,12 @@ import {
  * @description
  * Authentication & authorization module.
  *
- * Registers two global guards in order:
+ * Registers three global guards in order:
  * 1. `JwtAuthGuard` — **Authentication**: validates the Bearer JWT via JWKS and attaches `IAuthUser` to `request.user`.
- * 2. `PoliciesGuard` — **Authorization**: reads `@CheckPolicy()` metadata and delegates to `RbacAuthorizationProvider` for RBAC decisions.
+ * 2. `PoliciesGuard` — **Authorization (resource gate)**: reads `@CheckPolicy()` metadata and delegates to `RbacAuthorizationProvider` for RBAC decisions.
+ * 3. `RolesGuard` — **Authorization (role gate)**: reads `@RequireRole()` metadata and checks the user's highest role against the minimum required level.
  *
- * Use `@Public()` to bypass both guards on specific resolvers.
+ * Use `@Public()` to bypass all guards on specific resolvers.
  */
 @Module({})
 export class AuthModule extends ConfigurableModuleClass {
@@ -96,6 +97,12 @@ export class AuthModule extends ConfigurableModuleClass {
       {
         provide: APP_GUARD,
         useClass: PoliciesGuard,
+      },
+      // Global role-based guard (reads @RequireRole() metadata)
+      RolesGuard,
+      {
+        provide: APP_GUARD,
+        useClass: RolesGuard,
       },
       // GraphQL resolver
       AuthResolver,

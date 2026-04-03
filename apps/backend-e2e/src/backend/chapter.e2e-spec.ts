@@ -136,18 +136,76 @@ describe('Chapter (e2e)', () => {
     },
   );
 
-  it.todo.each([])(
-    'should ONLY allow users with access to generate ttsFriendlyContent',
-    () => {},
+  it.each([
+    {
+      role: 'admin',
+      getAuthorizationHeader:
+        AuthorizationFixture.getAdminAuthorizationHeader,
+    },
+    {
+      role: 'writer',
+      getAuthorizationHeader:
+        AuthorizationFixture.getWriterAuthorizationHeader,
+    },
+  ])(
+    'should ONLY allow $role to generate TTS-friendly for the text',
+    async ({ getAuthorizationHeader }) => {
+      const authorizationHeader = await getAuthorizationHeader();
+
+      const { status, data } = await axios.post(
+        '/graphql',
+        {
+          query: `#graphql
+            mutation GenerateTtsFriendlyText($text: String!) {
+              generateTtsFriendlyText(text: $text)
+            }
+          `,
+          variables: {
+            text: 'W-What was that?! BOOM! The [Fireball] exploded!',
+          },
+        },
+        { headers: { Authorization: authorizationHeader } },
+      );
+
+      expect(status).toBe(200);
+      expect(data.errors).toBeUndefined();
+      expect(data.data.generateTtsFriendlyText).toBeString();
+      expect(data.data.generateTtsFriendlyText).toContain(
+        'w... what',
+      );
+      expect(data.data.generateTtsFriendlyText).toContain('boom!');
+      expect(data.data.generateTtsFriendlyText).toContain(
+        ', Fireball,',
+      );
+    },
   );
+
+  it('should deny a regular user from generating TTS-friendly text', async () => {
+    const authorizationHeader =
+      await AuthorizationFixture.getUserAuthorizationHeader();
+
+    const { status, data } = await axios.post(
+      '/graphql',
+      {
+        query: `#graphql
+          mutation GenerateTtsFriendlyText($text: String!) {
+            generateTtsFriendlyText(text: $text)
+          }
+        `,
+        variables: {
+          text: 'Hello world',
+        },
+      },
+      { headers: { Authorization: authorizationHeader } },
+    );
+
+    expect(status).toBe(200);
+    expect(data.errors).toBeArray();
+    expect(data.errors[0].message).toContain('role');
+  });
 
   it.todo(
     'should throw not authorized error when user does NOT have permission to update content & ttsFriendlyContent',
-    () => {},
-  );
-
-  it.todo(
-    'should throw not authorized error when user does NOT have permission to generate ttsFriendlyContent',
     () => {},
   );
 });

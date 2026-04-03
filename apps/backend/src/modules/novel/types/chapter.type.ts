@@ -22,6 +22,7 @@ export class Chapter implements IChapter {
     description: 'FK to the chapter content record',
   })
   contentId: string;
+
   @Field({ description: 'The creation date of the chapter' })
   createdAt: string;
 
