@@ -170,7 +170,7 @@ services:
       args:
         VITE_SERVICE_URL: ${VITE_SERVICE_URL}
         # Use a placeholder for the client ID — it is generated at runtime by
-        # init-zitadel. The entrypoint below replaces the placeholder in
+        # setup-zitadel. The entrypoint below replaces the placeholder in
         # the built JS bundle before nginx starts.
         VITE_OIDC_CLIENT_ID: __OIDC_CLIENT_ID_PLACEHOLDER__
         VITE_OIDC_AUTHORITY: ${VITE_OIDC_AUTHORITY}
@@ -184,7 +184,7 @@ services:
         condition: service_healthy
       s3:
         condition: service_healthy
-      init-zitadel:
+      setup-zitadel:
         condition: service_completed_successfully
     volumes:
       - ./local-setup/start-frontend-e2e.sh:/app/start-frontend-e2e.sh:ro
@@ -336,7 +336,7 @@ services:
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: ${ZITADEL_ADMIN_USERNAME:-admin}
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: ${ZITADEL_ADMIN_PASSWORD:-Admin123!}
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED: false
-      # Machine user (IAM_OWNER) whose PAT is written to a shared volume so the init-zitadel container can read it.
+      # Machine user (IAM_OWNER) whose PAT is written to a shared volume so the setup-zitadel container can read it.
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME: bot
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: Bot
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE: "9999-12-31T23:59:59Z"
