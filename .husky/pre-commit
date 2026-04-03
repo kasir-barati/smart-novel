@@ -1,1 +1,2 @@
 npm run lint-staged
+npx nx prisma:format backend

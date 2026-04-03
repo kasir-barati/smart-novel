@@ -150,49 +150,41 @@ function extractConfigFromDocker() {
 
   const files = [
     {
-      log: 'Extracting integration test bot token...',
       containerPath: join(integrationTestDir, 'bot-token'),
       hostFilePath: 'local-setup/pats/bot-token',
     },
     {
-      log: 'Extracting integration test client ID...',
       containerPath: join(integrationTestDir, `${appName}-client-id`),
       hostFilePath: `local-setup/client/${appName}-client-id`,
     },
     {
-      log: 'Extracting integration test client secret...',
       containerPath: join(integrationTestDir, `${appName}-secret`),
       hostFilePath: `local-setup/client/${appName}-secret`,
     },
     {
-      log: 'Extracting admin user ID...',
       containerPath: join(userIdsDir, 'admin'),
       hostFilePath: 'local-setup/user-ids/admin',
     },
     {
-      log: 'Extracting regular user ID...',
       containerPath: join(userIdsDir, 'user'),
       hostFilePath: 'local-setup/user-ids/user',
     },
     {
-      log: 'Extracting writer user ID...',
       containerPath: join(userIdsDir, 'writer'),
       hostFilePath: 'local-setup/user-ids/writer',
     },
     {
-      log: 'Extracting project ID...',
       containerPath: join(zitadelDir, 'project-id'),
       hostFilePath: 'local-setup/pats/project-id',
     },
     {
-      log: 'Extracting integration test bot key...',
       containerPath: join(integrationTestDir, 'bot-key.json'),
       hostFilePath: 'local-setup/pats/bot-key.json',
     },
   ];
 
-  for (const { log, containerPath, hostFilePath } of files) {
-    Logger.log(log);
+  Logger.section('Extracting config files from Docker volume');
+  for (const { containerPath, hostFilePath } of files) {
     DockerFixture.extractFile(
       workspaceRoot,
       containerPath,

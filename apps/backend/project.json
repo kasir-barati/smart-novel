@@ -73,6 +73,14 @@
         "reporter": "verbose"
       }
     },
+    "prisma:format": {
+      "executor": "nx:run-commands",
+      "description": "Format Prisma schema files",
+      "options": {
+        "command": "npx prisma format --schema=prisma/schema.prisma",
+        "cwd": "{projectRoot}"
+      }
+    },
     "prisma:generate": {
       "executor": "nx:run-commands",
       "description": "Generate Prisma client",

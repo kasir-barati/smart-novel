@@ -3,6 +3,8 @@ import { execSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { Logger } from './logger';
+
 /** @description the service name comes from the compose file */
 type ServiceName = 'backend-e2e' | 'zitadel' | 'init-postgres';
 /** @description the profile name comes from the compose file */
@@ -30,20 +32,18 @@ export class DockerFixture {
       ).trim();
 
       if (isEmpty(fileContent)) {
-        console.warn(`  ⚠ ${containerPath} was empty`);
+        Logger.warn(`${containerPath} was empty`);
         return;
       }
 
       const outPath = path.resolve(cwd, hostFilePath);
 
       writeFileSync(outPath, fileContent, 'utf-8');
-      console.log(
-        `  ✓ Extracted ${containerPath} → ${hostFilePath} (${fileContent.length} chars)`,
+      Logger.log(
+        `Extracted ${containerPath} → ${hostFilePath} (${fileContent.length} chars)`,
       );
     } catch (error) {
-      console.warn(
-        `  ⚠ Could not extract ${containerPath}: ${error}`,
-      );
+      Logger.warn(`Could not extract ${containerPath}: ${error}`);
     }
   }
 
