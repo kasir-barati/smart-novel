@@ -5,8 +5,10 @@ import {
 } from '@nestjs/common';
 
 import {
+  CHAPTER_CONTENT_REPOSITORY,
   CHAPTER_REPOSITORY,
   IChapter,
+  type IChapterContentRepository,
   type IChapterRepository,
 } from '../interfaces';
 
@@ -27,6 +29,8 @@ export class ChapterService {
   constructor(
     @Inject(CHAPTER_REPOSITORY)
     private readonly chapterRepository: IChapterRepository,
+    @Inject(CHAPTER_CONTENT_REPOSITORY)
+    private readonly chapterContentRepository: IChapterContentRepository,
   ) {}
 
   // TODO:
@@ -53,17 +57,19 @@ export class ChapterService {
     ttsFriendlyContent: string,
   ): Promise<IChapter> {
     // TODO: validate the ttsFriendlyContent make sense (the content should match the TTS-friendly version)!
-    const chapter = await this.chapterRepository.updateContent(
-      chapterId,
-      content,
-      ttsFriendlyContent,
-    );
+    const chapter = await this.chapterRepository.findById(chapterId);
 
     if (!chapter) {
       throw new NotFoundException(
         `Chapter with id ${chapterId} not found`,
       );
     }
+
+    await this.chapterContentRepository.upsertByChapterId(
+      chapterId,
+      content,
+      ttsFriendlyContent,
+    );
 
     return chapter;
   }
@@ -73,15 +79,10 @@ export class ChapterService {
    * into a TTS-friendly version, and returns the converted text.
    */
   async convertToTtsFriendly(chapterId: string): Promise<string> {
-    const chapter = await this.chapterRepository.findById(chapterId);
+    const chapterContent =
+      await this.chapterContentRepository.findByChapterId(chapterId);
 
-    if (!chapter) {
-      throw new NotFoundException(
-        `Chapter with id ${chapterId} not found`,
-      );
-    }
-
-    return this.normalizeTtsText(chapter.content);
+    return this.normalizeTtsText(chapterContent.content);
   }
 
   /**

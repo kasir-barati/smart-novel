@@ -2,80 +2,107 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
+  provider = "postgresql"
 }
 
 enum NarrationStatus {
-    PROCESSING
-    READY
-    FAILED
+  PROCESSING
+  READY
+  FAILED
 }
 
 enum NovelState {
-    ONGOING
-    FINISHED
+  ONGOING
+  FINISHED
 }
 
 model Novel {
-    id          String     @id @default(uuid()) @db.Uuid
-    name        String
-    author      String
-    description String     @db.Text
-    state       NovelState @default(ONGOING)
-    coverUrl    String?    @map("cover_url")
-    ownerId     String     @map("owner_id")
-    createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz
-    updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+  id          String     @id @default(uuid()) @db.Uuid
+  name        String
+  author      String
+  description String     @db.Text
+  state       NovelState @default(ONGOING)
+  coverUrl    String?    @map("cover_url")
+  ownerId     String     @map("owner_id")
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz
 
-    chapters   Chapter[]
-    categories NovelCategory[]
+  chapters   Chapter[]
+  categories NovelCategory[]
 
-    @@index([ownerId], name: "IDX_novels_owner")
-    @@map("novels")
+  @@index([ownerId], name: "IDX_novels_owner")
+  @@map("novels")
 }
 
 model Chapter {
-    id                 String           @id @default(uuid()) @db.Uuid
-    novelId            String           @map("novel_id") @db.Uuid
-    title              String
-    content            String           @db.Text
-    ttsFriendlyContent String?          @map("tts_friendly_content") @db.Text
-    narrationStatus    NarrationStatus? @map("narration_status")
-    narrationUrl       String?          @map("narration_url")
-    chapterNumber      Int              @map("chapter_number")
-    createdAt          DateTime         @default(now()) @map("created_at") @db.Timestamptz
-    updatedAt          DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+  id        String @id @default(uuid()) @db.Uuid
+  novelId   String @map("novel_id") @db.Uuid
+  contentId String @unique @map("content_id") @db.Uuid
 
-    novel Novel @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  title           String
+  narrationStatus NarrationStatus? @map("narration_status")
+  narrationUrl    String?          @map("narration_url")
+  chapterNumber   Int              @map("chapter_number")
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz
 
-    @@index([novelId], name: "IDX_chapters_novel")
-    @@map("chapters")
+  novel   Novel          @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  content ChapterContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@index([novelId], name: "IDX_chapters_novel")
+  @@map("chapters")
+}
+
+model ChapterContent {
+  id                 String  @id @default(uuid()) @db.Uuid
+  content            String  @db.Text
+  ttsFriendlyContent String? @map("tts_friendly_content") @db.Text
+
+  // optional full-text search/materialized info
+  contentTsv  Unsupported("tsvector")? @map("content_tsv")
+  contentHash String                   @map("content_hash")
+  ttsHash     String?                  @map("tts_hash")
+  wordCount   Int?                     @map("word_count")
+  charCount   Int?                     @map("char_count")
+  language    String?                  @map("lang")
+  format      String?                  @map("format")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // back-reference
+  chapter Chapter?
+
+  @@index([contentTsv], type: Gin)
+  @@index([contentHash])
+  @@index([language])
+  @@map("chapter_contents")
 }
 
 model Category {
-    id        String   @id @default(uuid()) @db.Uuid
-    name      String   @unique
-    createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-    updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-    novels NovelCategory[]
+  novels NovelCategory[]
 
-    @@map("categories")
+  @@map("categories")
 }
 
 model NovelCategory {
-    novelId    String @map("novel_id") @db.Uuid
-    categoryId String @map("category_id") @db.Uuid
+  novelId    String @map("novel_id") @db.Uuid
+  categoryId String @map("category_id") @db.Uuid
 
-    novel    Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)
-    category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  novel    Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
-    @@id([novelId, categoryId])
-    @@index([novelId], name: "IDX_novel_categories_novel")
-    @@index([categoryId], name: "IDX_novel_categories_category")
-    @@map("novel_categories")
+  @@id([novelId, categoryId])
+  @@index([novelId], name: "IDX_novel_categories_novel")
+  @@index([categoryId], name: "IDX_novel_categories_category")
+  @@map("novel_categories")
 }

@@ -1,12 +1,10 @@
 import { PrismaClient } from '@prisma/client';
+import { createHash } from 'crypto';
 import { readdir, readFile } from 'fs/promises';
 import matter from 'gray-matter';
 import { join } from 'path';
 
-type PrismaTransactionClient = Omit<
-  PrismaClient,
-  '$connect' | '$disconnect' | '$on' | '$transaction' | '$extends'
->;
+import { PrismaTransactionClient } from '../../src/modules/prisma';
 
 interface NovelDetails {
   databaseId: string;
@@ -82,6 +80,10 @@ async function loadChapters(
   return chapters;
 }
 
+function computeContentHash(content: string): string {
+  return createHash('sha256').update(content).digest('hex');
+}
+
 async function batchInsertChapters(
   prisma: PrismaTransactionClient,
   novelId: string,
@@ -90,13 +92,23 @@ async function batchInsertChapters(
   // Split chapters into batches
   for (let i = 0; i < chapters.length; i += BATCH_SIZE) {
     const batch = chapters.slice(i, i + BATCH_SIZE);
+    const contentRecords = batch.map((chapter) => ({
+      id: crypto.randomUUID(),
+      content: chapter.content,
+      contentHash: computeContentHash(chapter.content),
+    }));
+
+    await prisma.chapterContent.createMany({
+      data: contentRecords,
+      skipDuplicates: true,
+    });
 
     await prisma.chapter.createMany({
-      data: batch.map((chapter) => ({
+      data: batch.map((chapter, index) => ({
         id: chapter.id,
         novelId,
         title: chapter.title,
-        content: chapter.content,
+        contentId: contentRecords[index].id,
         chapterNumber: chapter.chapterNumber,
       })),
       skipDuplicates: true,

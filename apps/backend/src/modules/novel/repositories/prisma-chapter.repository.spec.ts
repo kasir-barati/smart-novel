@@ -15,7 +15,6 @@ describe(PrismaChapterRepository.name, () => {
   const mockCorrelationId = '8180f8fc-73f4-47e2-bf79-d637c54e5d67';
 
   beforeEach(async () => {
-    // Mock PrismaService with all required methods
     prismaService = {
       novel: {
         findMany: vi.fn(),
@@ -32,7 +31,6 @@ describe(PrismaChapterRepository.name, () => {
       },
     } as any;
 
-    // Mock logger
     logger = {
       error: vi.fn(),
       log: vi.fn(),
@@ -40,7 +38,6 @@ describe(PrismaChapterRepository.name, () => {
       debug: vi.fn(),
     } as any;
 
-    // Mock correlation ID service
     correlationIdService = {
       correlationId: mockCorrelationId,
     } as any;
@@ -53,7 +50,7 @@ describe(PrismaChapterRepository.name, () => {
   });
 
   describe('findById', () => {
-    it('should return chapter by id with transformed data', async () => {
+    it('should return chapter by id with contentId but without content', async () => {
       const { chapter } = getMockedData();
       vi.mocked(prismaService.chapter.findFirst).mockResolvedValue(
         chapter as any,
@@ -66,8 +63,8 @@ describe(PrismaChapterRepository.name, () => {
       expect(result).toEqual({
         id: 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
         novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
+        contentId: 'ccc63ad5-1ac4-46c2-a25f-6f62d245f44c',
         title: 'Chapter 1: The Beginning',
-        content: '# Chapter 1\n\nThis is the content.',
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-02T00:00:00.000Z',
         narrationStatus: 'READY',
@@ -78,7 +75,7 @@ describe(PrismaChapterRepository.name, () => {
       });
     });
 
-    it('should return null when novel is not found', async () => {
+    it('should return null when chapter is not found', async () => {
       vi.mocked(prismaService.chapter.findFirst).mockResolvedValue(
         null,
       );
@@ -88,7 +85,7 @@ describe(PrismaChapterRepository.name, () => {
       expect(result).toBeNull();
     });
 
-    it('should return null and log error when database fails', async () => {
+    it('should throw when database fails', async () => {
       const error = new Error('Database error');
       vi.mocked(prismaService.chapter.findFirst).mockRejectedValue(
         error,
@@ -117,8 +114,8 @@ describe(PrismaChapterRepository.name, () => {
       expect(result).toEqual({
         id: 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
         novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
+        contentId: 'ccc63ad5-1ac4-46c2-a25f-6f62d245f44c',
         title: 'Chapter 1: The Beginning',
-        content: '# Chapter 1\n\nThis is the content.',
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-02T00:00:00.000Z',
         narrationStatus: NarrationStatus.READY,
@@ -181,43 +178,6 @@ describe(PrismaChapterRepository.name, () => {
         `Error reading chapter bb563ad5-1ac4-46c2-a25f-6f62d245f44c: ${error}`,
         { correlationId: mockCorrelationId },
       );
-    });
-  });
-
-  describe('findById', () => {
-    it('should return chapter by id only', async () => {
-      const { chapter } = getMockedData();
-      vi.mocked(prismaService.chapter.findFirst).mockResolvedValue(
-        chapter as any,
-      );
-
-      const result = await uut.findById(
-        'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
-      );
-
-      expect(result).toEqual({
-        id: 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
-        novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
-        title: 'Chapter 1: The Beginning',
-        content: '# Chapter 1\n\nThis is the content.',
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-02T00:00:00.000Z',
-        narrationStatus: NarrationStatus.READY,
-        narrationUrl: 'https://example.com/narration.mp3',
-      });
-      expect(prismaService.chapter.findFirst).toHaveBeenCalledWith({
-        where: { id: 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c' },
-      });
-    });
-
-    it('should return null when chapter is not found', async () => {
-      vi.mocked(prismaService.chapter.findFirst).mockResolvedValue(
-        null,
-      );
-
-      const result = await uut.findById('non-existent-uuid');
-
-      expect(result).toBeNull();
     });
   });
 
@@ -324,56 +284,6 @@ describe(PrismaChapterRepository.name, () => {
       expect(result).toBe(0);
     });
   });
-
-  describe('updateContent', () => {
-    it('should update the ttsFriendlyContent', async () => {
-      const chapterId = 'ad8856c2-fb32-45e9-b673-80a9ba07494e';
-      const content = '# Chapter 1\n\nhmm';
-      const ttsFriendlyContent = 'Chapter 1\n\nhmm';
-      vi.mocked(prismaService.chapter.update).mockResolvedValue({
-        id: chapterId,
-        ttsFriendlyContent,
-        content,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      } as any);
-
-      const chapter = await uut.updateContent(
-        chapterId,
-        content,
-        ttsFriendlyContent,
-      );
-
-      expect(chapter?.id).toBe(chapterId);
-      expect(chapter).toContainKeys([
-        'title',
-        'novelId',
-        'content',
-        'narrationUrl',
-        'narrationStatus',
-      ]);
-      expect(chapter?.createdAt).toBeDateString();
-      expect(chapter?.updatedAt).toBeDateString();
-      expect(prismaService.chapter.update).toHaveBeenCalledWith({
-        where: { id: chapterId },
-        data: { content, ttsFriendlyContent },
-      });
-    });
-
-    it('should raise an exception if it chapter does NOT exist', async () => {
-      vi.mocked(prismaService.chapter.update).mockResolvedValue(
-        null as any,
-      );
-
-      const res = await uut.updateContent(
-        '7da11683-4ba4-4007-b4d9-abdcb22fe156',
-        '# Chapter 1\n\ncrack',
-        'crack',
-      );
-
-      expect(res).toBeNull();
-    });
-  });
 });
 
 function getMockedData() {
@@ -397,7 +307,7 @@ function getMockedData() {
     id: 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
     novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
     title: 'Chapter 1: The Beginning',
-    content: '# Chapter 1\n\nThis is the content.',
+    contentId: 'ccc63ad5-1ac4-46c2-a25f-6f62d245f44c',
     chapterNumber: 1,
     createdAt: new Date('2024-01-01T00:00:00Z'),
     updatedAt: new Date('2024-01-02T00:00:00Z'),

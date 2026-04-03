@@ -17,11 +17,6 @@ export interface IChapterRepository {
     id: string,
     url: string,
   ): Promise<number>;
-  updateContent(
-    id: string,
-    content: string,
-    ttsFriendlyContent: string,
-  ): Promise<IChapter | null>;
 }
 
 export const CHAPTER_REPOSITORY = Symbol('CHAPTER_REPOSITORY');

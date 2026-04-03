@@ -1,13 +1,33 @@
+import { BadRequestException } from '@nestjs/common';
 import { Parent, ResolveField, Resolver } from '@nestjs/graphql';
 
 import { Public } from '../../auth';
+import { ChapterContentDataLoader } from '../dataloaders';
 import { NovelService } from '../services';
 import { Chapter } from '../types';
 
 @Public()
 @Resolver(() => Chapter)
 export class ChapterFieldResolver {
-  constructor(private readonly novelService: NovelService) {}
+  constructor(
+    private readonly novelService: NovelService,
+    private readonly chapterContentDataLoader: ChapterContentDataLoader,
+  ) {}
+
+  @ResolveField(() => String, {
+    description: 'The content of the chapter in markdown format',
+  })
+  async content(@Parent() chapter: Chapter): Promise<string> {
+    const chapterContent = await this.chapterContentDataLoader.load(
+      chapter.contentId,
+    );
+
+    if (!chapterContent) {
+      throw new BadRequestException('Chapter content not found');
+    }
+
+    return chapterContent.content;
+  }
 
   @ResolveField(() => Chapter, {
     nullable: true,

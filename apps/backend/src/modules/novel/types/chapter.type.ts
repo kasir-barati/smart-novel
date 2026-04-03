@@ -15,14 +15,13 @@ export class Chapter implements IChapter {
   })
   novelId: string;
 
-  @Field({ nullable: true, description: 'The title of the chapter' })
-  title?: string;
+  @Field({ description: 'The title of the chapter' })
+  title: string;
 
-  @Field({
-    description: 'The content of the chapter in markdown format',
+  @Field(() => ID, {
+    description: 'FK to the chapter content record',
   })
-  content: string;
-
+  contentId: string;
   @Field({ description: 'The creation date of the chapter' })
   createdAt: string;
 

@@ -1,8 +1,14 @@
 import { Module } from '@nestjs/common';
 
-import { CHAPTER_REPOSITORY, NOVEL_REPOSITORY } from './interfaces';
+import { ChapterContentDataLoader } from './dataloaders';
+import {
+  CHAPTER_CONTENT_REPOSITORY,
+  CHAPTER_REPOSITORY,
+  NOVEL_REPOSITORY,
+} from './interfaces';
 import { PubSubProvider } from './providers';
 import {
+  PrismaChapterContentRepository,
   PrismaChapterRepository,
   PrismaNovelRepository,
 } from './repositories';
@@ -31,6 +37,8 @@ import {
     ChapterNarrationService,
     NarrationLockService,
     PrismaNovelRepository,
+    PrismaChapterContentRepository,
+    ChapterContentDataLoader,
     PubSubProvider,
     MarkdownToSpeechTextService,
     {
@@ -40,6 +48,10 @@ import {
     {
       provide: CHAPTER_REPOSITORY,
       useClass: PrismaChapterRepository,
+    },
+    {
+      provide: CHAPTER_CONTENT_REPOSITORY,
+      useClass: PrismaChapterContentRepository,
     },
   ],
 })

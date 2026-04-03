@@ -1,24 +1,27 @@
 import { NotFoundException } from '@nestjs/common';
 
-import type { IChapter, IChapterRepository } from '../interfaces';
+import type {
+  IChapterContentRepository,
+  IChapterRepository,
+} from '../interfaces';
 
 import { ChapterService } from './chapter.service';
 
 describe(ChapterService.name, () => {
   let uut: ChapterService;
   let chapterRepository: IChapterRepository;
+  let chapterContentRepository: IChapterContentRepository;
 
   const CHAPTER_ID = 'test-chapter-id';
 
-  function mockGetChapterById(content: string) {
-    vi.mocked(chapterRepository.findById).mockResolvedValue({
-      id: CHAPTER_ID,
-      novelId: 'novel-id',
-      title: 'Test Chapter',
+  function mockContentByChapterId(content: string) {
+    vi.mocked(
+      chapterContentRepository.findByChapterId,
+    ).mockResolvedValue({
+      id: 'content-id',
       content,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    } satisfies IChapter);
+      contentHash: 'hash',
+    });
   }
 
   beforeEach(() => {
@@ -28,17 +31,37 @@ describe(ChapterService.name, () => {
       updateNarrationStatus: vi.fn(),
       updateChapterNarrationUrl: vi.fn(),
       updateChapterNarrationComplete: vi.fn(),
-      updateContent: vi.fn(),
     };
 
-    uut = new ChapterService(chapterRepository);
+    chapterContentRepository = {
+      findByIds: vi.fn(),
+      findByChapterId: vi.fn(),
+      upsertByChapterId: vi.fn(),
+    };
+
+    uut = new ChapterService(
+      chapterRepository,
+      chapterContentRepository,
+    );
   });
 
   describe('updateContent', () => {
-    it("should update the chapter's content and ttsFriendlyContent fields", async () => {
-      vi.mocked(chapterRepository.updateContent).mockResolvedValue(
-        {} as any,
-      );
+    it("should update the chapter's content via content repository", async () => {
+      vi.mocked(chapterRepository.findById).mockResolvedValue({
+        id: '4bbc4da9-107c-4872-9809-78f6191a092d',
+        novelId: '4754496a-ccb4-4a6b-805d-809a6cea97c8',
+        contentId: 'fdba9d1b-32db-4b18-85c4-a5f2e680dcec',
+        title: 'Chapter 1',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      vi.mocked(
+        chapterContentRepository.upsertByChapterId,
+      ).mockResolvedValue({
+        id: 'fdba9d1b-32db-4b18-85c4-a5f2e680dcec',
+        content: '# Chapter 1\n\nHooray',
+        contentHash: 'hash',
+      });
 
       const res = await uut.updateContent(
         '4bbc4da9-107c-4872-9809-78f6191a092d',
@@ -46,13 +69,20 @@ describe(ChapterService.name, () => {
         'Chapter 1\n\nHooray',
       );
 
-      expect(res).toBeDefined();
+      expect(
+        chapterContentRepository.upsertByChapterId,
+      ).toHaveBeenCalledWith(
+        '4bbc4da9-107c-4872-9809-78f6191a092d',
+        '# Chapter 1\n\nHooray',
+        'Chapter 1\n\nHooray',
+      );
+      expect(res.contentId).toBe(
+        'fdba9d1b-32db-4b18-85c4-a5f2e680dcec',
+      );
     });
 
     it('should raise an exception if chapter does NOT exist', async () => {
-      vi.mocked(chapterRepository.updateContent).mockResolvedValue(
-        null,
-      );
+      vi.mocked(chapterRepository.findById).mockResolvedValue(null);
 
       const res = uut.updateContent(
         '761ba2ab-8d2f-46b0-8cf2-11f072be3bba',
@@ -65,17 +95,9 @@ describe(ChapterService.name, () => {
   });
 
   describe('convertToTtsFriendly', () => {
-    it('should throw BadRequestException when chapter is not found', async () => {
-      vi.mocked(chapterRepository.findById).mockResolvedValue(null);
-
-      const res = uut.convertToTtsFriendly('non-existent-id');
-
-      await expect(res).rejects.toThrow(NotFoundException);
-    });
-
     describe('silent dialogue', () => {
       it('should convert "......" to "..."', async () => {
-        mockGetChapterById('"......"');
+        mockContentByChapterId('"......"');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -83,31 +105,31 @@ describe(ChapterService.name, () => {
       });
 
       it('should convert "..." to "..."', async () => {
-        mockGetChapterById('"..."');
+        mockContentByChapterId('"..."');
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
         expect(res).toBe('...');
       });
 
       it('should convert "....??" to "hmm?"', async () => {
-        mockGetChapterById('"....??"');
+        mockContentByChapterId('"....??"');
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
         expect(res).toBe('hmm?');
       });
 
       it('should convert "...?" to "hmm?"', async () => {
-        mockGetChapterById('"...?"');
+        mockContentByChapterId('"...?"');
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
         expect(res).toBe('hmm?');
       });
 
       it('should handle name before silent dialogue', async () => {
-        mockGetChapterById('Alex "......"');
+        mockContentByChapterId('Alex "......"');
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
         expect(res).toBe('Alex ...');
       });
 
       it('should handle name before confused dialogue', async () => {
-        mockGetChapterById('Alex "....??"');
+        mockContentByChapterId('Alex "....??"');
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
         expect(res).toBe('Alex hmm?');
       });
@@ -115,25 +137,25 @@ describe(ChapterService.name, () => {
 
     describe('tilde removal', () => {
       it('should remove tilde after elongated word', async () => {
-        mockGetChapterById('ahhh~');
+        mockContentByChapterId('ahhh~');
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
         expect(res).toBe('ahh');
       });
 
       it('should remove tilde before punctuation', async () => {
-        mockGetChapterById('oooh~!');
+        mockContentByChapterId('oooh~!');
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
         expect(res).toBe('ooh!');
       });
 
       it('should remove tilde before space', async () => {
-        mockGetChapterById('ahhh~ yes');
+        mockContentByChapterId('ahhh~ yes');
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
         expect(res).toBe('ahh yes');
       });
 
       it('should not remove tilde in the middle of text like path~name', async () => {
-        mockGetChapterById('path~name');
+        mockContentByChapterId('path~name');
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
         expect(res).toBe('path~name');
       });
@@ -141,61 +163,61 @@ describe(ChapterService.name, () => {
 
     describe('repeated letter collapsing', () => {
       it('should collapse "ahhhhhhhh" to "ahh"', async () => {
-        mockGetChapterById('ahhhhhhhh');
+        mockContentByChapterId('ahhhhhhhh');
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
         expect(res).toBe('ahh');
       });
 
       it('should collapse "CRAAAACK" to "craack"', async () => {
-        mockGetChapterById('CRAAAACK');
+        mockContentByChapterId('CRAAAACK');
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
         expect(res).toBe('craack');
       });
 
       it('should collapse "WHOOOOOSH!" to "whoosh!"', async () => {
-        mockGetChapterById('WHOOOOOSH!');
+        mockContentByChapterId('WHOOOOOSH!');
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
         expect(res).toBe('whoosh!');
       });
 
       it('should collapse "FWOOOOSH" to "fwoosh"', async () => {
-        mockGetChapterById('FWOOOOSH');
+        mockContentByChapterId('FWOOOOSH');
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
         expect(res).toBe('fwoosh');
       });
 
       it('should collapse "BOOOOOOM" to "boom"', async () => {
-        mockGetChapterById('BOOOOOOM');
+        mockContentByChapterId('BOOOOOOM');
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
         expect(res).toBe('boom');
       });
 
       it('should collapse "CRAAAACCKKKK" to "craacckk"', async () => {
-        mockGetChapterById('CRAAAACCKKKK');
+        mockContentByChapterId('CRAAAACCKKKK');
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
         expect(res).toBe('craacckk');
       });
 
       it('should collapse "SLAAAAAAM" to "slaam"', async () => {
-        mockGetChapterById('SLAAAAAAM');
+        mockContentByChapterId('SLAAAAAAM');
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
         expect(res).toBe('slaam');
       });
 
       it('should not collapse normal double letters like "book"', async () => {
-        mockGetChapterById('book');
+        mockContentByChapterId('book');
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
         expect(res).toBe('book');
       });
 
       it('should not collapse normal double letters like "feel"', async () => {
-        mockGetChapterById('feel');
+        mockContentByChapterId('feel');
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
         expect(res).toBe('feel');
       });
 
       it('should collapse "whattttt" to "whatt"', async () => {
-        mockGetChapterById('whattttt');
+        mockContentByChapterId('whattttt');
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
         expect(res).toBe('whatt');
       });
@@ -203,19 +225,19 @@ describe(ChapterService.name, () => {
 
     describe('excessive dots collapsing', () => {
       it('should collapse "ahhh......" to "ahh..."', async () => {
-        mockGetChapterById('ahhh......');
+        mockContentByChapterId('ahhh......');
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
         expect(res).toBe('ahh...');
       });
 
       it('should leave "..." as-is', async () => {
-        mockGetChapterById('wait...');
+        mockContentByChapterId('wait...');
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
         expect(res).toBe('wait...');
       });
 
       it('should collapse "........" to "..."', async () => {
-        mockGetChapterById('hmm........');
+        mockContentByChapterId('hmm........');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -225,7 +247,7 @@ describe(ChapterService.name, () => {
 
     describe('ALL CAPS lowercasing', () => {
       it('should lowercase "CRACK" to "crack"', async () => {
-        mockGetChapterById('CRACK');
+        mockContentByChapterId('CRACK');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -233,7 +255,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should lowercase "BOOM" to "boom"', async () => {
-        mockGetChapterById('BOOM');
+        mockContentByChapterId('BOOM');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -241,7 +263,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should lowercase "BOOM!" to "boom!"', async () => {
-        mockGetChapterById('BOOM!');
+        mockContentByChapterId('BOOM!');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -249,7 +271,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should not lowercase single letter "I"', async () => {
-        mockGetChapterById('I am fine');
+        mockContentByChapterId('I am fine');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -257,7 +279,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should not lowercase mixed case "Hello"', async () => {
-        mockGetChapterById('Hello');
+        mockContentByChapterId('Hello');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -265,7 +287,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should lowercase multiple ALL CAPS words', async () => {
-        mockGetChapterById('THE BIG BOOM');
+        mockContentByChapterId('THE BIG BOOM');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -273,7 +295,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should lowercase ALL CAPS in context', async () => {
-        mockGetChapterById('He heard a CRACK and ran');
+        mockContentByChapterId('He heard a CRACK and ran');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -283,7 +305,7 @@ describe(ChapterService.name, () => {
 
     describe('stutter / hesitation patterns', () => {
       it('should convert "Wh-What" to "wh... what"', async () => {
-        mockGetChapterById('Wh-What');
+        mockContentByChapterId('Wh-What');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -291,7 +313,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should convert "W-What" to "w... what"', async () => {
-        mockGetChapterById('W-What');
+        mockContentByChapterId('W-What');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -299,7 +321,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should convert "N-No" to "n... no"', async () => {
-        mockGetChapterById('N-No');
+        mockContentByChapterId('N-No');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -307,7 +329,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should leave "I-I" unchanged (second part is only 1 char)', async () => {
-        mockGetChapterById('I-I am OK');
+        mockContentByChapterId('I-I am OK');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -315,13 +337,13 @@ describe(ChapterService.name, () => {
       });
 
       it('should not convert "well-known" (not a stutter)', async () => {
-        mockGetChapterById('well-known');
+        mockContentByChapterId('well-known');
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
         expect(res).toBe('well-known');
       });
 
       it('should not convert "twenty-one" (not a stutter)', async () => {
-        mockGetChapterById('twenty-one');
+        mockContentByChapterId('twenty-one');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -329,7 +351,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should convert "Th-That" to "th... that"', async () => {
-        mockGetChapterById('Th-That');
+        mockContentByChapterId('Th-That');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -337,7 +359,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should convert "S-Stop it" to "s... stop it"', async () => {
-        mockGetChapterById('S-Stop it');
+        mockContentByChapterId('S-Stop it');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -347,7 +369,7 @@ describe(ChapterService.name, () => {
 
     describe('square brackets (skill/ability markers)', () => {
       it('should replace "[Boost]" with ", Boost,"', async () => {
-        mockGetChapterById('She activated [Boost]');
+        mockContentByChapterId('She activated [Boost]');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -355,7 +377,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should replace "【Fireball】" with ", Fireball,"', async () => {
-        mockGetChapterById('He cast 【Fireball】');
+        mockContentByChapterId('He cast 【Fireball】');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -363,7 +385,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should replace "[DIVINE SHIELD]" and lowercase the caps', async () => {
-        mockGetChapterById('[DIVINE SHIELD]');
+        mockContentByChapterId('[DIVINE SHIELD]');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -371,7 +393,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should handle multiple bracket skills', async () => {
-        mockGetChapterById('Used [Boost] and [Shield]');
+        mockContentByChapterId('Used [Boost] and [Shield]');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -381,7 +403,7 @@ describe(ChapterService.name, () => {
 
     describe('repeated single words', () => {
       it('should collapse "run run run run run run" to "run, run, run"', async () => {
-        mockGetChapterById('run run run run run run');
+        mockContentByChapterId('run run run run run run');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -389,7 +411,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should collapse "no no no no no no" to "no, no, no"', async () => {
-        mockGetChapterById('no no no no no no');
+        mockContentByChapterId('no no no no no no');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -397,7 +419,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should not collapse "no no" (only 2 repetitions)', async () => {
-        mockGetChapterById('no no');
+        mockContentByChapterId('no no');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -405,7 +427,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should not collapse "no no no" (only 3 repetitions)', async () => {
-        mockGetChapterById('no no no');
+        mockContentByChapterId('no no no');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -413,7 +435,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should collapse 4 repetitions', async () => {
-        mockGetChapterById('run run run run');
+        mockContentByChapterId('run run run run');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -421,7 +443,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should collapse ALL CAPS repeated words and lowercase them', async () => {
-        mockGetChapterById('RUN RUN RUN RUN RUN');
+        mockContentByChapterId('RUN RUN RUN RUN RUN');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -433,7 +455,7 @@ describe(ChapterService.name, () => {
       it('should collapse repeated 5-word phrases', async () => {
         const input =
           'I do not wanna die I do not wanna die I do not wanna die I do not wanna die I do not wanna die';
-        mockGetChapterById(input);
+        mockContentByChapterId(input);
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -444,7 +466,7 @@ describe(ChapterService.name, () => {
 
       it('should collapse repeated 2-word phrases', async () => {
         const input = 'help me help me help me help me help me';
-        mockGetChapterById(input);
+        mockContentByChapterId(input);
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -453,7 +475,7 @@ describe(ChapterService.name, () => {
 
       it('should not collapse 3 repetitions of a phrase', async () => {
         const input = 'help me help me help me';
-        mockGetChapterById(input);
+        mockContentByChapterId(input);
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -463,7 +485,7 @@ describe(ChapterService.name, () => {
 
     describe('combined transformations', () => {
       it('should handle tilde + repeated letters', async () => {
-        mockGetChapterById('ahhh~');
+        mockContentByChapterId('ahhh~');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -471,7 +493,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should handle elongated ALL CAPS onomatopoeia with punctuation', async () => {
-        mockGetChapterById('CRAAAACCKKKK!');
+        mockContentByChapterId('CRAAAACCKKKK!');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -479,7 +501,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should handle multiple transformations in a sentence', async () => {
-        mockGetChapterById(
+        mockContentByChapterId(
           'W-What was that?! BOOM! The [Fireball] exploded!',
         );
 
@@ -491,7 +513,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should handle complex manga dialogue', async () => {
-        mockGetChapterById('Alex "...?" N-No way... CRAAAACK!');
+        mockContentByChapterId('Alex "...?" N-No way... CRAAAACK!');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -501,7 +523,7 @@ describe(ChapterService.name, () => {
       });
 
       it('should handle ahhh... pattern', async () => {
-        mockGetChapterById('ahhh...');
+        mockContentByChapterId('ahhh...');
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -510,7 +532,7 @@ describe(ChapterService.name, () => {
 
       it('should not alter normal prose', async () => {
         const input = 'Elena walked through the forest carefully.';
-        mockGetChapterById(input);
+        mockContentByChapterId(input);
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 
@@ -519,7 +541,7 @@ describe(ChapterService.name, () => {
 
       it('should preserve normal sentences with standard punctuation', async () => {
         const input = 'He said, "I will be back." She nodded.';
-        mockGetChapterById(input);
+        mockContentByChapterId(input);
 
         const res = await uut.convertToTtsFriendly(CHAPTER_ID);
 

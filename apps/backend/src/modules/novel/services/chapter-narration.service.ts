@@ -76,6 +76,7 @@ export class ChapterNarrationService {
 
       const chapter = await tx.chapter.findUnique({
         where: { id: chapterId },
+        include: { content: true },
       });
 
       if (!chapter) {
@@ -143,7 +144,7 @@ export class ChapterNarrationService {
 
       const ttsFriendlyContent =
         await this.markdownToSpeechTextService.toSpeechText(
-          chapter.content,
+          chapter.content.content,
         );
 
       // Mark as processing atomically

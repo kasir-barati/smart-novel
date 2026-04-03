@@ -102,6 +102,8 @@ describe(NovelResolver.name, () => {
         createdAt: new Date('2026-02-19T00:00:00.000Z').toISOString(),
         id: 'chapter2.md',
         novelId: 'novel-1',
+        contentId: '99383df4-b8e9-4791-be96-034b31525711',
+        title: 'Chapter Two',
         updatedAt: new Date('2026-02-20T10:20:30.000Z').toISOString(),
       };
       vi.mocked(novelService.getChapter).mockResolvedValue(chapter);
@@ -149,6 +151,8 @@ describe(NovelResolver.name, () => {
         createdAt: new Date('2026-02-18T00:00:00.000Z').toISOString(),
         id: 'chapter1.md',
         novelId: 'novel-1',
+        title: 'Chapter One',
+        contentId: '9d3139e7-009b-42ad-b488-cfe3cc19f1d2',
         updatedAt: new Date('2026-02-18T00:00:00.000Z').toISOString(),
       };
       vi.mocked(novelService.getChapter).mockResolvedValue(chapter);

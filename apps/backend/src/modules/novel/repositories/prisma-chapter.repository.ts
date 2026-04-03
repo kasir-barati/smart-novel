@@ -6,7 +6,6 @@ import {
 import {
   CorrelationIdService,
   CustomLoggerService,
-  isNil,
 } from 'nestjs-backend-common';
 
 import { PrismaService } from '../../prisma';
@@ -96,29 +95,12 @@ export class PrismaChapterRepository implements IChapterRepository {
     return result.count;
   }
 
-  async updateContent(
-    id: string,
-    content: string,
-    ttsFriendlyContent: string,
-  ) {
-    const chapter = await this.prisma.chapter.update({
-      where: { id },
-      data: { ttsFriendlyContent, content },
-    });
-
-    if (isNil(chapter)) {
-      return null;
-    }
-
-    return this.toChapter(chapter);
-  }
-
   private toChapter(chapter: PrismaChapter): Chapter {
     return {
       id: chapter.id,
       novelId: chapter.novelId,
+      contentId: chapter.contentId ?? undefined,
       title: chapter.title,
-      content: chapter.content,
       createdAt: chapter.createdAt.toISOString(),
       updatedAt: chapter.updatedAt.toISOString(),
       narrationStatus: chapter.narrationStatus as

@@ -112,7 +112,11 @@ describe(ChapterNarrationService.name, () => {
             chapter: {
               findUnique: vi.fn().mockResolvedValue({
                 id: mockChapterId,
-                content: 'Chapter content',
+                content: {
+                  id: 'content-id-1',
+                  content: 'Chapter content',
+                  contentHash: 'hash',
+                },
                 narrationUrl: mockNarrationUrl,
                 narrationStatus: 'READY',
               }),
@@ -144,13 +148,21 @@ describe(ChapterNarrationService.name, () => {
             chapter: {
               findUnique: vi.fn().mockResolvedValue({
                 id: mockChapterId,
-                content: 'Chapter content',
+                content: {
+                  id: 'content-id-1',
+                  content: 'Chapter content',
+                  contentHash: 'hash',
+                },
                 narrationUrl: mockNarrationUrl,
                 narrationStatus: 'READY',
               }),
               update: vi.fn().mockResolvedValue({
                 id: mockChapterId,
-                content: 'Chapter content',
+                content: {
+                  id: 'content-id-1',
+                  content: 'Chapter content',
+                  contentHash: 'hash',
+                },
                 narrationUrl: null,
                 narrationStatus: 'PENDING',
               }),
@@ -181,7 +193,11 @@ describe(ChapterNarrationService.name, () => {
             chapter: {
               findUnique: vi.fn().mockResolvedValue({
                 id: mockChapterId,
-                content: 'Chapter content',
+                content: {
+                  id: 'content-id-1',
+                  content: 'Chapter content',
+                  contentHash: 'hash',
+                },
                 narrationUrl: mockNarrationUrl,
                 narrationStatus: 'READY',
               }),
@@ -233,7 +249,11 @@ describe(ChapterNarrationService.name, () => {
             chapter: {
               findUnique: vi.fn().mockResolvedValue({
                 id: mockChapterId,
-                content: 'Chapter content',
+                content: {
+                  id: 'content-id-1',
+                  content: 'Chapter content',
+                  contentHash: 'hash',
+                },
                 narrationUrl: null,
                 narrationStatus: 'PENDING',
               }),
@@ -266,7 +286,11 @@ describe(ChapterNarrationService.name, () => {
       // Arrange
       const initialChapter = {
         id: mockChapterId,
-        content: 'Chapter content',
+        content: {
+          id: 'content-id-1',
+          content: 'Chapter content',
+          contentHash: 'hash',
+        },
         narrationUrl: null,
         narrationStatus: 'PENDING',
       };
@@ -312,7 +336,11 @@ describe(ChapterNarrationService.name, () => {
       // Arrange
       const initialChapter = {
         id: mockChapterId,
-        content: 'Chapter content',
+        content: {
+          id: 'content-id-1',
+          content: 'Chapter content',
+          contentHash: 'hash',
+        },
         narrationUrl: null,
         narrationStatus: 'PENDING',
       };
@@ -354,9 +382,14 @@ describe(ChapterNarrationService.name, () => {
 
     it('should start background processing and return PROCESSING status', async () => {
       // Arrange
+      const chapterContentText = '# Chapter Title\n\nChapter content';
       const chapter = {
         id: mockChapterId,
-        content: '# Chapter Title\n\nChapter content',
+        content: {
+          id: 'content-id-1',
+          content: chapterContentText,
+          contentHash: 'hash',
+        },
         narrationUrl: null,
         narrationStatus: 'PENDING',
       };
@@ -391,7 +424,7 @@ describe(ChapterNarrationService.name, () => {
       });
       expect(
         markdownToSpeechTextService.toSpeechText,
-      ).toHaveBeenCalledWith(chapter.content);
+      ).toHaveBeenCalledWith(chapterContentText);
       expect(pubSub.publish).toHaveBeenCalledWith(
         chapterNarrationUpdateSubscriptionKey(mockChapterId),
         {
