@@ -63,7 +63,7 @@ export class DockerFixture {
   }
 
   static stopCompose(cwd: string, profileName: ProfileName): void {
-    execSync(`docker compose --profile ${profileName} down`, {
+    execSync(`docker compose --profile ${profileName} down -v`, {
       cwd,
       stdio: 'inherit',
     });
@@ -71,6 +71,9 @@ export class DockerFixture {
 
   static cleanup() {
     execSync(`docker system prune -f`, {
+      stdio: 'inherit',
+    });
+    execSync('docker builder prune -f', {
       stdio: 'inherit',
     });
   }

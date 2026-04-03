@@ -30,13 +30,14 @@ try {
     exitCode = run(`npx cypress run --project ${projectRoot}`);
   }
 } finally {
-  const downCode = run('docker compose --profile frontend-e2e down');
+  const downCode = run('docker compose --profile frontend-e2e down -v');
 
   if (exitCode === 0 && downCode !== 0) {
     exitCode = downCode;
   }
 
   run('docker system prune -f');
+  run('docker builder prune -f');
 }
 
 process.exit(exitCode);
