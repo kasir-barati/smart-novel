@@ -49,6 +49,7 @@ export default async function setup() {
       'backend-e2e',
     );
     DockerFixture.stopCompose(workspaceRoot, 'backend-e2e');
+    DockerFixture.cleanup();
     Logger.log(globalThis.__TEARDOWN_MESSAGE__);
   };
 }

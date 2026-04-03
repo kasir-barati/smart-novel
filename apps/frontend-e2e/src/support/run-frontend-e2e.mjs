@@ -31,9 +31,12 @@ try {
   }
 } finally {
   const downCode = run('docker compose --profile frontend-e2e down');
+
   if (exitCode === 0 && downCode !== 0) {
     exitCode = downCode;
   }
+
+  run('docker system prune -f');
 }
 
 process.exit(exitCode);

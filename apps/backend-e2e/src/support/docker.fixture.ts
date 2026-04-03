@@ -68,4 +68,10 @@ export class DockerFixture {
       stdio: 'inherit',
     });
   }
+
+  static cleanup() {
+    execSync(`docker system prune -f`, {
+      stdio: 'inherit',
+    });
+  }
 }
