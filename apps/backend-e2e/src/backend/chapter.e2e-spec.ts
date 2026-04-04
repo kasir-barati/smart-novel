@@ -6,6 +6,35 @@ describe('Chapter (e2e)', () => {
   const NOVEL_ID = 'c1d31ec2-f478-4648-b90b-d1e53de2a829'; // example-novel from seed data
   const CHAPTER_ONE_ID = '4dd92f16-4743-47b9-960c-6529678e9bc5'; // chapter1 from seed data
 
+  it('should return ttsFriendlyContent for a chapter', async () => {
+    const res = await axios.post('/graphql', {
+      query: `#graphql
+        query GetChapterTts($novelId: ID!, $chapterId: ID!) {
+          novel(id: $novelId) {
+            chapter(id: $chapterId) {
+              id
+              content
+              ttsFriendlyContent
+            }
+          }
+        }
+      `,
+      variables: {
+        novelId: NOVEL_ID,
+        chapterId: CHAPTER_ONE_ID,
+      },
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.data.errors).toBeUndefined();
+    expect(res.data.data.novel.chapter.id).toBe(CHAPTER_ONE_ID);
+    expect(res.data.data.novel.chapter.content).toBeString();
+    expect(res.data.data.novel.chapter.ttsFriendlyContent).toBeOneOf([
+      null,
+      expect.any(String),
+    ]);
+  });
+
   it('should return the selected chapter', async () => {
     const res = await axios.post('/graphql', {
       query: `#graphql

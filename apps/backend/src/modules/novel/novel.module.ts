@@ -21,9 +21,9 @@ import {
 import {
   ChapterNarrationService,
   ChapterService,
-  MarkdownToSpeechTextService,
   NarrationLockService,
   NovelService,
+  TtsTextService,
 } from './services';
 
 @Module({
@@ -40,7 +40,7 @@ import {
     PrismaChapterContentRepository,
     ChapterContentDataLoader,
     PubSubProvider,
-    MarkdownToSpeechTextService,
+    TtsTextService,
     {
       provide: NOVEL_REPOSITORY,
       useClass: PrismaNovelRepository,

@@ -29,7 +29,8 @@ describe(PrismaChapterContentRepository.name, () => {
           id: '3f0288ed-4042-429f-a89a-37dbd9874efa',
           content: 'Hello',
           ttsFriendlyContent: null,
-          contentHash: 'hash-a',
+          contentHash:
+            '185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969',
           ttsHash: null,
           wordCount: null,
           charCount: null,
@@ -41,8 +42,9 @@ describe(PrismaChapterContentRepository.name, () => {
         {
           id: 'fd3c3ffe-945e-4d41-9129-e3c85e8ade6d',
           content: 'World',
-          ttsFriendlyContent: 'World tts',
-          contentHash: 'hash-b',
+          ttsFriendlyContent: 'World',
+          contentHash:
+            '78ae647dc5544d227130a0682a51e30bc7777fbb6d8a8f17007463a3ecd1d524',
           ttsHash: 'tts-hash-b',
           wordCount: null,
           charCount: null,
@@ -68,7 +70,8 @@ describe(PrismaChapterContentRepository.name, () => {
         id: '3f0288ed-4042-429f-a89a-37dbd9874efa',
         content: 'Hello',
         ttsFriendlyContent: undefined,
-        contentHash: 'hash-a',
+        contentHash:
+          '185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969',
         ttsHash: undefined,
       });
       expect(
@@ -76,8 +79,9 @@ describe(PrismaChapterContentRepository.name, () => {
       ).toStrictEqual({
         id: 'fd3c3ffe-945e-4d41-9129-e3c85e8ade6d',
         content: 'World',
-        ttsFriendlyContent: 'World tts',
-        contentHash: 'hash-b',
+        ttsFriendlyContent: 'World',
+        contentHash:
+          '78ae647dc5544d227130a0682a51e30bc7777fbb6d8a8f17007463a3ecd1d524',
         ttsHash: 'tts-hash-b',
       });
     });
@@ -100,7 +104,8 @@ describe(PrismaChapterContentRepository.name, () => {
           id: 'eb82843d-d041-4dd2-94db-aadad59df0a6',
           content: '# Chapter text',
           ttsFriendlyContent: null,
-          contentHash: 'hash-c',
+          contentHash:
+            'b5a8193c78d9bc46c31904d8cf75c99d06ff824830a408e1f451bc3ae3dc1a37',
           ttsHash: null,
         },
       } as any);
@@ -113,7 +118,8 @@ describe(PrismaChapterContentRepository.name, () => {
         id: 'eb82843d-d041-4dd2-94db-aadad59df0a6',
         content: '# Chapter text',
         ttsFriendlyContent: undefined,
-        contentHash: 'hash-c',
+        contentHash:
+          'b5a8193c78d9bc46c31904d8cf75c99d06ff824830a408e1f451bc3ae3dc1a37',
         ttsHash: undefined,
       });
       expect(prismaService.chapter.findUnique).toHaveBeenCalledWith({
@@ -149,7 +155,7 @@ describe(PrismaChapterContentRepository.name, () => {
         .digest('hex');
       vi.mocked(prismaService.chapter.update).mockResolvedValue({
         content: {
-          id: 'ddd',
+          id: '0be4fe14-8fa6-48b5-b894-3b4fdca60943',
           content: contentText,
           ttsFriendlyContent,
           contentHash: expectedHash,
@@ -164,7 +170,7 @@ describe(PrismaChapterContentRepository.name, () => {
       );
 
       expect(result).toEqual({
-        id: 'ddd',
+        id: '0be4fe14-8fa6-48b5-b894-3b4fdca60943',
         content: contentText,
         ttsFriendlyContent,
         contentHash: expectedHash,
@@ -197,10 +203,11 @@ describe(PrismaChapterContentRepository.name, () => {
         chapter: {
           update: vi.fn().mockResolvedValue({
             content: {
-              id: 'eee',
+              id: 'b6c8df91-c655-4e76-bf16-ecfacb6e1aff',
               content: 'tx content',
               ttsFriendlyContent: null,
-              contentHash: 'tx-hash',
+              contentHash:
+                'd5bf5cb7cea90a4a42394a89ca5c06f9bbb27ae7bd87d1cb35cd1b65f73317c7',
               ttsHash: null,
             },
           }),
@@ -214,7 +221,7 @@ describe(PrismaChapterContentRepository.name, () => {
         txClient,
       );
 
-      expect(result.id).toBe('eee');
+      expect(result.id).toBe('b6c8df91-c655-4e76-bf16-ecfacb6e1aff');
       expect(txClient.chapter.update).toHaveBeenCalled();
       expect(prismaService.chapter.update).not.toHaveBeenCalled();
     });

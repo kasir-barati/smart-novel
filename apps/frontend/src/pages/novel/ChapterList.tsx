@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom';
+
 import { useReadChapters } from '../../hooks/useReadChapters';
 
 interface ChapterInfo {
@@ -10,13 +12,18 @@ interface ChapterListProps {
   chapters: ChapterInfo[];
   onChapterClick: (chapterId: string) => void;
   currentChapterId: string | null;
+  canManageTts?: boolean;
+  novelId?: string;
 }
 
 export function ChapterList({
   chapters,
   onChapterClick,
   currentChapterId,
+  canManageTts,
+  novelId,
 }: ChapterListProps) {
+  const navigate = useNavigate();
   const { isRead } = useReadChapters();
 
   const formatDate = (dateString: string) => {
@@ -35,16 +42,22 @@ export function ChapterList({
         const isActive = currentChapterId === chapter.id;
 
         return (
-          <button
+          <div
             key={chapter.id}
-            onClick={() => onChapterClick(chapter.id)}
-            className={`cursor-pointer flex w-full items-center justify-between rounded-lg border p-3 text-left transition-colors ${
+            className={`flex w-full items-stretch rounded-lg border transition-colors ${
               isActive
                 ? 'border-blue-600 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/30'
-                : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700'
+                : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800'
             }`}
           >
-            <div className="flex-1">
+            <button
+              onClick={() => onChapterClick(chapter.id)}
+              className={`flex flex-1 cursor-pointer items-center rounded-l-lg py-3 pl-3 text-left transition-colors ${
+                isActive
+                  ? ''
+                  : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
               <h3
                 className={`text-sm font-medium ${
                   read
@@ -55,11 +68,26 @@ export function ChapterList({
                 Chapter {index + 1}
                 {chapter.title && `: ${chapter.title}`}
               </h3>
+            </button>
+            <div className="ml-4 flex items-center gap-3 py-3 pr-3">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {formatDate(chapter.createdAt)}
+              </span>
+              {canManageTts && novelId && (
+                <button
+                  onClick={() =>
+                    navigate(
+                      `/novel/${novelId}/chapter/${chapter.id}/tts-review`,
+                    )
+                  }
+                  className="cursor-pointer rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 transition-colors hover:bg-amber-200 dark:bg-amber-900 dark:text-amber-200 dark:hover:bg-amber-800"
+                  title="Generate TTS-friendly content"
+                >
+                  Generate TTS
+                </button>
+              )}
             </div>
-            <span className="ml-4 text-xs text-gray-500 dark:text-gray-400">
-              {formatDate(chapter.createdAt)}
-            </span>
-          </button>
+          </div>
         );
       })}
     </div>

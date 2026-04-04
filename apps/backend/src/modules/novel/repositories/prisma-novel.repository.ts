@@ -50,6 +50,7 @@ export class PrismaNovelRepository implements INovelRepository {
         author: novel.author,
         description: novel.description,
         state: novel.state as NovelState,
+        ownerId: novel.ownerId,
         coverUrl: novel.coverUrl ?? undefined,
         category: novel.categories.map((novelCategory) =>
           novelCategory.category.name.toLowerCase(),
@@ -99,6 +100,7 @@ export class PrismaNovelRepository implements INovelRepository {
         author: novel.author,
         description: novel.description,
         state: novel.state as NovelState,
+        ownerId: novel.ownerId,
         coverUrl: novel.coverUrl ?? undefined,
         category: novel.categories.map((novelCategory) =>
           novelCategory.category.name.toLowerCase(),

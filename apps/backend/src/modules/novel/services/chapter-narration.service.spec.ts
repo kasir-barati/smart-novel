@@ -13,7 +13,6 @@ import { PrismaService } from '../../prisma';
 import { IChapterRepository } from '../interfaces';
 import { chapterNarrationUpdateSubscriptionKey } from '../utils';
 import { ChapterNarrationService } from './chapter-narration.service';
-import { MarkdownToSpeechTextService } from './markdown-to-speech-text.service';
 import { NarrationLockService } from './narration-lock.service';
 
 vi.mock('axios');
@@ -34,7 +33,7 @@ vi.mock('../../object-storage', async () => {
 });
 
 describe(ChapterNarrationService.name, () => {
-  let service: ChapterNarrationService;
+  let uut: ChapterNarrationService;
   let s3Client: S3Client;
   let logger: CustomLoggerService;
   let correlationIdService: CorrelationIdService;
@@ -43,13 +42,13 @@ describe(ChapterNarrationService.name, () => {
   let pubSub: PubSubEngine;
   let chapterRepository: IChapterRepository;
   let appConfig: ConfigType<typeof appConfigs>;
-  let markdownToSpeechTextService: MarkdownToSpeechTextService;
   const mockChapterId = 'e8cec22d-a2c2-4f68-ac1c-6a3cdbbfef33';
   const mockCorrelationId = 'dfd61433-2558-47f5-8fbb-95bb8164d303';
   const mockNarrationUrl =
     'http://localhost:9000/smart-novel/narrations/chapter-e8cec22d-a2c2-4f68-ac1c-6a3cdbbfef33.mp3';
 
   beforeEach(() => {
+    vi.clearAllMocks();
     s3Client = {} as any;
     logger = {
       debug: vi.fn(),
@@ -84,11 +83,8 @@ describe(ChapterNarrationService.name, () => {
     appConfig = {
       TTS_ENDPOINT: 'http://tts-service/api/tts',
     } as any;
-    markdownToSpeechTextService = {
-      toSpeechText: vi.fn(),
-    } as any;
 
-    service = new ChapterNarrationService(
+    uut = new ChapterNarrationService(
       s3Client,
       logger,
       correlationIdService,
@@ -97,10 +93,7 @@ describe(ChapterNarrationService.name, () => {
       pubSub,
       chapterRepository,
       appConfig,
-      markdownToSpeechTextService,
     );
-
-    vi.clearAllMocks();
   });
 
   describe('startGeneration', () => {
@@ -113,9 +106,10 @@ describe(ChapterNarrationService.name, () => {
               findUnique: vi.fn().mockResolvedValue({
                 id: mockChapterId,
                 content: {
-                  id: 'content-id-1',
+                  id: '69f8cc7c-0974-433b-9bfc-135b39164246',
                   content: 'Chapter content',
-                  contentHash: 'hash',
+                  contentHash:
+                    'bbb5c978731fabeea7f228aa482143f59734a1419c728e1a30ab3a53e96199e0',
                 },
                 narrationUrl: mockNarrationUrl,
                 narrationStatus: 'READY',
@@ -126,7 +120,7 @@ describe(ChapterNarrationService.name, () => {
       );
 
       // Act
-      const result = await service.startGeneration(mockChapterId);
+      const result = await uut.startGeneration(mockChapterId);
 
       // Assert
       expect(result).toEqual({
@@ -149,9 +143,11 @@ describe(ChapterNarrationService.name, () => {
               findUnique: vi.fn().mockResolvedValue({
                 id: mockChapterId,
                 content: {
-                  id: 'content-id-1',
+                  id: '69f8cc7c-0974-433b-9bfc-135b39164246',
                   content: 'Chapter content',
-                  contentHash: 'hash',
+                  contentHash:
+                    'bbb5c978731fabeea7f228aa482143f59734a1419c728e1a30ab3a53e96199e0',
+                  ttsFriendlyContent: 'Chapter content',
                 },
                 narrationUrl: mockNarrationUrl,
                 narrationStatus: 'READY',
@@ -159,9 +155,11 @@ describe(ChapterNarrationService.name, () => {
               update: vi.fn().mockResolvedValue({
                 id: mockChapterId,
                 content: {
-                  id: 'content-id-1',
+                  id: '69f8cc7c-0974-433b-9bfc-135b39164246',
                   content: 'Chapter content',
-                  contentHash: 'hash',
+                  contentHash:
+                    'bbb5c978731fabeea7f228aa482143f59734a1419c728e1a30ab3a53e96199e0',
+                  ttsFriendlyContent: 'Chapter content',
                 },
                 narrationUrl: null,
                 narrationStatus: 'PENDING',
@@ -175,10 +173,7 @@ describe(ChapterNarrationService.name, () => {
       );
 
       // Act
-      const result = await service.startGeneration(
-        mockChapterId,
-        true,
-      );
+      const result = await uut.startGeneration(mockChapterId, true);
 
       // Assert
       expect(result).toEqual({ status: NarrationStatus.PROCESSING });
@@ -194,9 +189,10 @@ describe(ChapterNarrationService.name, () => {
               findUnique: vi.fn().mockResolvedValue({
                 id: mockChapterId,
                 content: {
-                  id: 'content-id-1',
+                  id: '69f8cc7c-0974-433b-9bfc-135b39164246',
                   content: 'Chapter content',
-                  contentHash: 'hash',
+                  contentHash:
+                    'bbb5c978731fabeea7f228aa482143f59734a1419c728e1a30ab3a53e96199e0',
                 },
                 narrationUrl: mockNarrationUrl,
                 narrationStatus: 'READY',
@@ -210,10 +206,7 @@ describe(ChapterNarrationService.name, () => {
       );
 
       // Act
-      const result = await service.startGeneration(
-        mockChapterId,
-        true,
-      );
+      const result = await uut.startGeneration(mockChapterId, true);
 
       // Assert
       expect(result).toEqual({ status: NarrationStatus.PROCESSING });
@@ -233,7 +226,7 @@ describe(ChapterNarrationService.name, () => {
       );
 
       // Act
-      const res = service.startGeneration(mockChapterId);
+      const res = uut.startGeneration(mockChapterId);
 
       // Assert
       await expect(res).rejects.toThrow(
@@ -250,9 +243,10 @@ describe(ChapterNarrationService.name, () => {
               findUnique: vi.fn().mockResolvedValue({
                 id: mockChapterId,
                 content: {
-                  id: 'content-id-1',
+                  id: '69f8cc7c-0974-433b-9bfc-135b39164246',
                   content: 'Chapter content',
-                  contentHash: 'hash',
+                  contentHash:
+                    'bbb5c978731fabeea7f228aa482143f59734a1419c728e1a30ab3a53e96199e0',
                 },
                 narrationUrl: null,
                 narrationStatus: 'PENDING',
@@ -266,7 +260,7 @@ describe(ChapterNarrationService.name, () => {
       );
 
       // Act
-      const result = await service.startGeneration(mockChapterId);
+      const result = await uut.startGeneration(mockChapterId);
 
       // Assert
       expect(result).toEqual({
@@ -287,7 +281,7 @@ describe(ChapterNarrationService.name, () => {
       const initialChapter = {
         id: mockChapterId,
         content: {
-          id: 'content-id-1',
+          id: '69f8cc7c-0974-433b-9bfc-135b39164246',
           content: 'Chapter content',
           contentHash: 'hash',
         },
@@ -319,7 +313,7 @@ describe(ChapterNarrationService.name, () => {
       );
 
       // Act
-      const result = await service.startGeneration(mockChapterId);
+      const result = await uut.startGeneration(mockChapterId);
 
       // Assert
       expect(result).toEqual({
@@ -337,9 +331,10 @@ describe(ChapterNarrationService.name, () => {
       const initialChapter = {
         id: mockChapterId,
         content: {
-          id: 'content-id-1',
+          id: '69f8cc7c-0974-433b-9bfc-135b39164246',
           content: 'Chapter content',
-          contentHash: 'hash',
+          contentHash:
+            'bbb5c978731fabeea7f228aa482143f59734a1419c728e1a30ab3a53e96199e0',
         },
         narrationUrl: null,
         narrationStatus: 'PENDING',
@@ -368,7 +363,7 @@ describe(ChapterNarrationService.name, () => {
       );
 
       // Act
-      const result = await service.startGeneration(mockChapterId);
+      const result = await uut.startGeneration(mockChapterId);
 
       // Assert
       expect(result).toEqual({
@@ -380,15 +375,54 @@ describe(ChapterNarrationService.name, () => {
       );
     });
 
+    it('should throw BadRequestException if ttsFriendlyContent is missing', async () => {
+      // Arrange
+      vi.mocked(prisma.$transaction).mockImplementation(
+        async (callback: any) => {
+          return callback({
+            chapter: {
+              findUnique: vi.fn().mockResolvedValue({
+                id: mockChapterId,
+                content: {
+                  id: '69f8cc7c-0974-433b-9bfc-135b39164246',
+                  content: '# Chapter Title\n\nChapter content',
+                  contentHash:
+                    '089a4bfbf15cd6a3ca36f8a37daa23befa2468190f7aa7e8867a199eaa38060b',
+                  ttsFriendlyContent: null,
+                },
+                narrationUrl: null,
+                narrationStatus: 'PENDING',
+              }),
+            },
+          });
+        },
+      );
+      vi.mocked(narrationLockService.tryAcquire).mockResolvedValue(
+        '',
+      );
+
+      // Act
+      const res = uut.startGeneration(mockChapterId);
+
+      // Assert
+      await expect(res).rejects.toThrow(
+        new BadRequestException(
+          'You need to first generate TTS version of the chapter',
+        ),
+      );
+    });
+
     it('should start background processing and return PROCESSING status', async () => {
       // Arrange
-      const chapterContentText = '# Chapter Title\n\nChapter content';
+      const mockTtsFriendlyText = 'Chapter Title: Chapter content';
       const chapter = {
         id: mockChapterId,
         content: {
-          id: 'content-id-1',
-          content: chapterContentText,
-          contentHash: 'hash',
+          id: '69f8cc7c-0974-433b-9bfc-135b39164246',
+          content: '# Chapter Title\n\nChapter content',
+          contentHash:
+            '089a4bfbf15cd6a3ca36f8a37daa23befa2468190f7aa7e8867a199eaa38060b',
+          ttsFriendlyContent: mockTtsFriendlyText,
         },
         narrationUrl: null,
         narrationStatus: 'PENDING',
@@ -397,7 +431,6 @@ describe(ChapterNarrationService.name, () => {
         ...chapter,
         narrationStatus: 'PROCESSING',
       };
-      const mockTtsFriendlyText = 'Chapter Title: Chapter content';
       vi.mocked(prisma.$transaction).mockImplementation(
         async (callback: any) => {
           return callback({
@@ -411,20 +444,14 @@ describe(ChapterNarrationService.name, () => {
       vi.mocked(narrationLockService.tryAcquire).mockResolvedValue(
         '',
       );
-      vi.mocked(
-        markdownToSpeechTextService.toSpeechText,
-      ).mockResolvedValue(mockTtsFriendlyText);
 
       // Act
-      const result = await service.startGeneration(mockChapterId);
+      const result = await uut.startGeneration(mockChapterId);
 
       // Assert
       expect(result).toEqual({
         status: NarrationStatus.PROCESSING,
       });
-      expect(
-        markdownToSpeechTextService.toSpeechText,
-      ).toHaveBeenCalledWith(chapterContentText);
       expect(pubSub.publish).toHaveBeenCalledWith(
         chapterNarrationUpdateSubscriptionKey(mockChapterId),
         {
@@ -440,8 +467,7 @@ describe(ChapterNarrationService.name, () => {
   describe('subscribeToChapterNarration', () => {
     it('should return async iterator for chapter narration updates', () => {
       // Act
-      const result =
-        service.subscribeToChapterNarration(mockChapterId);
+      const result = uut.subscribeToChapterNarration(mockChapterId);
 
       // Assert
       expect(pubSub.asyncIterableIterator).toHaveBeenCalledWith(

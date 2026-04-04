@@ -68,6 +68,7 @@ describe(PrismaNovelRepository.name, () => {
           author: 'John Doe',
           description: 'A test novel description',
           state: NovelState.ONGOING,
+          ownerId: '230104087265432001',
           coverUrl: 'https://example.com/cover.jpg',
           category: ['fantasy', 'adventure'],
           chapters: [
@@ -150,6 +151,7 @@ describe(PrismaNovelRepository.name, () => {
         author: 'John Doe',
         description: 'A test novel description',
         state: NovelState.ONGOING,
+        ownerId: '230104087265432001',
         coverUrl: 'https://example.com/cover.jpg',
         category: ['fantasy', 'adventure'],
         chapters: [
@@ -312,6 +314,7 @@ function getMockedData() {
     author: 'John Doe',
     description: 'A test novel description',
     state: 'ONGOING',
+    ownerId: '230104087265432001',
     coverUrl: 'https://example.com/cover.jpg',
     categories: [
       { category: { name: 'Fantasy' } },

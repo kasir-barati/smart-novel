@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { Chapter, NarrationStatus } from '@prisma/client';
 import axios from 'axios';
+import { isEmpty } from 'class-validator';
 import { PubSubEngine } from 'graphql-subscriptions';
 import {
   CorrelationIdService,
@@ -30,7 +31,6 @@ import {
 import { PUBSUB_TOKEN } from '../providers';
 import { ChapterNarrationResponse } from '../types';
 import { chapterNarrationUpdateSubscriptionKey } from '../utils';
-import { MarkdownToSpeechTextService } from './markdown-to-speech-text.service';
 import { NarrationLockService } from './narration-lock.service';
 
 @Injectable()
@@ -53,7 +53,6 @@ export class ChapterNarrationService {
     private readonly chapterRepository: IChapterRepository,
     @Inject(appConfigs.KEY)
     private readonly appConfig: ConfigType<typeof appConfigs>,
-    private readonly markdownToSpeechTextService: MarkdownToSpeechTextService,
   ) {}
 
   /**
@@ -142,10 +141,11 @@ export class ChapterNarrationService {
         return { status: NarrationStatus.PROCESSING };
       }
 
-      const ttsFriendlyContent =
-        await this.markdownToSpeechTextService.toSpeechText(
-          chapter.content.content,
+      if (isEmpty(chapter.content?.ttsFriendlyContent)) {
+        throw new BadRequestException(
+          'You need to first generate TTS version of the chapter',
         );
+      }
 
       // Mark as processing atomically
       await tx.chapter.update({
@@ -167,7 +167,7 @@ export class ChapterNarrationService {
       // Start background processing
       this.processInBackground(
         chapterId,
-        ttsFriendlyContent,
+        chapter.content.ttsFriendlyContent!,
         lockKey,
         token,
         correlationId,

@@ -7,8 +7,14 @@ import {
   ResolveField,
   Resolver,
 } from '@nestjs/graphql';
+import { isNil } from 'nestjs-backend-common';
 
-import { Public } from '../../auth';
+import {
+  CurrentUserOptional,
+  type IAuthUser,
+  Public,
+} from '../../auth';
+import { NovelAction } from '../enums';
 import { NovelFiltersInput } from '../inputs';
 import { NovelService } from '../services';
 import { Chapter, Novel, NovelConnection } from '../types';
@@ -62,6 +68,28 @@ export class NovelResolver {
   })
   async categories(): Promise<string[]> {
     return this.novelService.getCategories();
+  }
+
+  @ResolveField(() => [NovelAction], {
+    description:
+      'Actions the current user is allowed to perform on this novel',
+  })
+  allowedActions(
+    @Parent() novel: Novel,
+    @CurrentUserOptional() user?: IAuthUser,
+  ): NovelAction[] {
+    if (isNil(user)) {
+      return [];
+    }
+
+    const isOwner = novel.ownerId === user.sub;
+    const isAdmin = user.roles.includes('admin');
+
+    if (isOwner || isAdmin) {
+      return [NovelAction.MANAGE_TTS];
+    }
+
+    return [];
   }
 
   @ResolveField(() => Chapter, {

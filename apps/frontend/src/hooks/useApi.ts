@@ -47,7 +47,7 @@ export function useApi(): { api: AxiosInstance } {
     instance.interceptors.response.use(null, responseErrorHandler);
 
     return instance;
-  }, [accessToken]);
+  }, [accessToken, VITE_SERVICE_URL]);
 
   return { api };
 }

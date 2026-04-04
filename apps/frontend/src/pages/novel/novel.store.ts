@@ -40,6 +40,7 @@ export const fetchNovel = async (
             state
             coverUrl
             description
+            allowedActions
             firstChapter {
               id
             }

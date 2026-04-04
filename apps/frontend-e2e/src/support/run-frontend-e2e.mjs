@@ -30,7 +30,9 @@ try {
     exitCode = run(`npx cypress run --project ${projectRoot}`);
   }
 } finally {
-  const downCode = run('docker compose --profile frontend-e2e down -v');
+  const downCode = run(
+    'docker compose --profile frontend-e2e down -v',
+  );
 
   if (exitCode === 0 && downCode !== 0) {
     exitCode = downCode;

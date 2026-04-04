@@ -10,6 +10,13 @@ All contributors (including AI-assisted tools) should follow the project's codin
 - Avoid unnecessary abstractions.
 - Use descriptive variable, function, and class names.
 - Follow linting, formatting, and test conventions.
+- Use `retryAsync` instead of `try ... catch ...` block when it make sense:
+  ```ts
+  import { retryAsync } from 'nestjs-backend-common';
+  const [error, someVar] = await retryAsync(() => someFunc(), {
+    retry: 123,
+  });
+  ```
 
 ## Test Conventions
 
@@ -26,6 +33,17 @@ All contributors (including AI-assisted tools) should follow the project's codin
 - When testing a **function** (or a constructor where you just assert on the returned value), name the variable after what it represents — e.g. `result`, `settings`, `payload`, etc. Do **not** call it `uut` in that case.
 - Always ask what we should and what we should **NOT** mock.
 - For e2e tests make sure to keep the GraphQL queries/mutations written in the same test file.
+- Mocked values should resemble actual domain data (read the code to understand what would the actual domain data would look like):
+  - Use realistic data (IDs, hashes, slugs, emails, URLs, etc.):
+    ```ts
+    const novelId = '93fec4bf-2f66-4e4a-9572-7aa4871f1458'; // ✅ DO (GOOD)
+    const novelId = 'novel-id'; // ❌ DO NOT (BAD)
+    ```
+  - When data is excessively large, use a short meaningful stub:
+    ```ts
+    const html = '<html> ... trimmed ... </html>'; // ✅ DO (GOOD)
+    const html = 'dummy'; // ❌ DO NOT (BAD)
+    ```
 
 ### Unit Test Example
 

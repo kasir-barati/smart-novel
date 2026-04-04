@@ -15,6 +15,7 @@ export interface Novel {
   state: NovelState;
   coverUrl?: string;
   description: string;
+  allowedActions: NovelAction[];
   chapter?: Chapter;
   lastChapterPublishedAt?: string;
   lastPublishedChapter?: Chapter;
@@ -26,11 +27,16 @@ export enum NovelState {
   ONGOING = 'ONGOING',
 }
 
+export enum NovelAction {
+  MANAGE_TTS = 'MANAGE_TTS',
+}
+
 export interface Chapter {
   id: string;
   novelId: string;
   title: string | null;
   content: string;
+  ttsFriendlyContent?: string;
   createdAt: string;
   updatedAt: string;
   next?: Chapter;

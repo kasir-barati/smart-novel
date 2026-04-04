@@ -7,7 +7,12 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
-import { CustomLoggerService } from 'nestjs-backend-common';
+import { isNotEmpty } from 'class-validator';
+import {
+  CustomLoggerService,
+  isNil,
+  retryAsync,
+} from 'nestjs-backend-common';
 
 import { IS_PUBLIC_KEY } from '../decorators';
 import { AUTH_PROVIDER, type IAuthProvider } from '../interfaces';
@@ -34,14 +39,23 @@ export class JwtAuthGuard implements CanActivate {
       IS_PUBLIC_KEY,
       [executionContext.getHandler(), executionContext.getClass()],
     );
-
-    if (isPublic) {
-      return true;
-    }
-
     const context = GqlExecutionContext.create(executionContext);
     const request = context.getContext().req;
     const token = this.extractTokenFromHeader(request);
+
+    if (isPublic) {
+      if (token) {
+        // Soft auth: attempt to populate req.user if a token is present, but don't reject if missing or invalid — this is a public route.
+        const [_, user] = await retryAsync(
+          () => this.authProvider.validateToken(token),
+          { retry: 0 },
+        );
+
+        request.user = user;
+      }
+
+      return true;
+    }
 
     if (!token) {
       throw new UnauthorizedException(
@@ -49,16 +63,19 @@ export class JwtAuthGuard implements CanActivate {
       );
     }
 
-    try {
-      const user = await this.authProvider.validateToken(token);
+    const [error, user] = await retryAsync(
+      () => this.authProvider.validateToken(token),
+      { retry: 0 },
+    );
 
-      request.user = user;
-
-      return true;
-    } catch (error) {
+    if (isNotEmpty(error) || isNil(user)) {
       this.logger.error(`Token validation failed: ${error}`);
       throw new UnauthorizedException('Invalid or expired token');
     }
+
+    request.user = user;
+
+    return true;
   }
 
   private extractTokenFromHeader(

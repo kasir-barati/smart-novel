@@ -4,7 +4,9 @@ import { useParams, useSearchParams } from 'react-router-dom';
 
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { useApi } from '../../hooks/useApi';
+import { useAuth } from '../../hooks/useAuth';
 import { useReadChapters } from '../../hooks/useReadChapters';
+import { NovelAction } from '../../types/graphql.types';
 import { Breadcrumbs } from './Breadcrumbs';
 import {
   $chapterState,
@@ -19,6 +21,7 @@ export function NovelPage() {
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const { api } = useApi();
+  const { loading: authLoading } = useAuth();
   const novelState = useStore($novelState);
   const chapterState = useStore($chapterState);
   const { markAsRead } = useReadChapters();
@@ -47,10 +50,10 @@ export function NovelPage() {
   }, [requestedChapterId, chapterState.currentChapterId]);
 
   useEffect(() => {
-    if (id) {
+    if (id && !authLoading) {
       fetchNovel(api, id);
     }
-  }, [id, api]);
+  }, [id, api, authLoading]);
 
   useEffect(() => {
     if (!id) {
@@ -131,6 +134,8 @@ export function NovelPage() {
   }
 
   const novel = novelState.novel;
+  const canManageTts =
+    novel.allowedActions?.includes(NovelAction.MANAGE_TTS) ?? false;
   const hasChapters = novel.chapters.length > 0;
   const currentChapter = chapterState.currentChapterId
     ? chapterState.chapters.get(chapterState.currentChapterId)
@@ -224,6 +229,8 @@ export function NovelPage() {
                 chapters={chaptersInfo}
                 onChapterClick={handleChapterClick}
                 currentChapterId={chapterState.currentChapterId}
+                canManageTts={canManageTts}
+                novelId={id}
               />
             </div>
           </>

@@ -1,0 +1,117 @@
+import { BadRequestException } from '@nestjs/common';
+
+import { ChapterContentDataLoader } from '../dataloaders';
+import { IChapterContent } from '../interfaces';
+import { NovelService } from '../services';
+import { Chapter } from '../types';
+import { ChapterFieldResolver } from './chapter.field-resolver';
+
+describe(ChapterFieldResolver.name, () => {
+  let uut: ChapterFieldResolver;
+  let novelService: NovelService;
+  let chapterContentDataLoader: ChapterContentDataLoader;
+
+  beforeEach(() => {
+    novelService = {
+      getNextChapter: vi.fn(),
+      getPreviousChapter: vi.fn(),
+    } as any;
+    chapterContentDataLoader = {
+      load: vi.fn(),
+    } as any;
+
+    uut = new ChapterFieldResolver(
+      novelService,
+      chapterContentDataLoader,
+    );
+  });
+
+  describe('content', () => {
+    it('should return the chapter content', async () => {
+      const chapter = {
+        contentId: '456c3e4a-b353-4938-aa5b-900b685b134f',
+      } as Chapter;
+      const chapterContent: IChapterContent = {
+        id: '456c3e4a-b353-4938-aa5b-900b685b134f',
+        content: '# Chapter 1\n\nSome content',
+        contentHash: 'hash-1',
+      };
+      vi.mocked(chapterContentDataLoader.load).mockResolvedValue(
+        chapterContent,
+      );
+
+      const result = await uut.content(chapter);
+
+      expect(result).toBe('# Chapter 1\n\nSome content');
+      expect(chapterContentDataLoader.load).toHaveBeenCalledWith(
+        '456c3e4a-b353-4938-aa5b-900b685b134f',
+      );
+    });
+
+    it('should throw BadRequestException when chapter content is not found', async () => {
+      const chapter = { contentId: 'non-existent-uuid' } as Chapter;
+      vi.mocked(chapterContentDataLoader.load).mockResolvedValue(
+        null,
+      );
+
+      await expect(uut.content(chapter)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('ttsFriendlyContent', () => {
+    it('should return the TTS-friendly content', async () => {
+      const chapter = {
+        contentId: '0f96e0ad-00cd-4125-8796-bf668f2b5d91',
+      } as Chapter;
+      const chapterContent: IChapterContent = {
+        id: '0f96e0ad-00cd-4125-8796-bf668f2b5d91',
+        content: '# Chapter 1',
+        ttsFriendlyContent: 'Chapter 1 spoken version',
+        contentHash: 'hash-1',
+      };
+      vi.mocked(chapterContentDataLoader.load).mockResolvedValue(
+        chapterContent,
+      );
+
+      const result = await uut.ttsFriendlyContent(chapter);
+
+      expect(result).toBe('Chapter 1 spoken version');
+      expect(chapterContentDataLoader.load).toHaveBeenCalledWith(
+        '0f96e0ad-00cd-4125-8796-bf668f2b5d91',
+      );
+    });
+
+    it('should return undefined when TTS-friendly content does not exist', async () => {
+      const chapter = {
+        contentId: '41668b8d-a539-4202-a2a4-4fc873137646',
+      } as Chapter;
+      const chapterContent: IChapterContent = {
+        id: '41668b8d-a539-4202-a2a4-4fc873137646',
+        content: '# Chapter 1',
+        contentHash: 'hash-1',
+      };
+      vi.mocked(chapterContentDataLoader.load).mockResolvedValue(
+        chapterContent,
+      );
+
+      const result = await uut.ttsFriendlyContent(chapter);
+
+      expect(result).toBeUndefined();
+    });
+
+    it('should throw BadRequestException when chapter content record is not found', async () => {
+      const chapter = {
+        contentId: '456c3e4a-b353-4938-aa5b-900b685b134f',
+      } as Chapter;
+      vi.mocked(chapterContentDataLoader.load).mockResolvedValue(
+        null,
+      );
+
+      await expect(uut.ttsFriendlyContent(chapter)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+});

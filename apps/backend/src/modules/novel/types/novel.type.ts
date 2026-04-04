@@ -1,6 +1,6 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 
-import { NovelState } from '../enums';
+import { NovelAction, NovelState } from '../enums';
 import { INovel } from '../interfaces';
 import { Chapter } from './chapter.type';
 
@@ -40,6 +40,18 @@ export class Novel implements INovel {
     description: 'A short description of the novel',
   })
   description: string;
+
+  /**
+   * @private field — not exposed in the GraphQL schema. Used by the `allowedActions` field resolver to determine ownership.
+   * @example "233104087965432001"
+   */
+  ownerId: string;
+
+  @Field(() => [NovelAction], {
+    description:
+      'Actions the current user is allowed to perform on this novel',
+  })
+  allowedActions?: NovelAction[];
 
   @Field(() => Chapter, {
     nullable: true,
