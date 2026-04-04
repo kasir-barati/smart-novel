@@ -35,6 +35,7 @@ npm run start:dev
 Then open:
 
 - Frontend: http://localhost:8080
+- ZITADEL console: http://localhost:8080/ui/console/
 - GraphQL API: http://localhost:8080/graphql
 - Open WebUI: http://localhost:8080/
 - RedisInsight: http://localhost:5540/

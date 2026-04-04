@@ -140,9 +140,9 @@ services:
       - traefik.http.routers.frontend-web.entrypoints=web
       - traefik.http.routers.frontend-web.service=frontend
       - traefik.http.routers.frontend-web.priority=50
-      # Serve /assets from the frontend, not Zitadel (whose catch-all also
-      # matches /assets at priority 100).
-      - traefik.http.routers.frontend-assets.rule=PathPrefix(`/assets`)
+      # Serve frontend static assets from the frontend, but keep Zitadel's
+      # /assets/v1 API path routed to Zitadel.
+      - traefik.http.routers.frontend-assets.rule=PathPrefix(`/assets`) && !PathPrefix(`/assets/v1`)
       - traefik.http.routers.frontend-assets.entrypoints=web
       - traefik.http.routers.frontend-assets.service=frontend
       - traefik.http.routers.frontend-assets.priority=200
@@ -207,9 +207,9 @@ services:
       - traefik.http.routers.frontend-e2e-web.entrypoints=web
       - traefik.http.routers.frontend-e2e-web.service=frontend-e2e
       - traefik.http.routers.frontend-e2e-web.priority=50
-      # Serve /assets from the frontend, not Zitadel (whose catch-all also
-      # matches /assets at priority 100).
-      - traefik.http.routers.frontend-e2e-assets.rule=PathPrefix(`/assets`)
+      # Serve frontend static assets from the frontend, but keep Zitadel's
+      # /assets/v1 API path routed to Zitadel.
+      - traefik.http.routers.frontend-e2e-assets.rule=PathPrefix(`/assets`) && !PathPrefix(`/assets/v1`)
       - traefik.http.routers.frontend-e2e-assets.entrypoints=web
       - traefik.http.routers.frontend-e2e-assets.service=frontend-e2e
       - traefik.http.routers.frontend-e2e-assets.priority=200
@@ -389,7 +389,7 @@ services:
       - traefik.http.services.zitadel.loadbalancer.server.scheme=h2c
       # Zitadel API: only matches Zitadel's own endpoints (OIDC, OAuth, management, etc.).
       # Everything else falls through to the frontend SPA catch-all.
-      - traefik.http.routers.zitadel-web.rule=PathPrefix(`/.well-known`) || PathPrefix(`/oauth`) || PathPrefix(`/oidc`) || PathPrefix(`/saml`) || PathPrefix(`/v2`) || PathPrefix(`/management`) || PathPrefix(`/admin`) || PathPrefix(`/auth/v1`) || PathPrefix(`/assets`) || PathPrefix(`/ui/console`) || PathPrefix(`/debug`)
+      - traefik.http.routers.zitadel-web.rule=PathPrefix(`/.well-known`) || PathPrefix(`/oauth`) || PathPrefix(`/oidc`) || PathPrefix(`/saml`) || PathPrefix(`/v2`) || PathPrefix(`/management`) || PathPrefix(`/admin`) || PathPrefix(`/auth/v1`) || PathPrefix(`/assets`) || PathPrefix(`/ui/console`) || PathPrefix(`/debug`) || PathPrefix(`/zitadel.`)
       - traefik.http.routers.zitadel-web.entrypoints=web
       - traefik.http.routers.zitadel-web.service=zitadel
       - traefik.http.routers.zitadel-web.priority=100
