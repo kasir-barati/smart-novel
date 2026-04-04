@@ -18,16 +18,19 @@ declare global {
        * @example cy.waitForGraphQL('novels')
        */
       waitForGraphQL(operationName: string): Chainable<void>;
+
+      /**
+       * Log in through ZITADEL's hosted login UI.
+       * Defaults to the writer user (`Writer` / `Writer123!`).
+       * @example cy.login()
+       * @example cy.login('Admin', 'Admin123!')
+       */
+      login(username?: string, password?: string): Chainable<void>;
     }
   }
 }
 
-Cypress.Commands.add('waitForGraphQL', (operationName: string) => {
-  cy.intercept('POST', '/graphql', (req) => {
-    if (req.body.operationName === operationName) {
-      req.alias = operationName;
-    }
-  });
-});
+import './auth.commands';
+import './graphql.commands';
 
 export {};

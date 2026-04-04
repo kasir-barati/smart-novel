@@ -124,6 +124,13 @@ describe('Greet (e2e)', () => {
 });
 ```
 
+#### Run E2E Tests Locally
+
+```bash
+docker compose --profile frontend-e2e up -d --build --wait
+npx cypress open --project apps/frontend-e2e
+```
+
 ## Upgrading 3rd Party Libraries
 
 Use [`npm-check-updates`](https://www.npmjs.com/package/npm-check-updates).
