@@ -26,6 +26,8 @@ declare global {
        * @example cy.login('Admin', 'Admin123!')
        */
       login(username?: string, password?: string): Chainable<void>;
+
+      logout(): Chainable<void>;
     }
   }
 }

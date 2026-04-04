@@ -52,4 +52,26 @@ Cypress.Commands.add(
   },
 );
 
+Cypress.Commands.add('logout', () => {
+  cy.visit('/');
+
+  cy.get('body', { timeout: 15000 }).then(($body) => {
+    if ($body.find('button[aria-label="Logout"]').length > 0) {
+      cy.get('button[aria-label="Logout"]').click();
+      cy.get('button[aria-label="Login"]', { timeout: 15000 }).should(
+        'be.visible',
+      );
+    }
+  });
+
+  cy.get('button[aria-label="Login"]')
+    .should('be.visible')
+    .and('not.be.disabled')
+    .click();
+
+  cy.clearAllCookies();
+  cy.clearAllSessionStorage();
+  cy.clearAllLocalStorage();
+});
+
 export {};
