@@ -32,6 +32,7 @@ Cypress.Commands.add(
       .should('be.visible')
       .and('not.be.disabled')
       .click();
+    // FIXME: Sometimes we click on the submit button but it does NOT go to the next page!
 
     // 3. Enter the password
     cy.get('[data-testid="password-text-input"]', {
@@ -41,6 +42,7 @@ Cypress.Commands.add(
       .should('be.visible')
       .and('not.be.disabled')
       .click();
+    // FIXME: Sometimes we click on the submit button but it does NOT go to the next page!
 
     // 4. Wait for the redirect back to the app and verify authentication
     cy.url({ timeout: 20000 }).should('not.include', '/ui/v2/login');

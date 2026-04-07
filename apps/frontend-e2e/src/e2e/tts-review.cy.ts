@@ -11,8 +11,6 @@ describe('TTS Review Page', () => {
     cy.contains('Generating TTS-friendly content...').should(
       'be.visible',
     );
-
-    // cy.logout();
   });
 
   it('should display the review page with header and labels', () => {
@@ -30,8 +28,6 @@ describe('TTS Review Page', () => {
       'be.visible',
     );
     cy.contains('New TTS Content (editable)').should('be.visible');
-
-    // cy.logout();
   });
 
   it('should display Cancel and Confirm & Save buttons', () => {
@@ -41,8 +37,6 @@ describe('TTS Review Page', () => {
     // Both header and bottom action bars have these buttons
     cy.contains('button', 'Cancel').should('be.visible');
     cy.contains('button', 'Confirm & Save').should('be.visible');
-
-    // cy.logout();
   });
 
   it('should display font size controls', () => {
@@ -56,7 +50,6 @@ describe('TTS Review Page', () => {
       'be.visible',
     );
     cy.contains('14px').should('be.visible');
-    // cy.logout();
   });
 
   it('should increase font size when clicking the + button', () => {
@@ -66,7 +59,6 @@ describe('TTS Review Page', () => {
     cy.contains('14px').should('be.visible');
     cy.get('button[aria-label="Increase font size"]').click();
     cy.contains('16px').should('be.visible');
-    // cy.logout();
   });
 
   it('should decrease font size when clicking the − button', () => {
@@ -79,7 +71,6 @@ describe('TTS Review Page', () => {
 
     cy.get('button[aria-label="Decrease font size"]').click();
     cy.contains('14px').should('be.visible');
-    // cy.logout();
   });
 
   it('should navigate back to novel page when clicking Cancel', () => {
@@ -90,7 +81,6 @@ describe('TTS Review Page', () => {
 
     cy.url().should('include', `/novel/${NOVEL_ID}`);
     cy.url().should('not.include', 'tts-review');
-    // cy.logout();
   });
 
   it('should save and navigate back when clicking Confirm & Save', () => {
@@ -105,7 +95,6 @@ describe('TTS Review Page', () => {
       `/novel/${NOVEL_ID}`,
     );
     cy.url().should('not.include', 'tts-review');
-    // cy.logout();
   });
 
   it('should show error state when API calls fail', () => {
@@ -120,7 +109,6 @@ describe('TTS Review Page', () => {
       timeout: 10000,
     }).should('be.visible');
     cy.contains('button', '← Back to Novel').should('be.visible');
-    // cy.logout();
   });
 
   it('should navigate back from error state when clicking Back to Novel', () => {
@@ -137,7 +125,6 @@ describe('TTS Review Page', () => {
 
     cy.url().should('include', `/novel/${NOVEL_ID}`);
     cy.url().should('not.include', 'tts-review');
-    // cy.logout();
   });
 
   it('should render the CodeMirror merge view', () => {
@@ -147,55 +134,56 @@ describe('TTS Review Page', () => {
 
     // The merge view is inside a bordered container
     cy.get('.cm-mergeView', { timeout: 10000 }).should('exist');
-    // cy.logout();
   });
-});
 
-it('should show Generate TTS buttons on the novel chapter list', () => {
-  cy.intercept('POST', '**/graphql').as('graphql');
+  it('should show Generate TTS buttons on the novel chapter list', () => {
+    cy.login();
+    cy.intercept('POST', '**/graphql').as('graphql');
 
-  // Navigate to a novel from the home page
-  cy.get('a[href^="/novel/"]', { timeout: 10000 }).first().click();
-  cy.url().should('include', '/novel/');
-  cy.wait('@graphql');
+    // Navigate to a novel from the home page
+    cy.get('a[href^="/novel/"]', { timeout: 10000 }).first().click();
+    cy.url().should('include', '/novel/');
+    cy.wait('@graphql');
 
-  // Writer should see the Generate TTS button on chapters
-  cy.contains('button', 'Generate TTS', {
-    timeout: 10000,
-  }).should('be.visible');
-});
+    // Writer should see the Generate TTS button on chapters
+    cy.contains('button', 'Generate TTS', {
+      timeout: 10000,
+    }).should('be.visible');
+  });
 
-it('should navigate to TTS review page from Generate TTS button', () => {
-  cy.intercept('POST', '**/graphql').as('graphql');
+  it('should navigate to TTS review page from Generate TTS button', () => {
+    cy.login();
+    cy.intercept('POST', '**/graphql').as('graphql');
 
-  // Navigate to a novel
-  cy.get('a[href^="/novel/"]', { timeout: 10000 }).first().click();
-  cy.url().should('include', '/novel/');
-  cy.wait('@graphql');
+    // Navigate to a novel
+    cy.get('a[href^="/novel/"]', { timeout: 10000 }).first().click();
+    cy.url().should('include', '/novel/');
+    cy.wait('@graphql');
 
-  // Click "Generate TTS" on the first chapter
-  cy.contains('button', 'Generate TTS', { timeout: 10000 })
-    .first()
-    .click();
+    // Click "Generate TTS" on the first chapter
+    cy.contains('button', 'Generate TTS', { timeout: 10000 })
+      .first()
+      .click();
 
-  // Should be on the TTS review page
-  cy.url().should('include', '/tts-review');
+    // Should be on the TTS review page
+    cy.url().should('include', '/tts-review');
 
-  // The page will show either the loading spinner, the review content,
-  // or an error — depending on how fast the real API responds.
-  // We just verify we landed on a recognisable TTS review state.
-  cy.get('body', { timeout: 15000 }).should(($body) => {
-    const text = $body.text();
-    const hasLoading = text.includes(
-      'Generating TTS-friendly content',
-    );
-    const hasReview = text.includes('TTS Content Review');
-    const hasError = text.includes(
-      'Failed to generate TTS-friendly content',
-    );
-    expect(
-      hasLoading || hasReview || hasError,
-      'Page should show loading, review content, or error state',
-    ).to.equal(true);
+    // The page will show either the loading spinner, the review content,
+    // or an error — depending on how fast the real API responds.
+    // We just verify we landed on a recognisable TTS review state.
+    cy.get('body', { timeout: 15000 }).should(($body) => {
+      const text = $body.text();
+      const hasLoading = text.includes(
+        'Generating TTS-friendly content',
+      );
+      const hasReview = text.includes('TTS Content Review');
+      const hasError = text.includes(
+        'Failed to generate TTS-friendly content',
+      );
+      expect(
+        hasLoading || hasReview || hasError,
+        'Page should show loading, review content, or error state',
+      ).to.equal(true);
+    });
   });
 });
