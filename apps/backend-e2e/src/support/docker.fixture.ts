@@ -62,6 +62,20 @@ export class DockerFixture {
     );
   }
 
+  static startCompose(
+    cwd: string,
+    profileName: ProfileName,
+    serviceName: ServiceName,
+  ): void {
+    execSync(
+      `docker compose --profile ${profileName} up -d --build --wait ${serviceName}`,
+      {
+        cwd,
+        stdio: 'inherit',
+      },
+    );
+  }
+
   static stopCompose(cwd: string, profileName: ProfileName): void {
     execSync(`docker compose --profile ${profileName} down -v`, {
       cwd,

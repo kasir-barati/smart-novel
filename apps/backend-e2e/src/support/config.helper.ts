@@ -34,10 +34,9 @@ const tokenEndpoint = urlBuilder(
   'token',
 );
 
-Logger.section('Extract data from Docker volume');
 extractConfigFromDocker();
 
-Logger.section('Read config values from files');
+Logger.section('Read Values From Files');
 Logger.log('Reading integration test client ID from config file...');
 const integrationTestClientId = readFileSync(
   join(localSetupDir, 'client', `${appName}-client-id`),
@@ -140,6 +139,8 @@ interface DecodedKeyContent {
 }
 
 function extractConfigFromDocker() {
+  Logger.section('Extracting Config Files From Docker Volume');
+
   const hostDirectories = ['pats', 'client', 'user-ids'];
 
   for (const dir of hostDirectories) {
@@ -183,7 +184,6 @@ function extractConfigFromDocker() {
     },
   ];
 
-  Logger.section('Extracting config files from Docker volume');
   for (const { containerPath, hostFilePath } of files) {
     DockerFixture.extractFile(
       workspaceRoot,

@@ -1,4 +1,3 @@
-import { execSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -12,17 +11,13 @@ const workspaceRoot = resolve(__dirname, '../../../../');
 
 export default async function setup() {
   Logger.section('Setting up Vitest globally');
-
-  execSync(
-    'docker compose --profile backend-e2e up -d --build --wait backend-e2e',
-    {
-      cwd: workspaceRoot,
-      stdio: 'inherit',
-    },
+  Logger.log('Starting Docker Compose services...');
+  DockerFixture.startCompose(
+    workspaceRoot,
+    'backend-e2e',
+    'backend-e2e',
   );
-
   await import('./config.helper.js');
-
   globalThis.__TEARDOWN_MESSAGE__ = '\nTearing down...\n';
 
   // Clean up logic here (e.g. stopping services, docker-compose, etc.).
