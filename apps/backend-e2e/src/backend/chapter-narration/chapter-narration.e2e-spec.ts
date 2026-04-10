@@ -20,6 +20,8 @@ describe('Chapter Narration (e2e)', () => {
   const CHAPTER_THREE_ID = 'a3987a2f-eaa5-4a05-8714-34a110511cba';
 
   it('should start chapter audio generation and return PROCESSING status', async () => {
+    await fixture.prepareTtsFriendlyContent(NOVEL_ID, CHAPTER_ONE_ID);
+
     const res = await axios.post('/graphql', {
       query: `#graphql
         mutation GenerateChapterAudio($chapterId: ID!) {
@@ -44,6 +46,7 @@ describe('Chapter Narration (e2e)', () => {
 
   it('should force regenerate chapter audio even if the narrationUrl exists', async () => {
     const chapterId = '038dd3f5-e921-4076-be91-66175ebd1bc3';
+    await fixture.prepareTtsFriendlyContent(NOVEL_ID, chapterId);
     await fixture.generateChapterAudio(chapterId);
     await new Promise((resolve) => setTimeout(resolve, 12_000)); // 12 seconds
     const correlationId = '23cf8ec5-17ce-4ae4-90be-baea23f9712c';
@@ -71,6 +74,7 @@ describe('Chapter Narration (e2e)', () => {
   }, 35000); // 35 seconds
 
   it('should NOT call TTS service twice for the same chapter', async () => {
+    await fixture.prepareTtsFriendlyContent(NOVEL_ID, CHAPTER_TWO_ID);
     const firstCallCorrelationId =
       '10a69005-8176-4b76-ae4b-c268777699d0';
     const secondCallCorrelationId =
@@ -124,6 +128,7 @@ describe('Chapter Narration (e2e)', () => {
 
   it('should return the narration URL', async () => {
     // Arrange & Act
+    await fixture.prepareTtsFriendlyContent(NOVEL_ID, CHAPTER_ONE_ID);
     await axios.post('/graphql', {
       query: `#graphql
         mutation GenerateChapterAudio($chapterId: ID!) {
@@ -216,6 +221,10 @@ describe('Chapter Narration (e2e)', () => {
             },
           );
           await new Promise((resolve) => setTimeout(resolve, 100)); // <== Small delay to ensure subscription is active
+          await fixture.prepareTtsFriendlyContent(
+            NOVEL_ID,
+            CHAPTER_THREE_ID,
+          );
           fixture.generateChapterAudio(CHAPTER_THREE_ID);
         },
       );

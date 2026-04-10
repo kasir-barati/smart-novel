@@ -42,7 +42,7 @@ Thumbs.db
 .nx/workspace-data
 
 vite.config.*.timestamp*
-
+Diffs.txt
 .env
 
 # GraphQL auto-generated schema
