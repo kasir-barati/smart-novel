@@ -3,6 +3,10 @@
 import { Logger } from '../utils/index.js';
 
 /**
+ * @typedef {'IAM_OWNER' | 'IAM_ORG_MANAGER' | 'IAM_END_USER_IMPERSONATOR'} InstanceMemberRole
+ */
+
+/**
  * Service for interacting with ZITADEL Admin V1 API endpoints
  */
 export class ZitadelAdminV1Service {
@@ -46,21 +50,19 @@ export class ZitadelAdminV1Service {
   }
 
   /**
-   * Assign the IAM_END_USER_IMPERSONATOR role to a user
+   * Add a user as an IAM instance member with the specified roles.
    * @param {string} userId - User ID
+   * @param {InstanceMemberRole[]} roles - IAM roles to assign
    * @returns {Promise<void>}
    */
-  async assignImpersonatorRole(userId) {
+  async addInstanceMember(userId, roles) {
     const response = await fetch(`${this.baseUrl}/admin/v1/members`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.accessToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        userId,
-        roles: ['IAM_END_USER_IMPERSONATOR'],
-      }),
+      body: JSON.stringify({ userId, roles }),
     });
     const data = await response.json();
     const responseText = JSON.stringify(data).toLowerCase();
@@ -71,7 +73,7 @@ export class ZitadelAdminV1Service {
 
     if (!success) {
       throw new Error(
-        `Unexpected response when assigning impersonation role to user (ID: ${userId}): ${JSON.stringify(data, null, 2)}`,
+        `Unexpected response when assigning roles [${roles.join(', ')}] to user (ID: ${userId}): ${JSON.stringify(data, null, 2)}`,
       );
     }
   }

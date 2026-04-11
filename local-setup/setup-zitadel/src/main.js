@@ -100,6 +100,16 @@ for (const { userInfo, role, userIdFile } of users) {
   await managementV1Service.assignRoleToUser(userId, projectId, role);
   Logger.log(`Writing ${role} user ID to ${userIdFile}...`);
   await FileUtil.writeFile(userIdFile, userId);
+
+  if (role === 'admin') {
+    Logger.log(
+      `Granting IAM_OWNER role to ${userInfo.email} (${userId}) for full ZITADEL Console access...`,
+    );
+    await adminV1Service.addInstanceMember(userId, ['IAM_OWNER']);
+    Logger.ok(
+      `${userInfo.email} has full instance admin access in the ZITADEL Console`,
+    );
+  }
 }
 
 Logger.section('Enable Impersonation');
@@ -111,7 +121,9 @@ const { userId: botUserId, organizationId } =
 Logger.log(
   `Assigning impersonation role to the bot user ${botUserId} (org: ${organizationId})...`,
 );
-await adminV1Service.assignImpersonatorRole(botUserId);
+await adminV1Service.addInstanceMember(botUserId, [
+  'IAM_END_USER_IMPERSONATOR',
+]);
 Logger.log(
   'Creating machine user: integration-test-impersonator-bot...',
 );
@@ -134,7 +146,9 @@ await FileUtil.writeFile(
 Logger.log(
   'Assigning IAM_END_USER_IMPERSONATOR role to Integration Test bot...',
 );
-await adminV1Service.assignImpersonatorRole(integrationTestBotUserId);
+await adminV1Service.addInstanceMember(integrationTestBotUserId, [
+  'IAM_END_USER_IMPERSONATOR',
+]);
 Logger.log(
   `Granting Integration Test bot ${integrationTestBotUserId} access to project ${projectId}...`,
 );
