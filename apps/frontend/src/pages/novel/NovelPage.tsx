@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 
 import { ThemeToggle } from '../../components/ThemeToggle';
@@ -22,16 +22,14 @@ export function NovelPage() {
   const showChapterList = !requestedChapterId;
 
   // Track previously viewed chapter to detect navigation
-  const [lastMarkedChapterId, setLastMarkedChapterId] = useState<
-    string | null
-  >(null);
+  const lastMarkedChapterIdRef = useRef<string | null>(null);
 
   const {
     data: novelData,
     isLoading: novelLoading,
     error: novelError,
   } = useGetNovelQuery(
-    { id: id! },
+    { id: id ?? '' },
     { enabled: !!id && !authLoading },
   );
 
@@ -39,7 +37,7 @@ export function NovelPage() {
 
   const { data: chapterData, isLoading: chapterLoading } =
     useGetChapterQuery(
-      { novelId: id!, chapterId: requestedChapterId! },
+      { novelId: id ?? '', chapterId: requestedChapterId ?? '' },
       { enabled: !!id && !!requestedChapterId },
     );
 
@@ -64,13 +62,13 @@ export function NovelPage() {
   useEffect(() => {
     if (
       currentChapter?.id &&
-      currentChapter.id !== lastMarkedChapterId
+      currentChapter.id !== lastMarkedChapterIdRef.current
     ) {
       markAsRead(currentChapter.id);
-      setLastMarkedChapterId(currentChapter.id);
+      lastMarkedChapterIdRef.current = currentChapter.id;
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, [currentChapter?.id, lastMarkedChapterId, markAsRead]);
+  }, [currentChapter?.id, markAsRead]);
 
   const handleChapterClick = (chapterId: string) => {
     setChapterInUrl(chapterId);

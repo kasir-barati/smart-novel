@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { NovelCard } from '../../components/NovelCard';
@@ -13,11 +13,18 @@ const capitalizeCategory = (category: string): string => {
   return category.charAt(0).toUpperCase() + category.slice(1);
 };
 
+function getInitialIncludeCategories(
+  searchParams: URLSearchParams,
+): string[] {
+  const categoryParam = searchParams.get('category');
+  return categoryParam ? [categoryParam] : [];
+}
+
 export function SearchPage() {
   const [searchParams] = useSearchParams();
   const [includeCategories, setIncludeCategories] = useState<
     string[]
-  >([]);
+  >(() => getInitialIncludeCategories(searchParams));
   const [excludeCategories, setExcludeCategories] = useState<
     string[]
   >([]);
@@ -37,18 +44,6 @@ export function SearchPage() {
     isLoading: searchLoading,
     error: searchError,
   } = useSearchNovelsQuery({ filters }, { enabled: searchTriggered });
-
-  // Handle category from URL params (when clicking category button in NovelCard)
-  useEffect(() => {
-    const categoryParam = searchParams.get('category');
-    if (categoryParam) {
-      setIncludeCategories((prev) =>
-        prev.includes(categoryParam)
-          ? prev
-          : [...prev, categoryParam],
-      );
-    }
-  }, [searchParams]);
 
   const handleSearch = () => {
     const newFilters: NovelFiltersInput = {

@@ -46,6 +46,7 @@ npx prisma migrate deploy --schema=./apps/backend/prisma/schema.prisma
 All contributors (including AI-assisted tools) should follow the project's coding philosophy:
 
 - Write code at a senior engineer level.
+- Always use braces `{}` for control statements, even for single‑statement branches.
 - Prefer early returns over nested conditionals.
 - Optimize for readability and maintainability.
 - Avoid unnecessary abstractions.

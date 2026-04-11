@@ -46,23 +46,30 @@ export function TtsReviewPage() {
     isLoading: chapterLoading,
     error: chapterError,
   } = useGetChapterForTtsReviewQuery(
-    { novelId: novelId!, chapterId: chapterId! },
+    { novelId: novelId ?? '', chapterId: chapterId ?? '' },
     { enabled: !!novelId && !!chapterId },
   );
 
   // 2. Generate TTS-friendly text from chapter content
   const generateTtsMutation = useGenerateTtsFriendlyTextMutation();
+  const generateTtsMutateRef = useRef(generateTtsMutation.mutate);
+
+  useEffect(() => {
+    generateTtsMutateRef.current = generateTtsMutation.mutate;
+  }, [generateTtsMutation.mutate]);
 
   // 3. Update chapter content
   const updateContentMutation = useUpdateContentMutation();
 
   // Once chapter data loads, generate TTS text
   useEffect(() => {
-    if (!chapterData?.novel?.chapter) return;
+    if (!chapterData?.novel?.chapter) {
+      return;
+    }
 
     const chapter = chapterData.novel.chapter;
 
-    generateTtsMutation.mutate(
+    generateTtsMutateRef.current(
       { text: chapter.content },
       {
         onSuccess: (data) => {
@@ -76,7 +83,6 @@ export function TtsReviewPage() {
         },
       },
     );
-    // Only trigger when chapter data changes, not when mutation ref changes
   }, [chapterData]);
 
   const fontSizeTheme = useMemo(
