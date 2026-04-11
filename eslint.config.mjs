@@ -83,6 +83,12 @@ export default [
     rules: {},
   },
   {
+    files: ['apps/backend/gen-graphql-schema.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
+  {
     files: ['**/*.config.ts', 'apps/frontend-e2e/src/**/*.ts'],
     rules: {
       '@typescript-eslint/no-namespace': 'off',

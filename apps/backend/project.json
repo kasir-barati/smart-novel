@@ -104,6 +104,14 @@
         "command": "npx prisma db seed",
         "cwd": "{projectRoot}"
       }
+    },
+    "gen-graphql-schema": {
+      "executor": "nx:run-commands",
+      "description": "Generate the GraphQL SDL schema file on the host",
+      "options": {
+        "command": "npx ts-node --project tsconfig.app.json gen-graphql-schema.ts",
+        "cwd": "{projectRoot}"
+      }
     }
   }
 }
