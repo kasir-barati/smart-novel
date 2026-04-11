@@ -5,8 +5,17 @@
 // https://on.cypress.io/configuration
 // ***********************************************************
 
-// Import commands.js using ES2015 syntax:
 import './commands';
+import { log } from './logger';
 
-// Alternatively you can use CommonJS syntax:
-// require('./commands')
+beforeEach(function () {
+  const testTitle = (this as Mocha.Context).currentTest?.fullTitle();
+  log(`\n>>> TEST START: ${testTitle}`);
+});
+
+afterEach(function () {
+  const test = (this as Mocha.Context).currentTest;
+  const status = test?.state ?? 'unknown';
+  const title = test?.fullTitle();
+  log(`<<< TEST END: ${title} — ${status.toUpperCase()}`);
+});

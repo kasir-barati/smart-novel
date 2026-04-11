@@ -1,5 +1,46 @@
 # Contributing to smart-novel
 
+🚀 Quick Start
+
+```bash
+npm ci
+cp .env.example .env
+npm run start:dev
+```
+
+Then open:
+
+- Frontend: http://localhost:8080
+- GraphQL API: http://localhost:8080/graphql
+- ZITADEL console: http://localhost:8080/ui/console/
+
+BTW if you need DevTools such as Redis Insight, or PgAdmin you have to use the `compose.devtools.yml`:
+
+```shell
+docker compose -f compose.devtools.yml --profile dev up --build -d
+```
+
+- Open WebUI: http://localhost:8080/
+- RedisInsight: http://localhost:5540/
+
+## Prisma Migration Guide
+
+### Development
+
+To run migrations in development:
+
+```bash
+npx prisma migrate dev
+```
+
+#### Production
+
+How migrations should be applied in a professional, production‑safe workflow? Since the Prisma CLI is a dev dependency and not available in the production container. Thus we need to apply migrations in our CI/CD Pipeline:
+
+```bash
+npx prisma migrate deploy --schema=./apps/backend/prisma/schema.prisma
+```
+
 ## Design & Code Philosophy
 
 All contributors (including AI-assisted tools) should follow the project's coding philosophy:
@@ -19,6 +60,16 @@ All contributors (including AI-assisted tools) should follow the project's codin
   ```
 
 ## Test Conventions
+
+To run tests:
+
+```bash
+# Run all e2e tests
+nx e2e frontend-e2e
+
+# Run all e2e tests
+nx e2e backend-e2e
+```
 
 - If you change/add something make sure to write/update and then run the unit/e2e tests.
 - Use vitest.
