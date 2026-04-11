@@ -9,4 +9,10 @@ export default [
       '@typescript-eslint/no-namespace': 'off',
     },
   },
+  {
+    files: ['cypress.config.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
 ];
