@@ -74,7 +74,7 @@ describe(TtsTextService.name, () => {
 
       const result = await uut.toSpeechText(markdown);
 
-      expect(result).toBe('Use “console.log()” to debug.\n');
+      expect(result).toBe('Use "console.log()" to debug.\n');
     });
 
     it('should handle mixed inline formatting', async () => {
@@ -84,7 +84,7 @@ describe(TtsTextService.name, () => {
       const result = await uut.toSpeechText(markdown);
 
       expect(result).toBe(
-        'This has bold, italic, strikethrough, and “code”.\n',
+        'This has bold, italic, strikethrough, and "code".\n',
       );
     });
 
@@ -196,7 +196,7 @@ describe(TtsTextService.name, () => {
       const result = await uut.toSpeechText(markdown);
 
       expect(result).toBe(
-        '• Bold item\n• Italic item\n• “Code” item\n',
+        '• Bold item\n• Italic item\n• "Code" item\n',
       );
     });
 
@@ -338,7 +338,7 @@ Visit [our website](https://example.com) for more.`;
         expect(result).toContain('Main Title:');
         expect(result).toContain('1. First item with bold');
         expect(result).toContain('• Nested item A');
-        expect(result).toContain('• Nested item B with “code”');
+        expect(result).toContain('• Nested item B with "code"');
         expect(result).toContain('2. Second item with link');
         expect(result).toContain(
           'Quote: Quote with emphasis and strikethrough.',
