@@ -66,6 +66,17 @@ export default [
         },
       ],
       'no-console': 'error',
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'ExportAllDeclaration[source.value=/\\.spec(\\.|$)/]',
+          message: 'Do not re-export spec files from barrel files.',
+        },
+        {
+          selector: 'ExportNamedDeclaration[source.value=/\\.spec(\\.|$)/]',
+          message: 'Do not re-export spec files from barrel files.',
+        },
+      ],
     },
   },
   {
@@ -83,7 +94,7 @@ export default [
     rules: {},
   },
   {
-    files: ['apps/backend/gen-graphql-schema.ts'],
+    files: ['**/gen-graphql-schema.ts'],
     rules: {
       'no-console': 'off',
     },
@@ -94,6 +105,26 @@ export default [
       '@typescript-eslint/no-namespace': 'off',
       '@typescript-eslint/no-empty-interface': 'off',
       '@typescript-eslint/no-empty-object-type': 'off',
+    },
+  },
+  {
+    files: ['**/*.spec.*', '**/*.test.*'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'ExportNamedDeclaration',
+          message: 'Do not export from spec/test files.',
+        },
+        {
+          selector: 'ExportDefaultDeclaration',
+          message: 'Do not export from spec/test files.',
+        },
+        {
+          selector: 'ExportAllDeclaration',
+          message: 'Do not export from spec/test files.',
+        },
+      ],
     },
   },
   {

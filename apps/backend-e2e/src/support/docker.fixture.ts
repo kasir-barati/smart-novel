@@ -70,7 +70,7 @@ export class DockerFixture {
     );
   }
 
-  static stopCompose(cwd: string, profileName: ProfileName): void {
+  static stopCompose(cwd: string): void {
     execSync(
       `docker compose -f compose.e2e.yml --profile backend-e2e down -v`,
       {
