@@ -1,0 +1,23 @@
+query GetNovels($first: Int, $after: String, $filters: NovelFiltersInput) {
+  novels(first: $first, after: $after, filters: $filters) {
+    edges {
+      cursor
+      node {
+        id
+        name
+        author
+        category
+        state
+        coverUrl
+        description
+        lastChapterPublishedAt
+      }
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+      hasPreviousPage
+      startCursor
+    }
+  }
+}

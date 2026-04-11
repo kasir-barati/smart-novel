@@ -1,9 +1,21 @@
 import { Link, useNavigate } from 'react-router-dom';
 
-import { Novel } from '../types/graphql.types';
+import { Novel } from '../generated/graphql';
+
+type NovelCardData = Pick<
+  Novel,
+  | 'id'
+  | 'name'
+  | 'author'
+  | 'category'
+  | 'state'
+  | 'coverUrl'
+  | 'description'
+  | 'lastChapterPublishedAt'
+>;
 
 interface NovelCardProps {
-  novel: Novel;
+  novel: NovelCardData;
 }
 
 function truncateText(text: string, maxLength: number): string {
@@ -11,7 +23,7 @@ function truncateText(text: string, maxLength: number): string {
   return text.slice(0, maxLength) + '...';
 }
 
-function getLastUpdateDate(novel: Novel): string {
+function getLastUpdateDate(novel: NovelCardData): string {
   if (!novel.lastChapterPublishedAt) {
     return 'No updates yet';
   }

@@ -1,0 +1,9 @@
+mutation ExplainWord($word: String!, $context: String!) {
+  explain(word: $word, context: $context) {
+    cacheKey
+    meaning
+    antonyms
+    synonyms
+    simplifiedExplanation
+  }
+}

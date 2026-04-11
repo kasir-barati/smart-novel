@@ -1,41 +1,52 @@
-import { useStore } from '@nanostores/react';
-import { useEffect } from 'react';
+import { useState } from 'react';
 
 import { NovelCard } from '../../components/NovelCard';
 import { Pagination } from '../../components/Pagination';
-import { useApi } from '../../hooks/useApi';
-import {
-  $novelsState,
-  fetchNovels,
-  goToNextPage,
-  goToPage,
-  goToPreviousPage,
-} from './novels.store';
+import { useGetNovelsQuery } from '../../generated/graphql';
+
+const PAGE_SIZE = 20;
 
 export function HomePage() {
-  const { api } = useApi();
-  const state = useStore($novelsState);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageCursors, setPageCursors] = useState<
+    Map<number, string | null>
+  >(new Map([[1, null]]));
 
-  useEffect(() => {
-    fetchNovels(api, 20);
-  }, [api]);
+  const cursor = pageCursors.get(currentPage) ?? null;
 
-  const handlePageChange = (page: number) => {
-    goToPage(api, page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  const { data, isLoading, error } = useGetNovelsQuery(
+    { first: PAGE_SIZE, after: cursor },
+    { placeholderData: (prev) => prev },
+  );
+
+  const novelsData = data?.novels;
+  const pageInfo = novelsData?.pageInfo;
+  const novels = novelsData?.edges.map((edge) => edge.node) ?? [];
 
   const handleNext = () => {
-    goToNextPage(api);
+    if (!pageInfo?.hasNextPage) return;
+    const nextPage = currentPage + 1;
+    setPageCursors((prev) => {
+      const next = new Map(prev);
+      next.set(nextPage, pageInfo.endCursor ?? null);
+      return next;
+    });
+    setCurrentPage(nextPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handlePrevious = () => {
-    goToPreviousPage(api);
+    if (currentPage <= 1) return;
+    setCurrentPage((prev) => prev - 1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  if (state.loading && !state.novels) {
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  if (isLoading && !novelsData) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <div className="text-center">
@@ -48,24 +59,20 @@ export function HomePage() {
     );
   }
 
-  if (state.error) {
+  if (error) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <div className="text-center text-red-600 dark:text-red-400">
-          <p>{state.error}</p>
+          <p>Failed to fetch novels</p>
         </div>
       </div>
     );
   }
 
-  const novels = state.novels?.edges.map((edge) => edge.node) ?? [];
-  const pageInfo = state.novels?.pageInfo;
-
   // Estimate total pages (since we don't have total count from backend)
-  // This is a simple estimation - in production you might want a better approach
   const estimatedTotalPages = pageInfo?.hasNextPage
-    ? state.currentPage + 5
-    : state.currentPage;
+    ? currentPage + 5
+    : currentPage;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -88,7 +95,7 @@ export function HomePage() {
           {pageInfo && (
             <div className="mt-8">
               <Pagination
-                currentPage={state.currentPage}
+                currentPage={currentPage}
                 totalPages={estimatedTotalPages}
                 hasNextPage={pageInfo.hasNextPage}
                 hasPreviousPage={pageInfo.hasPreviousPage}

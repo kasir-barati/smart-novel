@@ -1,7 +1,9 @@
-import axios from 'axios';
 import { useCallback, useRef } from 'react';
 
-import { WordExplanation } from '../types/graphql.types';
+import {
+  useExplainWordMutation,
+  WordExplanation,
+} from '../generated/graphql';
 import { TokenBucket } from '../utils/token-bucket';
 
 interface ExplainInput {
@@ -26,18 +28,6 @@ const tokenBucket = new TokenBucket({
   ),
 });
 
-const explainMutation = `#graphql
-  mutation ExplainWord($word: String!, $context: String!) {
-    explain(word: $word, context: $context) {
-      cacheKey
-      meaning
-      antonyms
-      synonyms
-      simplifiedExplanation
-    }
-  }
-`;
-
 export function useWordExplain() {
   const cacheByKeyRef = useRef<Map<string, WordExplanation>>(
     new Map(),
@@ -47,7 +37,7 @@ export function useWordExplain() {
     null,
   );
   const inFlightSignatureRef = useRef<string | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  const { mutateAsync } = useExplainWordMutation();
 
   const addToCache = useCallback((data: WordExplanation) => {
     const cache = cacheByKeyRef.current;
@@ -62,16 +52,7 @@ export function useWordExplain() {
   }, []);
 
   const explain = useCallback(
-    async (
-      apiPost: (
-        url: string,
-        body: unknown,
-        config?: { signal?: AbortSignal },
-      ) => Promise<{
-        data: { data?: { explain?: WordExplanation } };
-      }>,
-      input: ExplainInput,
-    ): Promise<ExplainState> => {
+    async (input: ExplainInput): Promise<ExplainState> => {
       const signature = `${input.word.toLowerCase()}::${input.context}`;
       const existingKey = requestToCacheKeyRef.current.get(signature);
 
@@ -93,24 +74,14 @@ export function useWordExplain() {
         return { rateLimited: true };
       }
 
-      if (abortRef.current) {
-        abortRef.current.abort();
-      }
-
-      const controller = new AbortController();
-      abortRef.current = controller;
       inFlightSignatureRef.current = signature;
 
-      const request = apiPost(
-        '/graphql',
-        {
-          query: explainMutation,
-          variables: { word: input.word, context: input.context },
-        },
-        { signal: controller.signal },
-      )
+      const request = mutateAsync({
+        word: input.word,
+        context: input.context,
+      })
         .then((response) => {
-          const explained = response.data?.data?.explain;
+          const explained = response.explain;
 
           if (!explained) {
             return { error: 'No explanation returned.' };
@@ -123,14 +94,7 @@ export function useWordExplain() {
           addToCache(explained);
           return { data: explained };
         })
-        .catch((error) => {
-          if (
-            axios.isCancel(error) ||
-            error?.code === 'ERR_CANCELED'
-          ) {
-            return { error: 'Request cancelled.' };
-          }
-
+        .catch(() => {
           return { error: 'Failed to fetch explanation.' };
         })
         .finally(() => {
@@ -138,16 +102,12 @@ export function useWordExplain() {
             inFlightSignatureRef.current = null;
             inFlightRequestRef.current = null;
           }
-
-          if (abortRef.current === controller) {
-            abortRef.current = null;
-          }
         });
 
       inFlightRequestRef.current = request;
       return request;
     },
-    [addToCache],
+    [addToCache, mutateAsync],
   );
 
   return { explain };

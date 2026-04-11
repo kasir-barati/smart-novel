@@ -107,6 +107,7 @@
     },
     "gen-graphql-schema": {
       "executor": "nx:run-commands",
+      "dependsOn": ["prisma:generate"],
       "description": "Generate the GraphQL SDL schema file on the host",
       "options": {
         "command": "npx ts-node --project tsconfig.app.json gen-graphql-schema.ts",

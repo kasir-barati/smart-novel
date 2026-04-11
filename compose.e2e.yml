@@ -37,6 +37,8 @@ services:
     profiles:
       - frontend-e2e
     depends_on:
+      init-codegen:
+        condition: service_completed_successfully
       backend-e2e:
         condition: service_healthy
       s3:

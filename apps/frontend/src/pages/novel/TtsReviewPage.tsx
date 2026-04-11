@@ -10,32 +10,19 @@ import {
 import CodeMirrorMerge from 'react-codemirror-merge';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { useApi } from '../../hooks/useApi';
+import {
+  useGenerateTtsFriendlyTextMutation,
+  useGetChapterForTtsReviewQuery,
+  useUpdateContentMutation,
+} from '../../generated/graphql';
 import { $theme } from '../../stores/theme.store';
 import { showApiError, showSuccess } from '../../utils/notification';
-import {
-  fetchChapterForTtsReview,
-  generateTtsFriendlyText,
-  updateChapterContent,
-} from './tts.api';
 
 interface TtsReviewState {
-  loading: boolean;
-  saving: boolean;
-  error: string | null;
   originalContent: string;
   oldTtsContent: string;
   newTtsContent: string;
 }
-
-const initialState: TtsReviewState = {
-  loading: true,
-  saving: false,
-  error: null,
-  originalContent: '',
-  oldTtsContent: '',
-  newTtsContent: '',
-};
 
 const MIN_FONT_SIZE = 10;
 const MAX_FONT_SIZE = 24;
@@ -47,12 +34,51 @@ export function TtsReviewPage() {
     id: string;
     chapterId: string;
   }>();
-  const { api } = useApi();
   const navigate = useNavigate();
   const theme = useStore($theme);
-  const [state, setState] = useState<TtsReviewState>(initialState);
   const editedContentRef = useRef<string>('');
   const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
+  const [contentState, setContentState] =
+    useState<TtsReviewState | null>(null);
+
+  // 1. Fetch chapter content
+  const {
+    data: chapterData,
+    isLoading: chapterLoading,
+    error: chapterError,
+  } = useGetChapterForTtsReviewQuery(
+    { novelId: novelId!, chapterId: chapterId! },
+    { enabled: !!novelId && !!chapterId },
+  );
+
+  // 2. Generate TTS-friendly text from chapter content
+  const generateTtsMutation = useGenerateTtsFriendlyTextMutation();
+
+  // 3. Update chapter content
+  const updateContentMutation = useUpdateContentMutation();
+
+  // Once chapter data loads, generate TTS text
+  useEffect(() => {
+    if (!chapterData?.novel?.chapter) return;
+
+    const chapter = chapterData.novel.chapter;
+
+    generateTtsMutation.mutate(
+      { text: chapter.content },
+      {
+        onSuccess: (data) => {
+          const generatedTts = data.generateTtsFriendlyText;
+          editedContentRef.current = generatedTts;
+          setContentState({
+            originalContent: chapter.content,
+            oldTtsContent: chapter.ttsFriendlyContent ?? '',
+            newTtsContent: generatedTts,
+          });
+        },
+      },
+    );
+    // Only trigger when chapter data changes, not when mutation ref changes
+  }, [chapterData]);
 
   const fontSizeTheme = useMemo(
     () =>
@@ -75,86 +101,40 @@ export function TtsReviewPage() {
     );
   };
 
-  useEffect(() => {
-    if (!novelId || !chapterId) {
-      return;
-    }
-
-    let cancelled = false;
-
-    (async () => {
-      setState((prev) => ({ ...prev, loading: true, error: null }));
-
-      try {
-        const chapter = await fetchChapterForTtsReview(
-          api,
-          novelId,
-          chapterId,
-        );
-        const generatedTts = await generateTtsFriendlyText(
-          api,
-          chapter.content,
-        );
-
-        if (cancelled) {
-          return;
-        }
-
-        editedContentRef.current = generatedTts;
-        setState((prev) => ({
-          ...prev,
-          loading: false,
-          originalContent: chapter.content,
-          oldTtsContent: chapter.ttsFriendlyContent ?? '',
-          newTtsContent: generatedTts,
-        }));
-      } catch {
-        if (!cancelled) {
-          setState((prev) => ({
-            ...prev,
-            loading: false,
-            error: 'Failed to generate TTS-friendly content',
-          }));
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [api, novelId, chapterId]);
-
   const handleModifiedChange = useCallback((value: string) => {
     editedContentRef.current = value;
   }, []);
 
-  const handleConfirm = async () => {
-    if (!chapterId) {
-      return;
-    }
+  const handleConfirm = () => {
+    if (!chapterId || !contentState) return;
 
-    setState((prev) => ({ ...prev, saving: true }));
-
-    try {
-      await updateChapterContent(
-        api,
-        chapterId,
-        state.originalContent,
-        editedContentRef.current,
-      );
-      showSuccess('TTS-friendly content updated successfully');
-      navigate(`/novel/${novelId}`);
-    } catch {
-      showApiError();
-      setState((prev) => ({ ...prev, saving: false }));
-    }
+    updateContentMutation.mutate(
+      {
+        id: chapterId,
+        content: contentState.originalContent,
+        ttsFriendlyContent: editedContentRef.current,
+      },
+      {
+        onSuccess: () => {
+          showSuccess('TTS-friendly content updated successfully');
+          navigate(`/novel/${novelId}`);
+        },
+        onError: () => {
+          showApiError();
+        },
+      },
+    );
   };
 
   const handleCancel = () => {
     navigate(`/novel/${novelId}`);
   };
 
-  if (state.loading) {
+  const isLoading = chapterLoading || generateTtsMutation.isPending;
+  const hasError = chapterError || generateTtsMutation.isError;
+  const isSaving = updateContentMutation.isPending;
+
+  if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
@@ -167,12 +147,12 @@ export function TtsReviewPage() {
     );
   }
 
-  if (state.error) {
+  if (hasError || !contentState) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <p className="mb-4 text-red-600 dark:text-red-400">
-            {state.error}
+            Failed to generate TTS-friendly content
           </p>
           <button
             onClick={handleCancel}
@@ -203,17 +183,17 @@ export function TtsReviewPage() {
           <div className="flex gap-3">
             <button
               onClick={handleCancel}
-              disabled={state.saving}
+              disabled={isSaving}
               className="cursor-pointer rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
             >
               Cancel
             </button>
             <button
               onClick={handleConfirm}
-              disabled={state.saving}
+              disabled={isSaving}
               className="cursor-pointer rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {state.saving ? 'Saving...' : 'Confirm & Save'}
+              {isSaving ? 'Saving...' : 'Confirm & Save'}
             </button>
           </div>
         </div>
@@ -260,7 +240,7 @@ export function TtsReviewPage() {
             gutter
           >
             <CodeMirrorMerge.Original
-              value={state.oldTtsContent}
+              value={contentState.oldTtsContent}
               extensions={[
                 EditorView.editable.of(false),
                 EditorView.lineWrapping,
@@ -268,7 +248,7 @@ export function TtsReviewPage() {
               ]}
             />
             <CodeMirrorMerge.Modified
-              value={state.newTtsContent}
+              value={contentState.newTtsContent}
               extensions={[EditorView.lineWrapping, fontSizeTheme]}
               onChange={handleModifiedChange}
             />
@@ -279,17 +259,17 @@ export function TtsReviewPage() {
         <div className="mt-6 flex justify-end gap-3">
           <button
             onClick={handleCancel}
-            disabled={state.saving}
+            disabled={isSaving}
             className="cursor-pointer rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             Cancel
           </button>
           <button
             onClick={handleConfirm}
-            disabled={state.saving}
+            disabled={isSaving}
             className="cursor-pointer rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {state.saving ? 'Saving...' : 'Confirm & Save'}
+            {isSaving ? 'Saving...' : 'Confirm & Save'}
           </button>
         </div>
       </div>

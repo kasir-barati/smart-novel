@@ -1,0 +1,67 @@
+query GetNovel($id: ID!) {
+  novel(id: $id) {
+    id
+    name
+    author
+    category
+    chapters
+    state
+    coverUrl
+    description
+    allowedActions
+    firstChapter {
+      id
+    }
+    lastPublishedChapter {
+      id
+    }
+  }
+}
+
+query GetChapter($novelId: ID!, $chapterId: ID!) {
+  novel(id: $novelId) {
+    chapter(id: $chapterId) {
+      id
+      novelId
+      title
+      content
+      createdAt
+      updatedAt
+      next {
+        id
+      }
+      previous {
+        id
+      }
+    }
+  }
+}
+
+query GetChapterForTtsReview($novelId: ID!, $chapterId: ID!) {
+  novel(id: $novelId) {
+    chapter(id: $chapterId) {
+      content
+      ttsFriendlyContent
+    }
+  }
+}
+
+mutation GenerateTtsFriendlyText($text: String!) {
+  generateTtsFriendlyText(text: $text)
+}
+
+mutation UpdateContent(
+  $id: ID!
+  $content: String!
+  $ttsFriendlyContent: String!
+) {
+  updateContent(
+    id: $id
+    content: $content
+    ttsFriendlyContent: $ttsFriendlyContent
+  ) {
+    id
+    content
+    ttsFriendlyContent
+  }
+}

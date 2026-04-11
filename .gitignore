@@ -45,8 +45,9 @@ vite.config.*.timestamp*
 Diffs.txt
 .env
 
-# GraphQL auto-generated schema
+# GraphQL
 schema.gql
+apps/frontend/src/generated/
 
 # E2E secrets extracted from Docker volume (created by global-setup.ts)
 local-setup/pats/

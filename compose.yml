@@ -115,6 +115,8 @@ services:
       - zitadel-pat:/zitadel-pat:ro
       - ./local-setup/start-frontend-dev.sh:/app/start-frontend-dev.sh:ro
     depends_on:
+      init-codegen:
+        condition: service_completed_successfully
       backend:
         condition: service_healthy
       s3:
@@ -325,6 +327,22 @@ services:
       - traefik.http.middlewares.zitadel-fwd.headers.customrequestheaders.X-Forwarded-Host=localhost:${TRAEFIK_EXPOSED_PORT}
       - traefik.http.middlewares.zitadel-fwd.headers.customrequestheaders.X-Forwarded-Proto=http
       - traefik.http.routers.zitadel-web.middlewares=zitadel-fwd
+
+  init-codegen:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      target: development
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    environment:
+      DATABASE_URL: "postgresql://dummy"
+      # ☝️ this variable is necessary to generate the Prisma client
+    volumes:
+      - .:/app
+    entrypoint:
+      - /bin/sh
+      - -c
+      - npx nx codegen frontend
 
   init-zitadel-pat-vol:
     image: busybox:1.37

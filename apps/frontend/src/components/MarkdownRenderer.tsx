@@ -2,9 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-import { useApi } from '../hooks/useApi';
+import { WordExplanation } from '../generated/graphql';
 import { useWordExplain } from '../hooks/useWordExplain';
-import { WordExplanation } from '../types/graphql.types';
 import { showInfo } from '../utils/notification';
 import {
   findWordAtIndex,
@@ -137,7 +136,6 @@ function snapRangeToWord(range: Range, locale: string): Range | null {
 }
 
 export function MarkdownRenderer({ content }: MarkdownRendererProps) {
-  const { api } = useApi();
   const { explain } = useWordExplain();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -170,7 +168,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
       setLoading(true);
       setErrorMessage(null);
 
-      const explainResult = await explain(api.post, {
+      const explainResult = await explain({
         word: target.word,
         context: target.context,
       });
@@ -196,7 +194,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
       setResult(explainResult.data ?? null);
       setLoading(false);
     },
-    [api.post, explain],
+    [explain],
   );
 
   const openDialog = useCallback(

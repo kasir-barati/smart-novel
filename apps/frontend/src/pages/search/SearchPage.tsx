@@ -1,60 +1,91 @@
-import { useStore } from '@nanostores/react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { NovelCard } from '../../components/NovelCard';
-import { useApi } from '../../hooks/useApi';
 import {
-  $categoriesState,
-  fetchCategories,
-} from './categories.store';
+  NovelFiltersInput,
+  useGetCategoriesQuery,
+  useSearchNovelsQuery,
+} from '../../generated/graphql';
 import { CategoryFilter } from './CategoryFilter';
-import {
-  $searchState,
-  searchNovels,
-  toggleExcludeCategory,
-  toggleIncludeCategory,
-} from './search.store';
 
 const capitalizeCategory = (category: string): string => {
   return category.charAt(0).toUpperCase() + category.slice(1);
 };
 
 export function SearchPage() {
-  const { api } = useApi();
-  const state = useStore($searchState);
-  const categoriesState = useStore($categoriesState);
   const [searchParams] = useSearchParams();
+  const [includeCategories, setIncludeCategories] = useState<
+    string[]
+  >([]);
+  const [excludeCategories, setExcludeCategories] = useState<
+    string[]
+  >([]);
+  const [filters, setFilters] = useState<
+    NovelFiltersInput | undefined
+  >(undefined);
+  const [searchTriggered, setSearchTriggered] = useState(false);
 
-  // Fetch categories on mount
-  useEffect(() => {
-    fetchCategories(api);
-  }, [api]);
+  const {
+    data: categoriesData,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+  } = useGetCategoriesQuery({});
+
+  const {
+    data: searchData,
+    isLoading: searchLoading,
+    error: searchError,
+  } = useSearchNovelsQuery({ filters }, { enabled: searchTriggered });
 
   // Handle category from URL params (when clicking category button in NovelCard)
   useEffect(() => {
     const categoryParam = searchParams.get('category');
     if (categoryParam) {
-      toggleIncludeCategory(categoryParam);
+      setIncludeCategories((prev) =>
+        prev.includes(categoryParam)
+          ? prev
+          : [...prev, categoryParam],
+      );
     }
   }, [searchParams]);
 
   const handleSearch = () => {
-    searchNovels(api);
+    const newFilters: NovelFiltersInput = {
+      category: {
+        ...(includeCategories.length > 0 && {
+          in: includeCategories,
+        }),
+        ...(excludeCategories.length > 0 && {
+          nin: excludeCategories,
+        }),
+      },
+    };
+    setFilters(newFilters);
+    setSearchTriggered(true);
   };
 
   const handleToggleInclude = (category: string) => {
-    toggleIncludeCategory(category);
+    setIncludeCategories((prev) =>
+      prev.includes(category)
+        ? prev.filter((c) => c !== category)
+        : [...prev, category],
+    );
   };
 
   const handleToggleExclude = (category: string) => {
-    toggleExcludeCategory(category);
+    setExcludeCategories((prev) =>
+      prev.includes(category)
+        ? prev.filter((c) => c !== category)
+        : [...prev, category],
+    );
   };
 
-  const novels = state.novels?.edges.map((edge) => edge.node) ?? [];
+  const novels =
+    searchData?.novels?.edges.map((edge) => edge.node) ?? [];
 
   // Transform categories from lowercase to capitalized for display
-  const availableCategories = categoriesState.categories.map(
+  const availableCategories = (categoriesData?.categories ?? []).map(
     capitalizeCategory,
   );
 
@@ -66,19 +97,19 @@ export function SearchPage() {
 
       {/* Filter Section */}
       <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-        {categoriesState.loading ? (
+        {categoriesLoading ? (
           <div className="text-center text-gray-600 dark:text-gray-400">
             <p>Loading categories...</p>
           </div>
-        ) : categoriesState.error ? (
+        ) : categoriesError ? (
           <div className="text-center text-red-600 dark:text-red-400">
-            <p>{categoriesState.error}</p>
+            <p>Failed to load categories</p>
           </div>
         ) : (
           <CategoryFilter
             availableCategories={availableCategories}
-            includeCategories={state.includeCategories}
-            excludeCategories={state.excludeCategories}
+            includeCategories={includeCategories}
+            excludeCategories={excludeCategories}
             onToggleInclude={handleToggleInclude}
             onToggleExclude={handleToggleExclude}
           />
@@ -88,16 +119,16 @@ export function SearchPage() {
         <div className="mt-6">
           <button
             onClick={handleSearch}
-            disabled={state.loading}
+            disabled={searchLoading}
             className="cursor-pointer rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {state.loading ? 'Searching...' : 'Search'}
+            {searchLoading ? 'Searching...' : 'Search'}
           </button>
         </div>
       </div>
 
       {/* Results Section */}
-      {state.loading && !state.novels ? (
+      {searchLoading && !searchData ? (
         <div className="flex min-h-[30vh] items-center justify-center">
           <div className="text-center">
             <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
@@ -106,11 +137,11 @@ export function SearchPage() {
             </p>
           </div>
         </div>
-      ) : state.error ? (
+      ) : searchError ? (
         <div className="text-center text-red-600 dark:text-red-400">
-          <p>{state.error}</p>
+          <p>Failed to search novels</p>
         </div>
-      ) : state.novels ? (
+      ) : searchTriggered && searchData ? (
         <div>
           <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
             Results ({novels.length})

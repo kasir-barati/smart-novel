@@ -1,8 +1,13 @@
 import { MarkdownRenderer } from '../../components/MarkdownRenderer';
-import { Chapter } from '../../types/graphql.types';
+import { Chapter } from '../../generated/graphql';
+
+type ChapterContentData = Pick<
+  Chapter,
+  'id' | 'title' | 'content' | 'updatedAt'
+>;
 
 interface ChapterContentProps {
-  chapter: Chapter;
+  chapter: ChapterContentData;
   onPrevious?: () => void;
   onNext?: () => void;
   hasPrevious: boolean;

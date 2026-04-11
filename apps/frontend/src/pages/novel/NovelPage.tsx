@@ -1,32 +1,49 @@
-import { useStore } from '@nanostores/react';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 
 import { ThemeToggle } from '../../components/ThemeToggle';
-import { useApi } from '../../hooks/useApi';
+import {
+  NovelAction,
+  useGetChapterQuery,
+  useGetNovelQuery,
+} from '../../generated/graphql';
 import { useAuth } from '../../hooks/useAuth';
 import { useReadChapters } from '../../hooks/useReadChapters';
-import { NovelAction } from '../../types/graphql.types';
 import { Breadcrumbs } from './Breadcrumbs';
-import {
-  $chapterState,
-  fetchChapter,
-  setCurrentChapter,
-} from './chapter.store';
 import { ChapterContent } from './ChapterContent';
 import { ChapterList } from './ChapterList';
-import { $novelState, fetchNovel } from './novel.store';
 
 export function NovelPage() {
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { api } = useApi();
   const { loading: authLoading } = useAuth();
-  const novelState = useStore($novelState);
-  const chapterState = useStore($chapterState);
   const { markAsRead } = useReadChapters();
   const requestedChapterId = searchParams.get('chapter');
   const showChapterList = !requestedChapterId;
+
+  // Track previously viewed chapter to detect navigation
+  const [lastMarkedChapterId, setLastMarkedChapterId] = useState<
+    string | null
+  >(null);
+
+  const {
+    data: novelData,
+    isLoading: novelLoading,
+    error: novelError,
+  } = useGetNovelQuery(
+    { id: id! },
+    { enabled: !!id && !authLoading },
+  );
+
+  const novel = novelData?.novel ?? null;
+
+  const { data: chapterData, isLoading: chapterLoading } =
+    useGetChapterQuery(
+      { novelId: id!, chapterId: requestedChapterId! },
+      { enabled: !!id && !!requestedChapterId },
+    );
+
+  const currentChapter = chapterData?.novel?.chapter ?? undefined;
 
   const setChapterInUrl = useCallback(
     (chapterId: string | null) => {
@@ -43,74 +60,47 @@ export function NovelPage() {
     [searchParams, setSearchParams],
   );
 
+  // Mark chapter as read when it loads
   useEffect(() => {
-    if (!requestedChapterId && chapterState.currentChapterId) {
-      setCurrentChapter(null);
-    }
-  }, [requestedChapterId, chapterState.currentChapterId]);
-
-  useEffect(() => {
-    if (id && !authLoading) {
-      fetchNovel(api, id);
-    }
-  }, [id, api, authLoading]);
-
-  useEffect(() => {
-    if (!id) {
-      return;
-    }
-
-    if (!requestedChapterId) {
-      return;
-    }
-
-    if (chapterState.currentChapterId !== requestedChapterId) {
-      fetchChapter(api, id, requestedChapterId);
-    }
-  }, [api, chapterState.currentChapterId, id, requestedChapterId]);
-
-  useEffect(() => {
-    if (chapterState.currentChapterId) {
-      markAsRead(chapterState.currentChapterId);
+    if (
+      currentChapter?.id &&
+      currentChapter.id !== lastMarkedChapterId
+    ) {
+      markAsRead(currentChapter.id);
+      setLastMarkedChapterId(currentChapter.id);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, [chapterState.currentChapterId, markAsRead]);
+  }, [currentChapter?.id, lastMarkedChapterId, markAsRead]);
 
   const handleChapterClick = (chapterId: string) => {
     setChapterInUrl(chapterId);
   };
 
   const handleReadFirstChapter = () => {
-    if (novelState.novel?.firstChapter?.id) {
-      handleChapterClick(novelState.novel.firstChapter.id);
+    if (novel?.firstChapter?.id) {
+      handleChapterClick(novel.firstChapter.id);
     }
   };
 
   const handleReadLatestChapter = () => {
-    if (novelState.novel?.lastPublishedChapter?.id) {
-      handleChapterClick(novelState.novel.lastPublishedChapter.id);
+    if (novel?.lastPublishedChapter?.id) {
+      handleChapterClick(novel.lastPublishedChapter.id);
     }
   };
 
   const handlePreviousChapter = () => {
-    const currentChapter = chapterState.currentChapterId
-      ? chapterState.chapters.get(chapterState.currentChapterId)
-      : undefined;
     if (currentChapter?.previous?.id) {
       setChapterInUrl(currentChapter.previous.id);
     }
   };
 
   const handleNextChapter = () => {
-    const currentChapter = chapterState.currentChapterId
-      ? chapterState.chapters.get(chapterState.currentChapterId)
-      : undefined;
     if (currentChapter?.next?.id) {
       setChapterInUrl(currentChapter.next.id);
     }
   };
 
-  if (novelState.loading && !novelState.novel) {
+  if (novelLoading && !novel) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
@@ -123,23 +113,21 @@ export function NovelPage() {
     );
   }
 
-  if (novelState.error || !novelState.novel) {
+  if (novelError || !novel) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center text-red-600 dark:text-red-400">
-          <p>{novelState.error || 'Novel not found'}</p>
+          <p>
+            {novelError ? 'Failed to fetch novel' : 'Novel not found'}
+          </p>
         </div>
       </div>
     );
   }
 
-  const novel = novelState.novel;
   const canManageTts =
-    novel.allowedActions?.includes(NovelAction.MANAGE_TTS) ?? false;
+    novel.allowedActions?.includes(NovelAction.ManageTts) ?? false;
   const hasChapters = novel.chapters.length > 0;
-  const currentChapter = chapterState.currentChapterId
-    ? chapterState.chapters.get(chapterState.currentChapterId)
-    : undefined;
 
   // Prepare chapter info for ChapterList
   const chaptersInfo = novel.chapters.map((chId) => ({
@@ -159,7 +147,9 @@ export function NovelPage() {
         <Breadcrumbs
           novelName={novel.name}
           chapterTitle={
-            requestedChapterId ? currentChapter?.title : null
+            requestedChapterId
+              ? (currentChapter?.title ?? null)
+              : null
           }
         />
 
@@ -228,7 +218,7 @@ export function NovelPage() {
               <ChapterList
                 chapters={chaptersInfo}
                 onChapterClick={handleChapterClick}
-                currentChapterId={chapterState.currentChapterId}
+                currentChapterId={requestedChapterId}
                 canManageTts={canManageTts}
                 novelId={id}
               />
@@ -248,7 +238,7 @@ export function NovelPage() {
 
             {/* Chapter Content */}
             <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-              {chapterState.loading ? (
+              {chapterLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="text-center">
                     <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>

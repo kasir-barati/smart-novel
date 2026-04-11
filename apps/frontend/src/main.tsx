@@ -1,3 +1,8 @@
+import {
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { WebStorageStateStore } from 'oidc-client-ts';
 import { StrictMode } from 'react';
 import * as ReactDOM from 'react-dom/client';
@@ -35,6 +40,16 @@ const oidcConfig: AuthProviderProps = {
   },
 };
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60, // 1 minute
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement,
 );
@@ -42,7 +57,10 @@ const root = ReactDOM.createRoot(
 root.render(
   <StrictMode>
     <AuthProvider {...oidcConfig}>
-      <App />
+      <QueryClientProvider client={queryClient}>
+        <App />
+        <ReactQueryDevtools initialIsOpen={false} />
+      </QueryClientProvider>
     </AuthProvider>
   </StrictMode>,
 );

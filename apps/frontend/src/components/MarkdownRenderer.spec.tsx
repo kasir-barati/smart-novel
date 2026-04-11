@@ -2,14 +2,6 @@ import { fireEvent, render, screen } from '@testing-library/react';
 
 import { MarkdownRenderer } from './MarkdownRenderer';
 
-vi.mock('../hooks/useApi', () => ({
-  useApi: () => ({
-    api: {
-      post: vi.fn(),
-    },
-  }),
-}));
-
 vi.mock('../hooks/useWordExplain', () => ({
   useWordExplain: () => ({
     explain: vi.fn(async () => ({

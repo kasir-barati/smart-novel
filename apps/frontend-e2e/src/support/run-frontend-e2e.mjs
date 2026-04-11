@@ -22,6 +22,13 @@ if (!projectRoot) {
 let exitCode = 0;
 
 try {
+  exitCode = run('nx codegen frontend')
+
+  if (exitCode !== 0) {
+    console.error('Failed to generate code for frontend.');
+    process.exit(exitCode);
+  }
+
   exitCode = run(
     'docker compose -f compose.e2e.yml --profile frontend-e2e up -d --build --wait',
   );
