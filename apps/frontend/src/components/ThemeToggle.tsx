@@ -1,9 +1,7 @@
-import { useStore } from '@nanostores/react';
-
-import { $theme, toggleTheme } from '../stores/theme.store';
+import { useTheme } from '../hooks/useTheme';
 
 export function ThemeToggle() {
-  const theme = useStore($theme);
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <button

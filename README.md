@@ -36,7 +36,6 @@ smart-novel/
 │   │       ├── components/       # Shared components (MarkdownRenderer, etc.)
 │   │       ├── hooks/            # Custom hooks (useAuth, useWordExplain, etc.)
 │   │       ├── pages/            # Route pages (home, novel, search, auth)
-│   │       ├── stores/           # Nanostores state management
 │   │       └── utils/            # Utilities (token-bucket, notifications)
 │   └── frontend-e2e/             # Frontend E2E tests (Cypress)
 ├── local-setup/                  # Docker & local dev utilities
@@ -51,7 +50,7 @@ smart-novel/
 ## 🛠️ Technology Stack
 
 - **Backend**: NestJS, GraphQL (Apollo Server), TypeScript, Prisma ORM, Webpack
-- **Frontend**: React, Vite, TypeScript, TailwindCSS, Nanostores, React Router
+- **Frontend**: React, Vite, TypeScript, TailwindCSS, TanStack Query, React Router
 - **Database**: PostgreSQL
 - **Cache**: Redis (ioredis)
 - **Auth**: Zitadel (OIDC/OAuth2), RBAC

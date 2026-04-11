@@ -1,5 +1,4 @@
 import { EditorView } from '@codemirror/view';
-import { useStore } from '@nanostores/react';
 import {
   useCallback,
   useEffect,
@@ -15,7 +14,7 @@ import {
   useGetChapterForTtsReviewQuery,
   useUpdateContentMutation,
 } from '../../generated/graphql';
-import { $theme } from '../../stores/theme.store';
+import { useTheme } from '../../hooks/useTheme';
 import { showApiError, showSuccess } from '../../utils/notification';
 
 interface TtsReviewState {
@@ -35,7 +34,7 @@ export function TtsReviewPage() {
     chapterId: string;
   }>();
   const navigate = useNavigate();
-  const theme = useStore($theme);
+  const { theme } = useTheme();
   const editedContentRef = useRef<string>('');
   const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
   const [contentState, setContentState] =

@@ -1,5 +1,6 @@
 FROM node:24.13-alpine AS base
 RUN apk add --no-cache curl
+RUN npm install -g npm@11.6.2
 ENV HUSKY=0
 WORKDIR /app
 ARG PORT
