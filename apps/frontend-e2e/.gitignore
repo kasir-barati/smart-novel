@@ -2,6 +2,7 @@
 cypress/videos/
 cypress/screenshots/
 cypress/downloads/
+cypress/logs/
 cypress.env.json
 
 # Test results

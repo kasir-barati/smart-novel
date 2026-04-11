@@ -23,7 +23,7 @@ let exitCode = 0;
 
 try {
   exitCode = run(
-    'docker compose --profile frontend-e2e up -d --build --wait',
+    'docker compose -f compose.e2e.yml --profile frontend-e2e up -d --build --wait',
   );
 
   if (exitCode === 0) {
@@ -31,7 +31,7 @@ try {
   }
 } finally {
   const downCode = run(
-    'docker compose --profile frontend-e2e down -v',
+    'docker compose -f compose.e2e.yml --profile frontend-e2e down -v',
   );
 
   if (exitCode === 0 && downCode !== 0) {

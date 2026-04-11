@@ -5,10 +5,6 @@ services:
       context: .
       dockerfile: apps/backend/Dockerfile
       target: development
-    profiles:
-      - dev
-      - backend-e2e
-      - frontend-e2e
     env_file:
       - .env
     command:
@@ -28,7 +24,7 @@ services:
       - /app/node_modules
       - zitadel-pat:/zitadel-pat:ro
 
-  backend: &backend
+  backend:
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
@@ -146,73 +142,6 @@ services:
       - traefik.http.routers.frontend-assets.entrypoints=web
       - traefik.http.routers.frontend-assets.service=frontend
       - traefik.http.routers.frontend-assets.priority=200
-
-  backend-e2e:
-    <<: *backend
-    profiles:
-      - backend-e2e
-      - frontend-e2e
-    build:
-      context: .
-      dockerfile: apps/backend/Dockerfile
-      target: production
-      args:
-        PORT: $BACKEND_PORT
-        DATABASE_URL: ${DATABASE_URL}
-    volumes:
-      - zitadel-pat:/zitadel-pat:ro
-
-  frontend-e2e:
-    build:
-      context: .
-      dockerfile: apps/frontend/Dockerfile
-      target: production
-      args:
-        VITE_SERVICE_URL: ${VITE_SERVICE_URL}
-        # Use a placeholder for the client ID — it is generated at runtime by
-        # setup-zitadel. The entrypoint below replaces the placeholder in
-        # the built JS bundle before nginx starts.
-        VITE_OIDC_CLIENT_ID: __OIDC_CLIENT_ID_PLACEHOLDER__
-        VITE_OIDC_AUTHORITY: ${VITE_OIDC_AUTHORITY}
-        VITE_OIDC_REDIRECT_URI: ${VITE_OIDC_REDIRECT_URI}
-        VITE_OIDC_SCOPE: ${VITE_OIDC_SCOPE}
-        ZITADEL_CLIENT_ID_FILE: ${ZITADEL_CLIENT_ID_FILE}
-    profiles:
-      - frontend-e2e
-    depends_on:
-      backend-e2e:
-        condition: service_healthy
-      s3:
-        condition: service_healthy
-      setup-zitadel:
-        condition: service_completed_successfully
-    volumes:
-      - ./local-setup/start-frontend-e2e.sh:/app/start-frontend-e2e.sh:ro
-      - zitadel-pat:/zitadel-pat:ro
-    command: ["/bin/sh", "/app/start-frontend-e2e.sh"]
-    healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:80"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    networks:
-      - proxy
-      - default
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=proxy
-      - traefik.http.services.frontend-e2e.loadbalancer.server.port=80
-      - traefik.http.routers.frontend-e2e-web.rule=PathPrefix(`/`)
-      - traefik.http.routers.frontend-e2e-web.entrypoints=web
-      - traefik.http.routers.frontend-e2e-web.service=frontend-e2e
-      - traefik.http.routers.frontend-e2e-web.priority=50
-      # Serve frontend static assets from the frontend, but keep Zitadel's
-      # /assets/v1 API path routed to Zitadel.
-      - traefik.http.routers.frontend-e2e-assets.rule=PathPrefix(`/assets`) && !PathPrefix(`/assets/v1`)
-      - traefik.http.routers.frontend-e2e-assets.entrypoints=web
-      - traefik.http.routers.frontend-e2e-assets.service=frontend-e2e
-      - traefik.http.routers.frontend-e2e-assets.priority=200
 
   postgres:
     image: postgres:18.2-bookworm
@@ -423,23 +352,6 @@ services:
       - zitadel-pat:/zitadel-pat
     entrypoint: ["npm", "start"]
 
-  pgadmin:
-    image: dpage/pgadmin4:8.4
-    restart: always
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - ${PGADMIN_EXPOSED_PORT:-5050}:80
-    configs:
-      - source: servers.json
-        target: /pgadmin4/servers.json
-      - source: preferences.json
-        target: /pgadmin4/preferences.json
-
   redis:
     image: redis:8.6-alpine3.23
     restart: always
@@ -465,36 +377,6 @@ services:
       timeout: 3s
       retries: 5
 
-  redis-insight:
-    image: redis/redisinsight:latest
-    restart: always
-    ports:
-      - "5540:5540"
-    depends_on:
-      redis:
-        condition: service_healthy
-    environment:
-      RI_APP_PORT: 5540
-      RI_LOG_LEVEL: debug
-      RI_ACCEPT_TERMS_AND_CONDITIONS: true
-      # 👇 Does NOT create a DB connection most of the times, create it manually.
-      RI_REDIS_HOST: redis
-      RI_REDIS_PORT: 6379
-      RI_REDIS_ALIAS: "Local Redis (compose)"
-      RI_REDIS_USERNAME: default
-      RI_REDIS_PASSWORD: "${REDIS_PASSWORD:-}"
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "node",
-          "--experimental-default-type=module",
-          '-e "console.log((await fetch(''http://localhost:5540/api/health/'')).ok === true && ''healthy'')"',
-        ]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-
   ollama:
     build:
       context: local-setup/ollama
@@ -507,25 +389,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 45s
-
-  # 👇 Takes up to 1 minute to start!
-  open-webui:
-    image: ghcr.io/open-webui/open-webui:main
-    ports:
-      - 8090:8080
-    depends_on:
-      ollama:
-        condition: service_healthy
-    environment:
-      - OLLAMA_BASE_URL=$OLLAMA_BASE_URL
-      - WEBUI_AUTH=False
-    restart: on-failure
-    healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
 
   tts:
     image: 9109679196/piper-tts-rest-api:2.1.0
@@ -586,33 +449,3 @@ networks:
 
 volumes:
   zitadel-pat:
-
-configs:
-  preferences.json:
-    content: |
-      {
-        "preferences": {
-          "misc:themes:theme": "dark",
-          "browser:display:show_system_objects": true,
-          "browser:display:confirm_on_refresh_close": false,
-          "browser:display:show_user_defined_templates": true
-        }
-      }
-  servers.json:
-    content: |
-      {
-        "Servers": {
-          "1": {
-            "Group": "Servers",
-            "Name": "Smart Novel Database",
-            "Host": "postgres",
-            "Port": 5432,
-            "MaintenanceDB": "${POSTGRES_DB}",
-            "Username": "${POSTGRES_USER}",
-            "SSLMode": "prefer",
-            "BGColor": "#FF4500",
-            "FGColor": "#222222",
-            "Comment": "This server will connect to the instance we've created in our compose file."
-          }
-        }
-      }

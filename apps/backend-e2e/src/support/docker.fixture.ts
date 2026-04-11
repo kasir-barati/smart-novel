@@ -19,11 +19,10 @@ export class DockerFixture {
     cwd: string,
     containerPath: string,
     hostFilePath: string,
-    profileName: ProfileName,
   ): void {
     try {
       const fileContent = execSync(
-        `docker compose --profile ${profileName} exec -T ${profileName} cat ${containerPath}`,
+        `docker compose -f compose.e2e.yml --profile backend-e2e exec -T backend-e2e cat ${containerPath}`,
         {
           cwd,
           encoding: 'utf-8',
@@ -51,10 +50,9 @@ export class DockerFixture {
     cwd: string,
     serviceName: ServiceName,
     hostPath: string,
-    profileName: ProfileName,
   ): void {
     execSync(
-      `docker compose --profile ${profileName} logs ${serviceName} > ${hostPath} 2>&1`,
+      `docker compose -f compose.e2e.yml --profile backend-e2e logs ${serviceName} > ${hostPath} 2>&1`,
       {
         cwd,
         stdio: 'inherit',
@@ -62,13 +60,9 @@ export class DockerFixture {
     );
   }
 
-  static startCompose(
-    cwd: string,
-    profileName: ProfileName,
-    serviceName: ServiceName,
-  ): void {
+  static startCompose(cwd: string, serviceName: ServiceName): void {
     execSync(
-      `docker compose --profile ${profileName} up -d --build --wait ${serviceName}`,
+      `docker compose -f compose.e2e.yml --profile backend-e2e up -d --build --wait ${serviceName}`,
       {
         cwd,
         stdio: 'inherit',
@@ -77,10 +71,13 @@ export class DockerFixture {
   }
 
   static stopCompose(cwd: string, profileName: ProfileName): void {
-    execSync(`docker compose --profile ${profileName} down -v`, {
-      cwd,
-      stdio: 'inherit',
-    });
+    execSync(
+      `docker compose -f compose.e2e.yml --profile backend-e2e down -v`,
+      {
+        cwd,
+        stdio: 'inherit',
+      },
+    );
   }
 
   static cleanup() {
