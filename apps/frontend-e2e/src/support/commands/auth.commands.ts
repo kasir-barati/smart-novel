@@ -125,7 +125,7 @@ Cypress.Commands.add(
     );
 
     clickSubmitWithRetry(
-      'button[aria-label="Logout"]',
+      'button[aria-label="User menu"]',
       'Step 3 (password submit)',
     );
 
@@ -134,10 +134,12 @@ Cypress.Commands.add(
 
     cy.url().then((url) => log(`Step 4: URL after redirect: ${url}`));
 
-    log('Step 5: waiting for Logout button (auth confirmation)...');
-    cy.get('button[aria-label="Logout"]', { timeout: 15000 }).should(
-      'be.visible',
+    log(
+      'Step 5: waiting for User menu button (auth confirmation)...',
     );
+    cy.get('button[aria-label="User menu"]', {
+      timeout: 15000,
+    }).should('be.visible');
 
     cy.url().then((url) =>
       log(`=== LOGIN COMPLETE — final URL: ${url} ===`),
@@ -150,13 +152,17 @@ Cypress.Commands.add('logout', () => {
   cy.visit('/');
 
   cy.get('body', { timeout: 15000 }).then(($body) => {
-    if ($body.find('button[aria-label="Logout"]').length === 0) {
-      log('Logout button not found (already logged out)');
+    if ($body.find('button[aria-label="User menu"]').length === 0) {
+      log('User menu not found (already logged out)');
       return;
     }
 
-    log('Logout button found, clicking...');
-    cy.get('button[aria-label="Logout"]').click();
+    log('User menu found, opening dropdown...');
+    cy.get('button[aria-label="User menu"]').click();
+
+    log('Clicking Sign out...');
+    cy.contains('button', 'Sign out').should('be.visible').click();
+
     cy.get('button[aria-label="Login"]', { timeout: 15000 }).should(
       'be.visible',
     );

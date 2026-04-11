@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { useAuth } from '../../hooks/useAuth';
+import { getInitials } from '../../utils/get-initials';
+
+const ZITADEL_CONSOLE_URL = `${window.location.origin}/ui/console/`;
 
 const navItems = [
   { to: '/', label: 'Home' },
@@ -12,7 +15,33 @@ const navItems = [
 export function Header() {
   const { user, isAuthenticated, loading, login, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const closeMenu = () => setIsMenuOpen(false);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    }
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
+
+  const initials = user
+    ? getInitials(user.name, user.preferredUsername, user.email)
+    : '?';
 
   return (
     <header className="border-b border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
@@ -42,34 +71,42 @@ export function Header() {
             <div className="hidden md:flex md:items-center md:space-x-3">
               {!loading &&
                 (isAuthenticated ? (
-                  <div className="flex items-center space-x-3">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {user?.name ||
-                        user?.preferredUsername ||
-                        user?.email}
-                    </span>
+                  <div className="relative" ref={dropdownRef}>
                     <button
-                      onClick={logout}
-                      title="Logout"
-                      aria-label="Logout"
-                      className="cursor-pointer rounded-md bg-gray-200 p-2 text-gray-700 transition-colors hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                      onClick={() =>
+                        setIsDropdownOpen(!isDropdownOpen)
+                      }
+                      className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-offset-gray-800"
+                      aria-label="User menu"
+                      aria-expanded={isDropdownOpen}
+                      aria-haspopup="true"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                        aria-hidden="true"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h5a2 2 0 012 2v1"
-                        />
-                      </svg>
+                      {initials}
                     </button>
+
+                    {isDropdownOpen && (
+                      <div className="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-600 dark:bg-gray-700">
+                        <a
+                          href={ZITADEL_CONSOLE_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          Manage account
+                        </a>
+                        <hr className="my-1 border-gray-200 dark:border-gray-600" />
+                        <button
+                          onClick={() => {
+                            setIsDropdownOpen(false);
+                            logout();
+                          }}
+                          className="block w-full cursor-pointer px-4 py-2 text-left text-sm text-red-600 transition-colors hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-600"
+                        >
+                          Sign out
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <button
@@ -159,36 +196,34 @@ export function Header() {
             {!loading && (
               <div className="mt-3 border-t border-gray-200 pt-3 dark:border-gray-700">
                 {isAuthenticated ? (
-                  <div className="flex items-center justify-between px-3">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {user?.name ||
-                        user?.preferredUsername ||
-                        user?.email}
-                    </span>
+                  <div className="flex flex-col space-y-2 px-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white dark:bg-blue-500">
+                        {initials}
+                      </div>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {user?.name ||
+                          user?.preferredUsername ||
+                          user?.email}
+                      </span>
+                    </div>
+                    <a
+                      href={ZITADEL_CONSOLE_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={closeMenu}
+                      className="rounded-md px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600"
+                    >
+                      Manage account
+                    </a>
                     <button
                       onClick={() => {
                         closeMenu();
                         logout();
                       }}
-                      title="Logout"
-                      aria-label="Logout"
-                      className="cursor-pointer rounded-md bg-gray-200 p-2 text-gray-700 transition-colors hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                      className="cursor-pointer rounded-md px-3 py-2 text-left text-sm text-red-600 transition-colors hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-600"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                        aria-hidden="true"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h5a2 2 0 012 2v1"
-                        />
-                      </svg>
+                      Sign out
                     </button>
                   </div>
                 ) : (
