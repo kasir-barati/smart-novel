@@ -1,4 +1,4 @@
-import { NovelState } from '../enums';
+import { NovelState } from '@prisma/client';
 
 export interface NovelDetails {
   author: string;

@@ -1,5 +1,7 @@
+import { NovelState } from '@prisma/client';
+
 import { type IAuthUser, Role } from '../../auth';
-import { NovelAction, NovelState } from '../enums';
+import { NovelAction } from '../enums';
 import { NovelService } from '../services';
 import { Novel } from '../types';
 import { NovelResolver } from './novel.resolver';

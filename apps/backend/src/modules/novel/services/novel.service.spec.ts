@@ -1,5 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
-import { NarrationStatus } from '@prisma/client';
+import { NarrationStatus, NovelState } from '@prisma/client';
 import { isString } from 'class-validator';
 
 import type {
@@ -9,7 +9,7 @@ import type {
 } from '../interfaces';
 
 import { OrderDirection } from '../../../shared'; // FIXME: https://github.com/kasir-barati/smart-novel/issues/23
-import { ChapterOrderField, NovelState } from '../enums';
+import { ChapterOrderField } from '../enums';
 import { Chapter, Novel } from '../types';
 import { NovelService } from './novel.service';
 

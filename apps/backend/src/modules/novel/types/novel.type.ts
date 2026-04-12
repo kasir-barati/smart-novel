@@ -1,8 +1,18 @@
-import { Field, ID, ObjectType } from '@nestjs/graphql';
+import {
+  Field,
+  ID,
+  ObjectType,
+  registerEnumType,
+} from '@nestjs/graphql';
+import { NovelState } from '@prisma/client';
 
-import { NovelAction, NovelState } from '../enums';
+import { NovelAction } from '../enums';
 import { INovel } from '../interfaces';
 import { Chapter } from './chapter.type';
+
+registerEnumType(NovelState, {
+  name: 'NovelState',
+});
 
 @ObjectType({
   description: 'Represents a novel with its details.',

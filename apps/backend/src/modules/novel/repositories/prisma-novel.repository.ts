@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { Novel as PrismaNovel } from '@prisma/client';
 
 import { PrismaService } from '../../prisma';
-import { NovelState } from '../enums';
 import { type INovelRepository } from '../interfaces';
 import { Novel } from '../types';
 
@@ -83,7 +82,7 @@ export class PrismaNovelRepository implements INovelRepository {
       name: record.name,
       author: record.author,
       description: record.description,
-      state: record.state as NovelState, // FIXME: use enum exported from Prisma
+      state: record.state,
       ownerId: record.ownerId,
       coverUrl: record.coverUrl ?? undefined,
       category: record.categories.map((novelCategory) =>

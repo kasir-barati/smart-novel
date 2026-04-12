@@ -1,5 +1,6 @@
+import { NovelState } from '@prisma/client';
+
 import { PrismaService } from '../../prisma';
-import { NovelState } from '../enums';
 import { PrismaNovelRepository } from './prisma-novel.repository';
 
 describe(PrismaNovelRepository.name, () => {
