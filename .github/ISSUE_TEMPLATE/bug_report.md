@@ -8,7 +8,7 @@ assignees: ''
 
 ## Summary
 
-Make sure to follow `CONTRIBUTING.md` guideline.
+Make sure to follow `.github/CONTRIBUTING.md` guideline.
 
 [A short summary of the bug] or N/A.
 
