@@ -12,11 +12,7 @@ const workspaceRoot = resolve(__dirname, '../../../../');
 export default async function setup() {
   Logger.section('Setting up Vitest globally');
   Logger.log('Starting Docker Compose services...');
-  DockerFixture.startCompose(
-    workspaceRoot,
-    'backend-e2e',
-    'backend-e2e',
-  );
+  DockerFixture.startCompose(workspaceRoot, 'backend-e2e');
   await import('./config.helper.js');
   globalThis.__TEARDOWN_MESSAGE__ = '\nTearing down...\n';
 
@@ -29,21 +25,23 @@ export default async function setup() {
       workspaceRoot,
       'init-postgres',
       'local-setup/logs/init-postgres.log',
-      'backend-e2e',
     );
     DockerFixture.persistLogs(
       workspaceRoot,
       'zitadel',
       'local-setup/logs/zitadel.log',
-      'backend-e2e',
+    );
+    DockerFixture.persistLogs(
+      workspaceRoot,
+      'setup-zitadel',
+      'local-setup/logs/setup-zitadel.log',
     );
     DockerFixture.persistLogs(
       workspaceRoot,
       'backend-e2e',
       'local-setup/logs/backend.log',
-      'backend-e2e',
     );
-    DockerFixture.stopCompose(workspaceRoot, 'backend-e2e');
+    DockerFixture.stopCompose(workspaceRoot);
     DockerFixture.cleanup();
     Logger.log(globalThis.__TEARDOWN_MESSAGE__);
   };

@@ -6,7 +6,11 @@ import path from 'node:path';
 import { Logger } from './logger';
 
 /** @description the service name comes from the compose file */
-type ServiceName = 'backend-e2e' | 'zitadel' | 'init-postgres';
+type ServiceName =
+  | 'backend-e2e'
+  | 'zitadel'
+  | 'init-postgres'
+  | 'setup-zitadel';
 /** @description the profile name comes from the compose file */
 type ProfileName = 'backend-e2e' | 'frontend-e2e' | 'dev';
 

@@ -3,6 +3,7 @@ export interface IChapter {
   novelId: string;
   contentId: string;
   title: string;
+  chapterNumber: number;
   createdAt: string;
   updatedAt: string;
   narrationUrl?: string;

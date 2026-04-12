@@ -101,6 +101,7 @@ export class PrismaChapterRepository implements IChapterRepository {
       novelId: chapter.novelId,
       contentId: chapter.contentId ?? undefined,
       title: chapter.title,
+      chapterNumber: chapter.chapterNumber,
       createdAt: chapter.createdAt.toISOString(),
       updatedAt: chapter.updatedAt.toISOString(),
       narrationStatus: chapter.narrationStatus as

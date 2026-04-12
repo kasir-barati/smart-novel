@@ -1,4 +1,4 @@
-import { Field, ID, ObjectType } from '@nestjs/graphql';
+import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
 import { NarrationStatus } from '@prisma/client';
 
 import { IChapter } from '../interfaces';
@@ -17,6 +17,9 @@ export class Chapter implements IChapter {
 
   @Field({ description: 'The title of the chapter' })
   title: string;
+
+  @Field(() => Int, { description: 'The chapter number' })
+  chapterNumber: number;
 
   @Field(() => ID, {
     description: 'FK to the chapter content record',
