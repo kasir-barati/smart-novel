@@ -8,6 +8,8 @@ assignees: ''
 
 ## Summary
 
+Make sure to follow `CONTRIBUTING.md` guideline.
+
 [A short summary of the feature] or N/A.
 
 ## 🌟 Motivation
