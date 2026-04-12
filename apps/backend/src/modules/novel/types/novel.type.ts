@@ -22,7 +22,7 @@ export class Novel implements INovel {
   })
   category: string[];
 
-  @Field(() => [String], {
+  @Field(() => [ID], {
     description: 'Chapter IDs of the novel',
   })
   chapters: string[];
