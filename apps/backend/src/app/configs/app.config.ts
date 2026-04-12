@@ -125,6 +125,14 @@ class EnvironmentVariables implements AppConfig {
 
   @IsNotEmpty()
   @IsString()
+  OBJECT_STORAGE_BUCKET: string;
+
+  @IsNotEmpty()
+  @IsString()
+  OBJECT_STORAGE_PUBLIC_URL: string;
+
+  @IsNotEmpty()
+  @IsString()
   ZITADEL_ISSUER_URL: string;
 
   @IsOptional()

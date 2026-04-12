@@ -35,12 +35,6 @@ import { NarrationLockService } from './narration-lock.service';
 
 @Injectable()
 export class ChapterNarrationService {
-  // FIXME: read these from ConfigService
-  private readonly bucketName =
-    process.env.OBJECT_STORAGE_BUCKET ?? 'smart-novel';
-  private readonly publicBase =
-    process.env.OBJECT_STORAGE_PUBLIC_URL ?? 'http://localhost:9000';
-
   constructor(
     private readonly s3Client: S3Client,
     private readonly logger: CustomLoggerService,
@@ -404,7 +398,7 @@ export class ChapterNarrationService {
       this.s3Client,
       filename,
       objectKey,
-      this.bucketName,
+      this.appConfig.OBJECT_STORAGE_BUCKET,
       this.logger,
       this.correlationIdService,
       ChecksumAlgorithm.CRC32,
@@ -454,6 +448,10 @@ export class ChapterNarrationService {
         });
     });
 
-    return urlBuilder(this.publicBase, this.bucketName, objectKey);
+    return urlBuilder(
+      this.appConfig.OBJECT_STORAGE_PUBLIC_URL,
+      this.appConfig.OBJECT_STORAGE_BUCKET,
+      objectKey,
+    );
   }
 }
