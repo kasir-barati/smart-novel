@@ -37,43 +37,38 @@ export class RbacAuthorizationProvider implements IAuthorizationProvider {
   async isAllowed(params: AuthzCheckParams): Promise<boolean> {
     const { principal, resource, resourceId, action } = params;
 
-    try {
-      let allowed = false;
+    let allowed = false;
 
-      // Route to appropriate permission check based on resource type
-      switch (resource) {
-        case 'novel':
-          allowed = await this.checkNovelPermission(
-            principal.sub,
-            principal.roles,
-            resourceId,
-            action,
-          );
-          break;
-        case 'chapter':
-          allowed = await this.checkChapterPermission(
-            principal.sub,
-            principal.roles,
-            resourceId,
-            action,
-          );
-          break;
-        default:
-          this.logger.warn(
-            `Unknown resource type: ${resource}. Denying access.`,
-          );
-          allowed = false;
-      }
-
-      this.logger.debug(
-        `RBAC check: principal=${principal.sub} roles=[${principal.roles.join(',')}] action=${action} resource=${resource}/${resourceId} => ${allowed ? 'ALLOW' : 'DENY'}`,
-      );
-
-      return allowed;
-    } catch (error) {
-      this.logger.error(`RBAC check failed: ${error}`);
-      return false;
+    // Route to appropriate permission check based on resource type
+    switch (resource) {
+      case 'novel':
+        allowed = await this.checkNovelPermission(
+          principal.sub,
+          principal.roles,
+          resourceId,
+          action,
+        );
+        break;
+      case 'chapter':
+        allowed = await this.checkChapterPermission(
+          principal.sub,
+          principal.roles,
+          resourceId,
+          action,
+        );
+        break;
+      default:
+        this.logger.warn(
+          `Unknown resource type: ${resource}. Denying access.`,
+        );
+        allowed = false;
     }
+
+    this.logger.debug(
+      `RBAC check: principal=${principal.sub} roles=[${principal.roles.join(',')}] action=${action} resource=${resource}/${resourceId} => ${allowed ? 'ALLOW' : 'DENY'}`,
+    );
+
+    return allowed;
   }
 
   /**

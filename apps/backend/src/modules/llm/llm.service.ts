@@ -40,46 +40,31 @@ export class LlmService {
     const cacheKey = generateCacheKey(word, context);
     const cacheTtlMs = ms(this.appConfig.OLLAMA_CACHE_TTL);
 
-    try {
-      const { data, cacheHit, coalesced } =
-        await this.cacheService.getOrCompute(
-          cacheKey,
-          () => this.callOllamaWithRetry(word, context),
-          cacheTtlMs,
-        );
-      const totalLatency = Date.now() - startTime;
-
-      // Log LLM observability
-      this.logger.log(`LLM call completed for word "${word}"`, {
-        context: LlmService.name,
-        correlationId: this.correlationIdService.correlationId,
+    const { data, cacheHit, coalesced } =
+      await this.cacheService.getOrCompute(
         cacheKey,
-        word,
-        instanceId: hostname(),
-        latencyMs: totalLatency,
-        cacheHit,
-        coalesced,
-        telemetryOf: 'LlmObservability',
-      });
-
-      return {
-        ...data,
-        cacheKey,
-      };
-    } catch (error) {
-      this.logger.error(
-        `Failed to explain word "${word}": ${error}`,
-        {
-          context: LlmService.name,
-          correlationId: this.correlationIdService.correlationId,
-          cacheKey,
-          word,
-          error,
-        },
+        () => this.callOllamaWithRetry(word, context),
+        cacheTtlMs,
       );
+    const totalLatency = Date.now() - startTime;
 
-      throw error;
-    }
+    // Log LLM observability
+    this.logger.log(`LLM call completed for word "${word}"`, {
+      context: LlmService.name,
+      correlationId: this.correlationIdService.correlationId,
+      cacheKey,
+      word,
+      instanceId: hostname(),
+      latencyMs: totalLatency,
+      cacheHit,
+      coalesced,
+      telemetryOf: 'LlmObservability',
+    });
+
+    return {
+      ...data,
+      cacheKey,
+    };
   }
 
   private async callOllamaWithRetry(

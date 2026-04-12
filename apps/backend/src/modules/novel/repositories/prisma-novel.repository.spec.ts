@@ -1,8 +1,3 @@
-import {
-  CorrelationIdService,
-  CustomLoggerService,
-} from 'nestjs-backend-common';
-
 import { PrismaService } from '../../prisma';
 import { NovelState } from '../enums';
 import { PrismaNovelRepository } from './prisma-novel.repository';
@@ -10,9 +5,6 @@ import { PrismaNovelRepository } from './prisma-novel.repository';
 describe(PrismaNovelRepository.name, () => {
   let uut: PrismaNovelRepository;
   let prismaService: PrismaService;
-  let logger: CustomLoggerService;
-  let correlationIdService: CorrelationIdService;
-  const mockCorrelationId = '8180f8fc-73f4-47e2-bf79-d637c54e5d67';
 
   beforeEach(async () => {
     // Mock PrismaService with all required methods
@@ -32,24 +24,7 @@ describe(PrismaNovelRepository.name, () => {
       },
     } as any;
 
-    // Mock logger
-    logger = {
-      error: vi.fn(),
-      log: vi.fn(),
-      warn: vi.fn(),
-      debug: vi.fn(),
-    } as any;
-
-    // Mock correlation ID service
-    correlationIdService = {
-      correlationId: mockCorrelationId,
-    } as any;
-
-    uut = new PrismaNovelRepository(
-      prismaService,
-      logger,
-      correlationIdService,
-    );
+    uut = new PrismaNovelRepository(prismaService);
   });
 
   describe('findAll', () => {
@@ -110,18 +85,15 @@ describe(PrismaNovelRepository.name, () => {
       expect(result[0].coverUrl).toBeUndefined();
     });
 
-    it('should log error and throw when database fails', async () => {
-      const error = new Error('Database connection failed');
+    it('should propagate the error when database fails', async () => {
       vi.mocked(prismaService.novel.findMany).mockRejectedValue(
-        error,
+        new Error('Database connection failed'),
       );
 
-      const res = uut.findAll();
+      const result = uut.findAll();
 
-      await expect(res).rejects.toThrow('Failed to read novels');
-      expect(logger.error).toHaveBeenCalledWith(
-        `Error reading novels: ${error}`,
-        { correlationId: mockCorrelationId },
+      await expect(result).rejects.toThrow(
+        'Database connection failed',
       );
     });
   });
@@ -171,21 +143,16 @@ describe(PrismaNovelRepository.name, () => {
       expect(result).toBeNull();
     });
 
-    it('should return null and log error when database fails', async () => {
-      const error = new Error('Database error');
+    it('should propagate the error when database fails', async () => {
       vi.mocked(prismaService.novel.findUnique).mockRejectedValue(
-        error,
+        new Error('Database error'),
       );
 
-      const result = await uut.findById(
+      const result = uut.findById(
         '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
       );
 
-      expect(result).toBeNull();
-      expect(logger.error).toHaveBeenCalledWith(
-        `Error reading novel 248c9fee-cad0-43fc-9abb-c2ab8ff002ec: ${error}`,
-        { correlationId: mockCorrelationId },
-      );
+      await expect(result).rejects.toThrow('Database error');
     });
   });
 
@@ -226,21 +193,16 @@ describe(PrismaNovelRepository.name, () => {
       expect(result).toEqual([]);
     });
 
-    it('should return empty array and log error when database fails', async () => {
-      const error = new Error('Database error');
+    it('should propagate the error when database fails', async () => {
       vi.mocked(prismaService.chapter.findMany).mockRejectedValue(
-        error,
+        new Error('Database error'),
       );
 
-      const result = await uut.getChapterList(
+      const result = uut.getChapterList(
         '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
       );
 
-      expect(result).toEqual([]);
-      expect(logger.error).toHaveBeenCalledWith(
-        `Error reading chapter list for 248c9fee-cad0-43fc-9abb-c2ab8ff002ec: ${error}`,
-        { correlationId: mockCorrelationId },
-      );
+      await expect(result).rejects.toThrow('Database error');
     });
   });
 
@@ -274,19 +236,14 @@ describe(PrismaNovelRepository.name, () => {
       expect(result).toEqual([]);
     });
 
-    it('should return empty array and log error when database fails', async () => {
-      const error = new Error('Database error');
+    it('should propagate the error when database fails', async () => {
       vi.mocked(prismaService.category.findMany).mockRejectedValue(
-        error,
+        new Error('Database error'),
       );
 
-      const result = await uut.getCategories();
+      const result = uut.getCategories();
 
-      expect(result).toEqual([]);
-      expect(logger.error).toHaveBeenCalledWith(
-        `Error reading categories: ${error}`,
-        { correlationId: mockCorrelationId },
-      );
+      await expect(result).rejects.toThrow('Database error');
     });
   });
 });
