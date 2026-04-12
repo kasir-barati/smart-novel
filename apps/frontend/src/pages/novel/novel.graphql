@@ -4,11 +4,31 @@ query GetNovel($id: ID!) {
     name
     author
     category
-    chapters
     state
     coverUrl
     description
     allowedActions
+    chaptersConnection(
+      first: 100
+      orderBy: { field: CHAPTER_NUMBER, direction: ASC }
+    ) {
+      edges {
+        cursor
+        node {
+          id
+          title
+          chapterNumber
+          createdAt
+        }
+      }
+      pageInfo {
+        endCursor
+        hasNextPage
+        hasPreviousPage
+        startCursor
+      }
+      totalCount
+    }
     firstChapter {
       id
     }

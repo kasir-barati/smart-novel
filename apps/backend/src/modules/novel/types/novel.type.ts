@@ -22,11 +22,6 @@ export class Novel implements INovel {
   })
   category: string[];
 
-  @Field(() => [ID], {
-    description: 'Chapter IDs of the novel',
-  })
-  chapters: string[];
-
   @Field(() => NovelState, { description: 'The state of the novel' })
   state: NovelState;
 

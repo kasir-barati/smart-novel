@@ -69,11 +69,13 @@ export default [
       'no-restricted-syntax': [
         'error',
         {
-          selector: 'ExportAllDeclaration[source.value=/\\.spec(\\.|$)/]',
+          selector:
+            'ExportAllDeclaration[source.value=/\\.spec(\\.|$)/]',
           message: 'Do not re-export spec files from barrel files.',
         },
         {
-          selector: 'ExportNamedDeclaration[source.value=/\\.spec(\\.|$)/]',
+          selector:
+            'ExportNamedDeclaration[source.value=/\\.spec(\\.|$)/]',
           message: 'Do not re-export spec files from barrel files.',
         },
       ],

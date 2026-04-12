@@ -1,11 +1,19 @@
 import { Field, InputType } from '@nestjs/graphql';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { IsOptional, ValidateNested } from 'class-validator';
 
-import { StringListFilterInput } from './string-list-filter.input';
+import { ListFilterInputMixin } from '../../../shared'; // FIXME: https://github.com/kasir-barati/smart-novel/issues/23
 
 @InputType()
-export class CategoryFilterInput extends StringListFilterInput {}
+export class CategoryFilterInput extends ListFilterInputMixin<string>(
+  () => String,
+) {
+  @Transform(({ value }) => value.map((v: string) => v.toLowerCase()))
+  override in?: string[];
+
+  @Transform(({ value }) => value.map((v: string) => v.toLowerCase()))
+  override nin?: string[];
+}
 
 @InputType()
 export class NovelFiltersInput {

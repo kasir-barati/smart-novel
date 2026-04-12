@@ -1,4 +1,8 @@
-query GetNovels($first: Int, $after: String, $filters: NovelFiltersInput) {
+query GetNovels(
+  $first: Int
+  $after: String
+  $filters: NovelFiltersInput
+) {
   novels(first: $first, after: $after, filters: $filters) {
     edges {
       cursor

@@ -71,10 +71,6 @@ describe(PrismaNovelRepository.name, () => {
           ownerId: '230104087265432001',
           coverUrl: 'https://example.com/cover.jpg',
           category: ['fantasy', 'adventure'],
-          chapters: [
-            'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
-            '904bf826-33be-4172-b63f-665bba9007b9',
-          ],
         },
       ]);
       expect(prismaService.novel.findMany).toHaveBeenCalledWith({
@@ -85,10 +81,6 @@ describe(PrismaNovelRepository.name, () => {
                 select: { name: true },
               },
             },
-          },
-          chapters: {
-            select: { id: true },
-            orderBy: { chapterNumber: 'asc' },
           },
         },
         orderBy: { name: 'asc' },
@@ -154,10 +146,6 @@ describe(PrismaNovelRepository.name, () => {
         ownerId: '230104087265432001',
         coverUrl: 'https://example.com/cover.jpg',
         category: ['fantasy', 'adventure'],
-        chapters: [
-          'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
-          '904bf826-33be-4172-b63f-665bba9007b9',
-        ],
       });
       expect(prismaService.novel.findUnique).toHaveBeenCalledWith({
         where: { id: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec' },
@@ -168,10 +156,6 @@ describe(PrismaNovelRepository.name, () => {
                 select: { name: true },
               },
             },
-          },
-          chapters: {
-            select: { id: true },
-            orderBy: { chapterNumber: 'asc' },
           },
         },
       });

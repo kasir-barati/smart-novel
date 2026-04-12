@@ -1,6 +1,24 @@
 import { NarrationStatus } from '@prisma/client';
 
+import { PaginationArgs } from '../../../shared/interfaces/index';
 import { IChapter } from './chapter.interface';
+
+export interface ChaptersConnectionResult {
+  chapters: IChapter[];
+  totalCount: number;
+}
+
+export interface ChapterConnectionFilters {
+  narrationStatus?: NarrationStatus;
+}
+
+export interface FindChaptersConnectionArgs {
+  novelId: string;
+  pagination?: PaginationArgs;
+  orderByField?: string;
+  orderByDirection?: string;
+  filters?: ChapterConnectionFilters;
+}
 
 export interface IChapterRepository {
   getChapter(
@@ -17,6 +35,11 @@ export interface IChapterRepository {
     id: string,
     url: string,
   ): Promise<number>;
+  findChaptersConnection(
+    args: FindChaptersConnectionArgs,
+  ): Promise<ChaptersConnectionResult>;
+  getFirstChapter(novelId: string): Promise<IChapter | null>;
+  getLastChapter(novelId: string): Promise<IChapter | null>;
 }
 
 export const CHAPTER_REPOSITORY = Symbol('CHAPTER_REPOSITORY');

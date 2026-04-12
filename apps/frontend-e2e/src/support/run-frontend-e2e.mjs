@@ -22,7 +22,7 @@ if (!projectRoot) {
 let exitCode = 0;
 
 try {
-  exitCode = run('nx codegen frontend')
+  exitCode = run('nx codegen frontend');
 
   if (exitCode !== 0) {
     console.error('Failed to generate code for frontend.');

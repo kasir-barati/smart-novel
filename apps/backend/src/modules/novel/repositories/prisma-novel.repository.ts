@@ -6,9 +6,10 @@ import {
 
 import { PrismaService } from '../../prisma';
 import { NovelState } from '../enums';
-import { INovelRepository } from '../interfaces';
+import { type INovelRepository } from '../interfaces';
 import { Novel } from '../types';
 
+// FIXME: Remove all try catch blocks
 @Injectable()
 export class PrismaNovelRepository implements INovelRepository {
   constructor(
@@ -30,14 +31,6 @@ export class PrismaNovelRepository implements INovelRepository {
               },
             },
           },
-          chapters: {
-            select: {
-              id: true,
-            },
-            orderBy: {
-              chapterNumber: 'asc',
-            },
-          },
         },
         orderBy: {
           name: 'asc',
@@ -55,7 +48,6 @@ export class PrismaNovelRepository implements INovelRepository {
         category: novel.categories.map((novelCategory) =>
           novelCategory.category.name.toLowerCase(),
         ),
-        chapters: novel.chapters.map((chapter) => chapter.id),
       }));
     } catch (error) {
       this.logger.error(`Error reading novels: ${error}`, {
@@ -79,14 +71,6 @@ export class PrismaNovelRepository implements INovelRepository {
               },
             },
           },
-          chapters: {
-            select: {
-              id: true,
-            },
-            orderBy: {
-              chapterNumber: 'asc',
-            },
-          },
         },
       });
 
@@ -105,7 +89,6 @@ export class PrismaNovelRepository implements INovelRepository {
         category: novel.categories.map((novelCategory) =>
           novelCategory.category.name.toLowerCase(),
         ),
-        chapters: novel.chapters.map((chapter) => chapter.id),
       };
     } catch (error) {
       this.logger.error(`Error reading novel ${id}: ${error}`, {

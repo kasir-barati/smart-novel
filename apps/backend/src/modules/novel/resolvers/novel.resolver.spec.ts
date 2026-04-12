@@ -11,192 +11,121 @@ describe(NovelResolver.name, () => {
   beforeEach(() => {
     novelService = {
       getChapter: vi.fn(),
+      getFirstChapter: vi.fn(),
+      getLastChapter: vi.fn(),
+      getChaptersConnection: vi.fn(),
     } as any;
     uut = new NovelResolver(novelService);
   });
 
   describe('lastChapterPublishedAt', () => {
     it('should return the last chapter published date', async () => {
-      const novel = {
-        author: 'Author',
-        category: ['fantasy'],
-        chapters: [
-          '54f74d6a-a80b-4b20-8a19-339b99da5362',
-          'db1be1a7-e3bf-46d3-8899-980219f95d07',
-        ],
-        description: 'A novel description',
-        id: '04b26f6e-58b8-4fb8-b5a9-8ae7002051c4',
-        name: 'Novel One',
-        state: NovelState.ONGOING,
-      } as Novel;
+      const novel = getNovel({ ownerId: '260311094522198751' });
       const updatedAt = new Date(
         '2026-02-20T10:20:30.000Z',
       ).toISOString();
-      vi.mocked(novelService.getChapter).mockResolvedValue({
+      vi.mocked(novelService.getLastChapter).mockResolvedValue({
         content: '# Chapter 2',
-        createdAt: new Date('2026-02-19T00:00:00.000Z'),
+        createdAt: new Date('2026-02-19T00:00:00.000Z').toISOString(),
         id: 'db1be1a7-e3bf-46d3-8899-980219f95d07',
-        novelId: '04b26f6e-58b8-4fb8-b5a9-8ae7002051c4',
+        novelId: '78981754-46c4-4521-9216-b9b27dafeab2',
         updatedAt,
       } as any);
 
       const result = await uut.lastChapterPublishedAt(novel);
 
       expect(result).toBe('2026-02-20T10:20:30.000Z');
-      expect(novelService.getChapter).toHaveBeenCalledWith(
-        '04b26f6e-58b8-4fb8-b5a9-8ae7002051c4',
-        'db1be1a7-e3bf-46d3-8899-980219f95d07',
+      expect(novelService.getLastChapter).toHaveBeenCalledWith(
+        '78981754-46c4-4521-9216-b9b27dafeab2',
       );
     });
 
     it('should return null when there are no chapters', async () => {
-      const novel = {
-        author: 'Author',
-        category: ['fantasy'],
-        chapters: [],
-        description: 'A novel description',
-        id: '04b26f6e-58b8-4fb8-b5a9-8ae7002051c4',
-        name: 'Novel One',
-        state: NovelState.ONGOING,
-        ownerId: '260311094522198751',
-      } as Novel;
+      const novel = getNovel({ ownerId: '260311094522198751' });
+      vi.mocked(novelService.getLastChapter).mockResolvedValue(null);
 
       const result = await uut.lastChapterPublishedAt(novel);
 
       expect(result).toBeNull();
-      expect(novelService.getChapter).not.toHaveBeenCalled();
-    });
-
-    it('should return null when the last chapter cannot be found', async () => {
-      const novel: Novel = {
-        author: 'Author',
-        category: ['fantasy'],
-        chapters: [
-          '54f74d6a-a80b-4b20-8a19-339b99da5362',
-          'db1be1a7-e3bf-46d3-8899-980219f95d07',
-        ],
-        description: 'A novel description',
-        id: '04b26f6e-58b8-4fb8-b5a9-8ae7002051c4',
-        name: 'Novel One',
-        state: NovelState.ONGOING,
-        ownerId: '260321014522198754',
-      } as Novel;
-
-      vi.mocked(novelService.getChapter).mockResolvedValue(null);
-
-      const result = await uut.lastChapterPublishedAt(novel);
-
-      expect(result).toBeNull();
-      expect(novelService.getChapter).toHaveBeenCalledWith(
-        '04b26f6e-58b8-4fb8-b5a9-8ae7002051c4',
-        'db1be1a7-e3bf-46d3-8899-980219f95d07',
+      expect(novelService.getLastChapter).toHaveBeenCalledWith(
+        '78981754-46c4-4521-9216-b9b27dafeab2',
       );
     });
   });
 
   describe('lastPublishedChapter', () => {
     it('should return the last published chapter', async () => {
-      const novel = {
-        author: 'Author',
-        category: ['fantasy'],
-        chapters: [
-          '54f74d6a-a80b-4b20-8a19-339b99da5362',
-          'db1be1a7-e3bf-46d3-8899-980219f95d07',
-        ],
-        description: 'A novel description',
-        id: '04b26f6e-58b8-4fb8-b5a9-8ae7002051c4',
-        name: 'Novel One',
-        state: NovelState.ONGOING,
-      } as Novel;
+      const novel = getNovel({ ownerId: '260311094522198751' });
       const chapter = {
         content: '# Chapter 2',
+        chapterNumber: 2,
         createdAt: new Date('2026-02-19T00:00:00.000Z').toISOString(),
         id: 'db1be1a7-e3bf-46d3-8899-980219f95d07',
-        novelId: '04b26f6e-58b8-4fb8-b5a9-8ae7002051c4',
+        novelId: '78981754-46c4-4521-9216-b9b27dafeab2',
         contentId: '99383df4-b8e9-4791-be96-034b31525711',
         title: 'Chapter Two',
         updatedAt: new Date('2026-02-20T10:20:30.000Z').toISOString(),
       };
-      vi.mocked(novelService.getChapter).mockResolvedValue(chapter);
+      vi.mocked(novelService.getLastChapter).mockResolvedValue(
+        chapter,
+      );
 
       const result = await uut.lastPublishedChapter(novel);
 
       expect(result).toEqual(chapter);
-      expect(novelService.getChapter).toHaveBeenCalledWith(
-        '04b26f6e-58b8-4fb8-b5a9-8ae7002051c4',
-        'db1be1a7-e3bf-46d3-8899-980219f95d07',
+      expect(novelService.getLastChapter).toHaveBeenCalledWith(
+        '78981754-46c4-4521-9216-b9b27dafeab2',
       );
     });
 
     it('should return null when there are no chapters', async () => {
-      const novel = {
-        author: 'Author',
-        category: ['fantasy'],
-        chapters: [],
-        description: 'A novel description',
-        id: '04b26f6e-58b8-4fb8-b5a9-8ae7002051c4',
-        name: 'Novel One',
-        state: NovelState.ONGOING,
-        ownerId: '260311094522198751',
-      } as Novel;
+      const novel = getNovel({ ownerId: '260311094522198751' });
+      vi.mocked(novelService.getLastChapter).mockResolvedValue(null);
 
       const result = await uut.lastPublishedChapter(novel);
 
       expect(result).toBeNull();
-      expect(novelService.getChapter).not.toHaveBeenCalled();
+      expect(novelService.getLastChapter).toHaveBeenCalledWith(
+        '78981754-46c4-4521-9216-b9b27dafeab2',
+      );
     });
   });
 
   describe('firstChapter', () => {
     it('should return the first chapter', async () => {
-      const novel = {
-        author: 'Author',
-        category: ['fantasy'],
-        chapters: [
-          '54f74d6a-a80b-4b20-8a19-339b99da5362',
-          'db1be1a7-e3bf-46d3-8899-980219f95d07',
-        ],
-        description: 'A novel description',
-        id: '04b26f6e-58b8-4fb8-b5a9-8ae7002051c4',
-        name: 'Novel One',
-        state: NovelState.ONGOING,
-      } as Novel;
+      const novel = getNovel({ ownerId: '260311094522198751' });
       const chapter = {
         content: '# Chapter 1',
+        chapterNumber: 1,
         createdAt: new Date('2026-02-18T00:00:00.000Z').toISOString(),
         id: '54f74d6a-a80b-4b20-8a19-339b99da5362',
-        novelId: '04b26f6e-58b8-4fb8-b5a9-8ae7002051c4',
+        novelId: '78981754-46c4-4521-9216-b9b27dafeab2',
         title: 'Chapter One',
         contentId: '9d3139e7-009b-42ad-b488-cfe3cc19f1d2',
         updatedAt: new Date('2026-02-18T00:00:00.000Z').toISOString(),
       };
-      vi.mocked(novelService.getChapter).mockResolvedValue(chapter);
+      vi.mocked(novelService.getFirstChapter).mockResolvedValue(
+        chapter,
+      );
 
       const result = await uut.firstChapter(novel);
 
       expect(result).toEqual(chapter);
-      expect(novelService.getChapter).toHaveBeenCalledWith(
-        '04b26f6e-58b8-4fb8-b5a9-8ae7002051c4',
-        '54f74d6a-a80b-4b20-8a19-339b99da5362',
+      expect(novelService.getFirstChapter).toHaveBeenCalledWith(
+        '78981754-46c4-4521-9216-b9b27dafeab2',
       );
     });
 
     it('should return null when there are no chapters', async () => {
-      const novel = {
-        author: 'Author',
-        category: ['fantasy'],
-        chapters: [],
-        description: 'A novel description',
-        id: '04b26f6e-58b8-4fb8-b5a9-8ae7002051c4',
-        name: 'Novel One',
-        state: NovelState.ONGOING,
-        ownerId: '269311094522198752',
-      } as Novel;
+      const novel = getNovel({ ownerId: '269311094522198752' });
+      vi.mocked(novelService.getFirstChapter).mockResolvedValue(null);
 
       const result = await uut.firstChapter(novel);
 
       expect(result).toBeNull();
-      expect(novelService.getChapter).not.toHaveBeenCalled();
+      expect(novelService.getFirstChapter).toHaveBeenCalledWith(
+        '78981754-46c4-4521-9216-b9b27dafeab2',
+      );
     });
   });
 
@@ -252,7 +181,6 @@ function getNovel({ ownerId }: { ownerId: string }): Novel {
     name: 'Test Novel',
     author: 'Author',
     category: ['fantasy'],
-    chapters: [],
     state: NovelState.ONGOING,
     description: 'A test novel',
     ownerId,

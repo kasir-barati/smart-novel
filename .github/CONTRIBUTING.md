@@ -59,10 +59,35 @@ All contributors (including AI-assisted tools) should follow the project's codin
     retry: 123,
   });
   ```
+- Do **NOT** wrap normal control‑flow or repository/service logic in `try/catch` blocks. Only use `try/catch` when you are genuinely handling a known error case or adding meaningful recovery logic. Logging‐and‑rethrowing is `NOT` considered meaningful handling; let errors bubble up and rely on global exception filters/middleware instead.
 - Do **NOT** add a barrel `index.ts` in the "frontend" app, for a Vite-powered SPA you should **NOT** because:
   - Tree-shaking happens still for the production builds, but it **hurts dev server startup and HMR performance** because Vite eagerly transforms every module the barrel re-exports, even if you only need one.
   - When you do `import { getInitials } from '../../utils'`, Vite (and Rollup under the hood) has to parse the entire barrel to figure out what's exported.
 - When you add a new resolver in the "backend" app, you **MUST** add it to the `apps/backend/gen-graphql-schema.ts`.
+- Use Nx targets instead of raw commands whenever it is possible.
+- Do **NOT** model viewer‑specific state via root queries or parent aggregations when it conceptually belongs to a child entity. In GraphQL, viewer-specific data must respect graph locality and viewer context: state like “read”, “liked”, or “bookmarked” belongs on the entity it applies to (e.g. Chapter.isRead as a viewer-specific field), not as a root query or a Novel‑level shortcut, unless explicitly documented as a temporary or performance‑driven exception.
+
+  ✅ Good (local, viewer-aware)
+
+  ```graphql
+  type Chapter {
+    id: ID!
+    title: String!
+    isRead: Boolean! # viewer-specific
+  }
+  ```
+
+  ❌ Avoid (breaks locality / RPC-style / root Query turns into a junk drawer after some time)
+
+  ```graphql
+  type Query {
+    readChapters(novelId: ID!): [ID!]!
+  }
+
+  type Novel {
+    readChapters: [ID!]!
+  }
+  ```
 
 ## Test Conventions
 

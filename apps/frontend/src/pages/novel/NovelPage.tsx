@@ -125,13 +125,17 @@ export function NovelPage() {
 
   const canManageTts =
     novel.allowedActions?.includes(NovelAction.ManageTts) ?? false;
-  const hasChapters = novel.chapters.length > 0;
+  const chapters = novel.chaptersConnection.edges.map(
+    (edge) => edge.node,
+  );
+  const hasChapters = chapters.length > 0;
+  const totalChapters = novel.chaptersConnection.totalCount;
 
   // Prepare chapter info for ChapterList
-  const chaptersInfo = novel.chapters.map((chId) => ({
-    id: chId,
-    title: null, // We don't have titles in the list, only when fetched individually
-    createdAt: new Date().toISOString(), // Placeholder
+  const chaptersInfo = chapters.map((ch) => ({
+    id: ch.id,
+    title: ch.title ?? null,
+    createdAt: ch.createdAt,
   }));
 
   return (
@@ -211,7 +215,7 @@ export function NovelPage() {
             {/* Chapters Tab */}
             <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
               <h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">
-                Chapters ({novel.chapters.length})
+                Chapters ({totalChapters})
               </h2>
               <ChapterList
                 chapters={chaptersInfo}

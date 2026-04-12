@@ -5,14 +5,27 @@ import {
 } from '@nestjs/common';
 import { PageInfo } from 'nestjs-backend-common';
 
-import { NovelFiltersInput } from '../inputs';
+import { OrderDirection } from '../../../shared'; // FIXME: https://github.com/kasir-barati/smart-novel/issues/23
+import { ChapterOrderField } from '../enums';
+import {
+  ChapterFiltersInput,
+  ChapterOrderByInput,
+  NovelFiltersInput,
+} from '../inputs';
 import {
   CHAPTER_REPOSITORY,
   type IChapterRepository,
   type INovelRepository,
   NOVEL_REPOSITORY,
 } from '../interfaces';
-import { Chapter, Novel, NovelConnection, NovelEdge } from '../types';
+import {
+  Chapter,
+  ChapterConnection,
+  ChapterEdge,
+  Novel,
+  NovelConnection,
+  NovelEdge,
+} from '../types';
 
 @Injectable()
 export class NovelService {
@@ -33,6 +46,9 @@ export class NovelService {
     return novel;
   }
 
+  // FIXME: We are as of now only fetching all novels! Implement cursor based pagination + filtering in the repository layer.
+  // Move this into the repository layer???
+  // Should I also create a helper function for cursor based pagination?
   async findAll(
     first?: number,
     last?: number,
@@ -123,11 +139,65 @@ export class NovelService {
     };
   }
 
+  async getChaptersConnection(
+    novelId: string,
+    first?: number,
+    last?: number,
+    after?: string,
+    before?: string,
+    orderBy?: ChapterOrderByInput,
+    filters?: ChapterFiltersInput,
+  ): Promise<ChapterConnection> {
+    const orderByField =
+      orderBy?.field ?? ChapterOrderField.CHAPTER_NUMBER;
+    const orderByDirection = orderBy?.direction ?? OrderDirection.ASC;
+    const { chapters, totalCount } =
+      await this.chapterRepository.findChaptersConnection({
+        novelId,
+        pagination: { first, last, after, before },
+        orderByField,
+        orderByDirection,
+        filters: {
+          narrationStatus: filters?.narrationStatus?.eq,
+        },
+      });
+
+    const edges: ChapterEdge[] = chapters.map((chapter) => ({
+      cursor: Buffer.from(chapter.id).toString('base64'),
+      node: chapter as Chapter,
+    }));
+
+    const take = first ?? last;
+    const hasMore = take ? chapters.length >= (take ?? 0) : false;
+
+    const pageInfo: PageInfo = {
+      startCursor: edges.length > 0 ? edges[0].cursor : null,
+      endCursor:
+        edges.length > 0 ? edges[edges.length - 1].cursor : null,
+      hasPreviousPage: !!after,
+      hasNextPage: hasMore && !!first,
+    };
+
+    return {
+      edges,
+      pageInfo,
+      totalCount,
+    };
+  }
+
   async getChapter(
     novelId: string,
     chapterId: string,
   ): Promise<Chapter | null> {
     return this.chapterRepository.getChapter(novelId, chapterId);
+  }
+
+  async getFirstChapter(novelId: string): Promise<Chapter | null> {
+    return this.chapterRepository.getFirstChapter(novelId);
+  }
+
+  async getLastChapter(novelId: string): Promise<Chapter | null> {
+    return this.chapterRepository.getLastChapter(novelId);
   }
 
   async getNextChapter(

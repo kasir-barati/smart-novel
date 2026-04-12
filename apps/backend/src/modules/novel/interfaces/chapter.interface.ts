@@ -1,3 +1,5 @@
+import { NarrationStatus } from '@prisma/client';
+
 export interface IChapter {
   id: string;
   novelId: string;
@@ -6,5 +8,6 @@ export interface IChapter {
   chapterNumber: number;
   createdAt: string;
   updatedAt: string;
+  narrationStatus?: NarrationStatus;
   narrationUrl?: string;
 }

@@ -15,9 +15,18 @@ import {
   Public,
 } from '../../auth';
 import { NovelAction } from '../enums';
-import { NovelFiltersInput } from '../inputs';
+import {
+  ChapterFiltersInput,
+  ChapterOrderByInput,
+  NovelFiltersInput,
+} from '../inputs';
 import { NovelService } from '../services';
-import { Chapter, Novel, NovelConnection } from '../types';
+import {
+  Chapter,
+  ChapterConnection,
+  Novel,
+  NovelConnection,
+} from '../types';
 
 @Resolver(() => Novel)
 export class NovelResolver {
@@ -92,6 +101,41 @@ export class NovelResolver {
     return [];
   }
 
+  @ResolveField(() => ChapterConnection, {
+    description: 'Paginated list of chapters for this novel',
+  })
+  async chaptersConnection(
+    @Parent() novel: Novel,
+    @Args('first', { type: () => Int, nullable: true })
+    first?: number,
+    @Args('last', { type: () => Int, nullable: true })
+    last?: number,
+    @Args('after', { type: () => String, nullable: true })
+    after?: string,
+    @Args('before', { type: () => String, nullable: true })
+    before?: string,
+    @Args('orderBy', {
+      type: () => ChapterOrderByInput,
+      nullable: true,
+    })
+    orderBy?: ChapterOrderByInput,
+    @Args('filters', {
+      type: () => ChapterFiltersInput,
+      nullable: true,
+    })
+    filters?: ChapterFiltersInput,
+  ): Promise<ChapterConnection> {
+    return this.novelService.getChaptersConnection(
+      novel.id,
+      first,
+      last,
+      after,
+      before,
+      orderBy,
+      filters,
+    );
+  }
+
   @ResolveField(() => Chapter, {
     nullable: true,
     description: 'Chapter of the novel',
@@ -115,14 +159,8 @@ export class NovelResolver {
   async lastChapterPublishedAt(
     @Parent() novel: Novel,
   ): Promise<string | null> {
-    if (!novel.chapters || novel.chapters.length === 0) {
-      return null;
-    }
-
-    const lastChapterId = novel.chapters[novel.chapters.length - 1];
-    const lastChapter = await this.novelService.getChapter(
+    const lastChapter = await this.novelService.getLastChapter(
       novel.id,
-      lastChapterId,
     );
 
     return lastChapter ? lastChapter.updatedAt : null;
@@ -135,13 +173,7 @@ export class NovelResolver {
   async lastPublishedChapter(
     @Parent() novel: Novel,
   ): Promise<Chapter | null> {
-    if (!novel.chapters || novel.chapters.length === 0) {
-      return null;
-    }
-
-    const lastChapterId = novel.chapters[novel.chapters.length - 1];
-
-    return this.novelService.getChapter(novel.id, lastChapterId);
+    return this.novelService.getLastChapter(novel.id);
   }
 
   @ResolveField(() => Chapter, {
@@ -151,12 +183,6 @@ export class NovelResolver {
   async firstChapter(
     @Parent() novel: Novel,
   ): Promise<Chapter | null> {
-    if (!novel.chapters || novel.chapters.length === 0) {
-      return null;
-    }
-
-    const firstChapterId = novel.chapters[0];
-
-    return this.novelService.getChapter(novel.id, firstChapterId);
+    return this.novelService.getFirstChapter(novel.id);
   }
 }
