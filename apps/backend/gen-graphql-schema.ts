@@ -11,9 +11,11 @@ import { AppResolver } from './src/app/app.resolver';
 import { AuthResolver } from './src/modules/auth/auth.resolver';
 import { LlmResolver } from './src/modules/llm/llm.resolver';
 import {
+  ChapterConnectionFieldResolver,
   ChapterFieldResolver,
   ChapterNarrationResolver,
   ChapterResolver,
+  NovelConnectionFieldResolver,
   NovelResolver,
 } from './src/modules/novel/resolvers';
 
@@ -29,7 +31,9 @@ async function generateSchema() {
     AuthResolver,
     LlmResolver,
     NovelResolver,
+    NovelConnectionFieldResolver,
     ChapterResolver,
+    ChapterConnectionFieldResolver,
     ChapterFieldResolver,
     ChapterNarrationResolver,
   ]);

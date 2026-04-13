@@ -47,7 +47,7 @@ export class Novel implements INovel {
   description: string;
 
   /**
-   * @private field — not exposed in the GraphQL schema. Used by the `allowedActions` field resolver to determine ownership.
+   * @internal field — not exposed in the GraphQL schema. Used by the `allowedActions` field resolver to determine ownership.
    * @example "233104087965432001"
    */
   ownerId: string;

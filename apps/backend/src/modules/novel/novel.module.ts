@@ -13,9 +13,11 @@ import {
   PrismaNovelRepository,
 } from './repositories';
 import {
+  ChapterConnectionFieldResolver,
   ChapterFieldResolver,
   ChapterNarrationResolver,
   ChapterResolver,
+  NovelConnectionFieldResolver,
   NovelResolver,
 } from './resolvers';
 import {
@@ -29,9 +31,11 @@ import {
 @Module({
   providers: [
     NovelResolver,
+    NovelConnectionFieldResolver,
     ChapterFieldResolver,
     ChapterNarrationResolver,
     ChapterResolver,
+    ChapterConnectionFieldResolver,
     NovelService,
     ChapterService,
     ChapterNarrationService,

@@ -1,16 +1,34 @@
 import { Injectable } from '@nestjs/common';
-import { Novel as PrismaNovel } from '@prisma/client';
+import { Prisma, Novel as PrismaNovel } from '@prisma/client';
 
+import {
+  buildCursorPaginationParams,
+  trimCursorPaginationResults,
+  TrimmedResult,
+} from '../../../shared'; // FIXME: https://github.com/kasir-barati/smart-novel/issues/23
 import { PrismaService } from '../../prisma';
-import { type INovelRepository } from '../interfaces';
+import {
+  type FindNovelsConnectionArgs,
+  type INovelRepository,
+  type NovelConnectionFilters,
+} from '../interfaces';
 import { Novel } from '../types';
 
 @Injectable()
 export class PrismaNovelRepository implements INovelRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(): Promise<Novel[]> {
-    const novels = await this.prisma.novel.findMany({
+  async findNovelsConnection({
+    pagination,
+    filters,
+  }: FindNovelsConnectionArgs): Promise<TrimmedResult<Novel>> {
+    const where = this.buildNovelWhereClause(filters);
+    const { cursor, skip, take, shouldReverse } =
+      buildCursorPaginationParams(pagination);
+
+    const findArgs: Prisma.NovelFindManyArgs = {
+      where,
+      orderBy: { name: shouldReverse ? 'desc' : 'asc' },
       include: {
         categories: {
           select: {
@@ -22,12 +40,41 @@ export class PrismaNovelRepository implements INovelRepository {
           },
         },
       },
-      orderBy: {
-        name: 'asc',
-      },
-    });
+    };
 
-    return novels.map((novel) => this.toNovel(novel));
+    if (cursor) {
+      findArgs.cursor = cursor;
+    }
+    if (skip) {
+      findArgs.skip = skip;
+    }
+    if (take) {
+      findArgs.take = take;
+    }
+
+    const novels = await this.prisma.novel.findMany(findArgs);
+    const { items, hasMore } = trimCursorPaginationResults(
+      novels,
+      pagination,
+      shouldReverse,
+    );
+    const mapped: Novel[] = items.map((novel) =>
+      this.toNovel(
+        novel as PrismaNovel & {
+          categories: { category: { name: string } }[];
+        },
+      ),
+    );
+
+    return { items: mapped, hasMore };
+  }
+
+  async countNovels(
+    filters?: NovelConnectionFilters,
+  ): Promise<number> {
+    const where = this.buildNovelWhereClause(filters);
+
+    return this.prisma.novel.count({ where });
   }
 
   async findById(id: string): Promise<Novel | null> {
@@ -70,6 +117,36 @@ export class PrismaNovelRepository implements INovelRepository {
     });
 
     return categories.map((category) => category.name.toLowerCase());
+  }
+
+  private buildNovelWhereClause(
+    filters?: NovelConnectionFilters,
+  ): Prisma.NovelWhereInput {
+    const where: Prisma.NovelWhereInput = {};
+
+    if (filters?.categoryIn && filters.categoryIn.length > 0) {
+      where.categories = {
+        some: {
+          category: {
+            name: { in: filters.categoryIn, mode: 'insensitive' },
+          },
+        },
+      };
+    }
+
+    if (filters?.categoryNin && filters.categoryNin.length > 0) {
+      where.NOT = {
+        categories: {
+          some: {
+            category: {
+              name: { in: filters.categoryNin, mode: 'insensitive' },
+            },
+          },
+        },
+      };
+    }
+
+    return where;
   }
 
   private toNovel(

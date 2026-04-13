@@ -5,11 +5,16 @@ import {
   Chapter as PrismaChapter,
 } from '@prisma/client';
 
-import { OrderDirection } from '../../../shared'; // FIXME: https://github.com/kasir-barati/smart-novel/issues/23
+import {
+  buildCursorPaginationParams,
+  OrderDirection,
+  trimCursorPaginationResults,
+  TrimmedResult,
+} from '../../../shared'; // FIXME: https://github.com/kasir-barati/smart-novel/issues/23
 import { PrismaService } from '../../prisma';
 import { ChapterOrderField } from '../enums';
 import {
-  type ChaptersConnectionResult,
+  type ChapterConnectionFilters,
   type FindChaptersConnectionArgs,
   type IChapter,
   type IChapterRepository,
@@ -28,7 +33,7 @@ export class PrismaChapterRepository implements IChapterRepository {
 
   async findChaptersConnection(
     args: FindChaptersConnectionArgs,
-  ): Promise<ChaptersConnectionResult> {
+  ): Promise<TrimmedResult<IChapter>> {
     const {
       novelId,
       pagination,
@@ -36,26 +41,22 @@ export class PrismaChapterRepository implements IChapterRepository {
       orderByDirection = OrderDirection.ASC,
       filters,
     } = args;
-    const { first, last, after, before } = pagination ?? {};
     const prismaField =
       ORDER_FIELD_MAP[orderByField] ?? 'chapterNumber';
-    const direction =
+    const baseDirection =
       orderByDirection === OrderDirection.DESC ? 'desc' : 'asc';
-    const where: Prisma.ChapterWhereInput = { novelId };
-
-    if (filters?.narrationStatus) {
-      where.narrationStatus = filters.narrationStatus;
-    }
-
-    const afterId =
-      after && Buffer.from(after, 'base64').toString('utf-8');
-    const beforeId =
-      before && Buffer.from(before, 'base64').toString('utf-8');
-
-    // Build cursor-based pagination args
+    const where = this.buildChapterWhereClause(novelId, filters);
+    const { cursor, skip, take, shouldReverse } =
+      buildCursorPaginationParams(pagination);
     const findArgs: Prisma.ChapterFindManyArgs = {
       where,
-      orderBy: { [prismaField]: direction },
+      orderBy: {
+        [prismaField]: shouldReverse
+          ? baseDirection === 'asc'
+            ? 'desc'
+            : 'asc'
+          : baseDirection,
+      },
       select: {
         id: true,
         novelId: true,
@@ -69,52 +70,34 @@ export class PrismaChapterRepository implements IChapterRepository {
       },
     };
 
-    if (afterId) {
-      findArgs.cursor = { id: afterId };
-      findArgs.skip = 1; // Skip the cursor itself
+    if (cursor) {
+      findArgs.cursor = cursor;
     }
-
-    // For simplicity sake I am skipping the implementation of when client sends both after & before.
-    // If we have both after and before, we need a different strategy
-    if (beforeId && !afterId) {
-      findArgs.cursor = { id: beforeId };
-      findArgs.skip = 1;
-      // Reverse the direction to get items before the cursor
-      findArgs.orderBy = {
-        [prismaField]: direction === 'asc' ? 'desc' : 'asc',
-      };
+    if (skip) {
+      findArgs.skip = skip;
     }
-
-    // Take extra to determine hasNextPage/hasPreviousPage
-    const take = first ?? last;
     if (take) {
-      findArgs.take = take + 1;
+      findArgs.take = take;
     }
 
-    const [chapters, totalCount] = await Promise.all([
-      this.prisma.chapter.findMany(findArgs),
-      this.prisma.chapter.count({ where }),
-    ]);
-
-    // If we reversed for 'before', reverse back
-    if (beforeId && !afterId) {
-      chapters.reverse();
-    }
-
-    // Trim the extra record we fetched
-    if (take && chapters.length > take) {
-      if (last && !first) {
-        chapters.shift();
-      } else {
-        chapters.pop();
-      }
-    }
-
-    const mapped: IChapter[] = chapters.map((ch) =>
-      this.toChapter(ch as PrismaChapter),
+    const chapters = await this.prisma.chapter.findMany(findArgs);
+    const { items, hasMore } = trimCursorPaginationResults(
+      chapters,
+      pagination,
+      shouldReverse,
     );
+    const mapped: IChapter[] = items.map((ch) => this.toChapter(ch));
 
-    return { chapters: mapped, totalCount };
+    return { items: mapped, hasMore };
+  }
+
+  async countChapters(
+    novelId: string,
+    filters?: ChapterConnectionFilters,
+  ): Promise<number> {
+    const where = this.buildChapterWhereClause(novelId, filters);
+
+    return this.prisma.chapter.count({ where });
   }
 
   async getFirstChapter(novelId: string): Promise<IChapter | null> {
@@ -208,6 +191,19 @@ export class PrismaChapterRepository implements IChapterRepository {
       },
     });
     return result.count;
+  }
+
+  private buildChapterWhereClause(
+    novelId: string,
+    filters?: ChapterConnectionFilters,
+  ): Prisma.ChapterWhereInput {
+    const where: Prisma.ChapterWhereInput = { novelId };
+
+    if (filters?.narrationStatus) {
+      where.narrationStatus = filters.narrationStatus;
+    }
+
+    return where;
   }
 
   private toChapter(chapter: PrismaChapter): Chapter {

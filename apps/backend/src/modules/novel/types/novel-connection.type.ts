@@ -1,6 +1,8 @@
 import { ObjectType } from '@nestjs/graphql';
 import { ConnectionType, EdgeType } from 'nestjs-backend-common';
 
+import { type FilterContextHolder } from '../../../shared';
+import { type NovelConnectionFilters } from '../interfaces';
 import { Novel } from './novel.type';
 
 @ObjectType({
@@ -11,7 +13,9 @@ export class NovelEdge extends EdgeType(Novel) {}
 @ObjectType({
   description: 'A connection representing a list of novels',
 })
-export class NovelConnection extends ConnectionType(
-  Novel,
-  NovelEdge,
-) {}
+export class NovelConnection
+  extends ConnectionType(Novel, NovelEdge)
+  implements FilterContextHolder<NovelConnectionFilters>
+{
+  _filterContext?: NovelConnectionFilters;
+}

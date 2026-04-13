@@ -19,7 +19,7 @@ export function HomePage() {
     { placeholderData: (prev) => prev },
   );
 
-  const novelsData = data?.novels;
+  const novelsData = data?.novelsConnection;
   const pageInfo = novelsData?.pageInfo;
   const novels = novelsData?.edges.map((edge) => edge.node) ?? [];
 

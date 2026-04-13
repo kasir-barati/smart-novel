@@ -5,7 +5,7 @@ describe('Novels (e2e)', () => {
     const res = await axios.post('/graphql', {
       query: `#graphql
         query {
-          novels {
+          novelsConnection {
             edges {
               cursor
               node {
@@ -22,38 +22,54 @@ describe('Novels (e2e)', () => {
               hasNextPage
               hasPreviousPage
             }
+            totalCount
           }
         }
       `,
     });
 
     expect(res.status).toBe(200);
-    expect(res.data.data.novels.edges.length).toBeGreaterThan(0);
-    expect(res.data.data.novels.pageInfo.endCursor).toBeString();
-    expect(res.data.data.novels.pageInfo.startCursor).toBeString();
-    expect(res.data.data.novels.pageInfo.hasNextPage).toBeBoolean();
     expect(
-      res.data.data.novels.pageInfo.hasPreviousPage,
+      res.data.data.novelsConnection.edges.length,
+    ).toBeGreaterThan(0);
+    expect(
+      res.data.data.novelsConnection.pageInfo.endCursor,
+    ).toBeString();
+    expect(
+      res.data.data.novelsConnection.pageInfo.startCursor,
+    ).toBeString();
+    expect(
+      res.data.data.novelsConnection.pageInfo.hasNextPage,
     ).toBeBoolean();
-    expect(res.data.data.novels.edges[0].cursor).toBeString();
-    expect(res.data.data.novels.edges[0].node).toHaveProperty('id');
-    expect(res.data.data.novels.edges[0].node).toHaveProperty('name');
-    expect(res.data.data.novels.edges[0].node).toHaveProperty(
-      'state',
-    );
-    expect(res.data.data.novels.edges[0].node).toHaveProperty(
-      'author',
-    );
-    expect(res.data.data.novels.edges[0].node).toHaveProperty(
-      'category',
-    );
+    expect(
+      res.data.data.novelsConnection.pageInfo.hasPreviousPage,
+    ).toBeBoolean();
+    expect(res.data.data.novelsConnection.totalCount).toBeNumber();
+    expect(
+      res.data.data.novelsConnection.edges[0].cursor,
+    ).toBeString();
+    expect(
+      res.data.data.novelsConnection.edges[0].node,
+    ).toHaveProperty('id');
+    expect(
+      res.data.data.novelsConnection.edges[0].node,
+    ).toHaveProperty('name');
+    expect(
+      res.data.data.novelsConnection.edges[0].node,
+    ).toHaveProperty('state');
+    expect(
+      res.data.data.novelsConnection.edges[0].node,
+    ).toHaveProperty('author');
+    expect(
+      res.data.data.novelsConnection.edges[0].node,
+    ).toHaveProperty('category');
   });
 
   it('should return first two novels', async () => {
     const res = await axios.post('/graphql', {
       query: `#graphql
         query {
-          novels(first: 2) {
+          novelsConnection(first: 2) {
             edges {
               cursor
             }
@@ -75,7 +91,7 @@ describe('Novels (e2e)', () => {
     const res = await axios.post('/graphql', {
       query: `#graphql
         query {
-          novels(first: 1, after: "ZXhhbXBsZS1ub3ZlbA==") {
+          novelsConnection(first: 1, after: "ZXhhbXBsZS1ub3ZlbA==") {
             edges {
               cursor
             }
@@ -94,7 +110,7 @@ describe('Novels (e2e)', () => {
     const res = await axios.post('/graphql', {
       query: `#graphql
         query {
-          novels(filters: { category: { in: ["fantasy"], nin: ["adventure"] } }) {
+          novelsConnection(filters: { category: { in: ["fantasy"], nin: ["adventure"] } }) {
             edges {
               node {
                 category
@@ -112,7 +128,7 @@ describe('Novels (e2e)', () => {
     const res = await axios.post('/graphql', {
       query: `#graphql
         query {
-          novels(filters: { category: { in: ["Fantasy"] } }) {
+          novelsConnection(filters: { category: { in: ["Fantasy"] } }) {
             edges {
               node {
                 category
@@ -124,8 +140,8 @@ describe('Novels (e2e)', () => {
     });
 
     expect(res.status).toBe(200);
-    expect(res.data.data.novels.edges[0].node.category).toContain(
-      'fantasy',
-    );
+    expect(
+      res.data.data.novelsConnection.edges[0].node.category,
+    ).toContain('fantasy');
   });
 });

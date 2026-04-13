@@ -20,7 +20,7 @@ describe(NovelService.name, () => {
 
   beforeEach(() => {
     novelRepository = {
-      findAll: vi.fn(),
+      findNovelsConnection: vi.fn(),
       findById: vi.fn(),
       getChapterList: vi.fn(),
       getCategories: vi.fn(),
@@ -75,88 +75,63 @@ describe(NovelService.name, () => {
     });
   });
 
-  describe('findAll', () => {
-    it('should return all novels as edges when no filters or pagination are provided', async () => {
-      vi.mocked(novelRepository.findAll).mockResolvedValue([
-        {
-          author: 'Author 1',
-          category: ['action', 'fantasy'],
-          ownerId: '224691739954204673',
-          id: '15c0aaee-56e3-45cd-b159-b1fa33f52490',
-          name: 'Novel One',
-          state: NovelState.ONGOING,
-          description: 'Description for Novel One',
-        },
-        {
-          author: 'Author 2',
-          category: ['romance', 'drama'],
-          ownerId: '224691739954204674',
-          id: '6c439896-3c3b-5c57-a27e-026ebbf9e34c',
-          name: 'Novel Two',
-          state: NovelState.FINISHED,
-          description: 'Description for Novel Two',
-        },
-        {
-          author: 'Author 3',
-          category: ['action', 'mystery'],
-          ownerId: '224691739954204675',
-          id: '7d5499a7-4d4c-6d68-b38f-037fcc0a45d5',
-          name: 'Novel Three',
-          state: NovelState.ONGOING,
-          description: 'Description for Novel Three',
-        },
-      ]);
+  describe('findNovelsConnection', () => {
+    it('should return novels as edges when no filters or pagination are provided', async () => {
+      vi.mocked(
+        novelRepository.findNovelsConnection,
+      ).mockResolvedValue({
+        items: [
+          {
+            author: 'Author 1',
+            category: ['action', 'fantasy'],
+            ownerId: '224691739954204673',
+            id: '15c0aaee-56e3-45cd-b159-b1fa33f52490',
+            name: 'Novel One',
+            state: NovelState.ONGOING,
+            description: 'Description for Novel One',
+          },
+          {
+            author: 'Author 2',
+            category: ['romance', 'drama'],
+            ownerId: '224691739954204674',
+            id: '6c439896-3c3b-5c57-a27e-026ebbf9e34c',
+            name: 'Novel Two',
+            state: NovelState.FINISHED,
+            description: 'Description for Novel Two',
+          },
+        ],
+        hasMore: false,
+      });
 
-      const result = await uut.findAll();
+      const result = await uut.findNovelsConnection();
 
-      expect(result.edges).toHaveLength(3);
+      expect(result.edges).toHaveLength(2);
       expect(result.edges.map((edge) => edge.node.id)).toStrictEqual([
         '15c0aaee-56e3-45cd-b159-b1fa33f52490',
         '6c439896-3c3b-5c57-a27e-026ebbf9e34c',
-        '7d5499a7-4d4c-6d68-b38f-037fcc0a45d5',
       ]);
-      expect(result.pageInfo).toStrictEqual({
-        endCursor: 'N2Q1NDk5YTctNGQ0Yy02ZDY4LWIzOGYtMDM3ZmNjMGE0NWQ1',
-        hasNextPage: false,
-        hasPreviousPage: false,
-        startCursor:
-          'MTVjMGFhZWUtNTZlMy00NWNkLWIxNTktYjFmYTMzZjUyNDkw',
+      expect(
+        novelRepository.findNovelsConnection,
+      ).toHaveBeenCalledWith({
+        pagination: {
+          first: undefined,
+          last: undefined,
+          after: undefined,
+          before: undefined,
+        },
+        filters: {
+          categoryIn: undefined,
+          categoryNin: undefined,
+        },
       });
-      expect(novelRepository.findAll).toHaveBeenCalledTimes(1);
     });
 
-    it('should apply category include and exclude filters', async () => {
-      vi.mocked(novelRepository.findAll).mockResolvedValue([
-        {
-          author: 'Author 1',
-          category: ['action', 'fantasy'],
-          ownerId: '224691739954204677',
-          id: '5b329785-2b2a-4b46-916d-015daaf8d23b',
-          name: 'Novel One',
-          state: NovelState.ONGOING,
-          description: 'Description for Novel One',
-        },
-        {
-          author: 'Author 2',
-          category: ['romance', 'drama'],
-          ownerId: '224691739954204678',
-          id: '6c439896-3c3b-5c57-a27e-026ebbf9e34c',
-          name: 'Novel Two',
-          state: NovelState.FINISHED,
-          description: 'Description for Novel Two',
-        },
-        {
-          author: 'Author 3',
-          category: ['action', 'mystery'],
-          ownerId: '224691739954204679',
-          id: '7d5499a7-4d4c-6d68-b38f-037fcc0a45d5',
-          name: 'Novel Three',
-          state: NovelState.ONGOING,
-          description: 'Description for Novel Three',
-        },
-      ]);
+    it('should set _filterContext on the returned connection', async () => {
+      vi.mocked(
+        novelRepository.findNovelsConnection,
+      ).mockResolvedValue({ items: [], hasMore: false });
 
-      const result = await uut.findAll(
+      const result = await uut.findNovelsConnection(
         undefined,
         undefined,
         undefined,
@@ -169,64 +144,106 @@ describe(NovelService.name, () => {
         },
       );
 
-      expect(result.edges).toHaveLength(1);
-      expect(result.edges[0].node.id).toBe(
-        '5b329785-2b2a-4b46-916d-015daaf8d23b',
-      );
-      expect(result.pageInfo).toStrictEqual({
-        endCursor: 'NWIzMjk3ODUtMmIyYS00YjQ2LTkxNmQtMDE1ZGFhZjhkMjNi',
-        hasNextPage: false,
-        hasPreviousPage: false,
-        startCursor:
-          'NWIzMjk3ODUtMmIyYS00YjQ2LTkxNmQtMDE1ZGFhZjhkMjNi',
+      expect(result._filterContext).toStrictEqual({
+        categoryIn: ['action'],
+        categoryNin: ['mystery'],
       });
     });
 
-    it('should paginate using after and first cursors', async () => {
-      vi.mocked(novelRepository.findAll).mockResolvedValue([
+    it('should pass category filters to repository', async () => {
+      vi.mocked(
+        novelRepository.findNovelsConnection,
+      ).mockResolvedValue({ items: [], hasMore: false });
+
+      await uut.findNovelsConnection(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
         {
-          author: 'Author 1',
-          category: ['action', 'fantasy'],
-          ownerId: '224691739954204680',
-          id: 'afbc61b9-1ff7-4792-9e79-fb3ec55939a7',
-          name: 'Novel One',
-          state: NovelState.ONGOING,
-          description: 'Description for Novel One',
+          category: {
+            in: ['action'],
+            nin: ['mystery'],
+          },
         },
-        {
-          author: 'Author 2',
-          category: ['romance', 'drama'],
-          ownerId: '224691739954204681',
-          id: '9d154762-d77f-42b4-add2-cf1d234d1a21',
-          name: 'Novel Two',
-          state: NovelState.FINISHED,
-          description: 'Description for Novel Two',
+      );
+
+      expect(
+        novelRepository.findNovelsConnection,
+      ).toHaveBeenCalledWith({
+        pagination: {
+          first: undefined,
+          last: undefined,
+          after: undefined,
+          before: undefined,
         },
-        {
-          author: 'Author 3',
-          category: ['action', 'mystery'],
-          ownerId: '224691739954204682',
-          id: 'a46a4059-a028-4743-a07a-f78d9e664e5d',
-          name: 'Novel Three',
-          state: NovelState.ONGOING,
-          description: 'Description for Novel Three',
+        filters: {
+          categoryIn: ['action'],
+          categoryNin: ['mystery'],
         },
-      ]);
+      });
+    });
+
+    it('should pass pagination args to repository', async () => {
+      vi.mocked(
+        novelRepository.findNovelsConnection,
+      ).mockResolvedValue({
+        items: [
+          {
+            author: 'Author 2',
+            category: ['romance', 'drama'],
+            ownerId: '224691739954204681',
+            id: '9d154762-d77f-42b4-add2-cf1d234d1a21',
+            name: 'Novel Two',
+            state: NovelState.FINISHED,
+            description: 'Description for Novel Two',
+          },
+        ],
+        hasMore: false,
+      });
       const afterCursor =
         'YWZiYzYxYjktMWZmNy00NzkyLTllNzktZmIzZWM1NTkzOWE3'; // Base64 for 'afbc61b9-1ff7-4792-9e79-fb3ec55939a7'
 
-      const result = await uut.findAll(1, undefined, afterCursor);
+      const result = await uut.findNovelsConnection(
+        1,
+        undefined,
+        afterCursor,
+      );
 
       expect(result.edges).toHaveLength(1);
       expect(result.edges[0].node.id).toBe(
         '9d154762-d77f-42b4-add2-cf1d234d1a21',
       );
+      expect(result.pageInfo.hasPreviousPage).toBe(true);
+      expect(
+        novelRepository.findNovelsConnection,
+      ).toHaveBeenCalledWith({
+        pagination: {
+          first: 1,
+          last: undefined,
+          after: afterCursor,
+          before: undefined,
+        },
+        filters: {
+          categoryIn: undefined,
+          categoryNin: undefined,
+        },
+      });
+    });
+
+    it('should return empty connection when no novels exist', async () => {
+      vi.mocked(
+        novelRepository.findNovelsConnection,
+      ).mockResolvedValue({ items: [], hasMore: false });
+
+      const result = await uut.findNovelsConnection();
+
+      expect(result.edges).toHaveLength(0);
       expect(result.pageInfo).toStrictEqual({
-        endCursor: 'OWQxNTQ3NjItZDc3Zi00MmI0LWFkZDItY2YxZDIzNGQxYTIx', // Base64 for 'novel-2'
-        hasNextPage: true,
+        startCursor: null,
+        endCursor: null,
         hasPreviousPage: false,
-        startCursor:
-          'OWQxNTQ3NjItZDc3Zi00MmI0LWFkZDItY2YxZDIzNGQxYTIx', // Base64 for 'novel-2'
+        hasNextPage: false,
       });
     });
   });
@@ -383,12 +400,12 @@ describe(NovelService.name, () => {
   });
 
   describe('getChaptersConnection', () => {
-    it('should return a connection with edges, pageInfo, and totalCount', async () => {
+    it('should return a connection with edges and pageInfo', async () => {
       const novelId = '8d3ea510-2dee-4af0-b5c4-7709d15c606a';
       vi.mocked(
         chapterRepository.findChaptersConnection,
       ).mockResolvedValue({
-        chapters: [
+        items: [
           {
             id: 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
             novelId,
@@ -408,13 +425,12 @@ describe(NovelService.name, () => {
             updatedAt: '2024-01-04T00:00:00.000Z',
           },
         ],
-        totalCount: 2,
+        hasMore: false,
       });
 
       const result = await uut.getChaptersConnection(novelId, 10);
 
       expect(result.edges).toHaveLength(2);
-      expect(result.totalCount).toBe(2);
       expect(result.edges[0].node.id).toBe(
         'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
       );
@@ -427,10 +443,34 @@ describe(NovelService.name, () => {
       expect(result.pageInfo.endCursor).toBe(result.edges[1].cursor);
     });
 
+    it('should set _filterContext on the returned connection', async () => {
+      const novelId = '8d3ea510-2dee-4af0-b5c4-7709d15c606a';
+      vi.mocked(
+        chapterRepository.findChaptersConnection,
+      ).mockResolvedValue({ items: [], hasMore: false });
+
+      const result = await uut.getChaptersConnection(
+        novelId,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { narrationStatus: { eq: NarrationStatus.READY } },
+      );
+
+      expect(result._filterContext).toStrictEqual({
+        novelId,
+        filters: {
+          narrationStatus: NarrationStatus.READY,
+        },
+      });
+    });
+
     it('should pass orderBy and filters to repository', async () => {
       vi.mocked(
         chapterRepository.findChaptersConnection,
-      ).mockResolvedValue({ chapters: [], totalCount: 0 });
+      ).mockResolvedValue({ items: [], hasMore: false });
       const novelId = 'e9462d56-021f-40ed-85a0-e21f6cb2d66d';
 
       await uut.getChaptersConnection(
@@ -465,13 +505,12 @@ describe(NovelService.name, () => {
     it('should return empty connection when no chapters exist', async () => {
       vi.mocked(
         chapterRepository.findChaptersConnection,
-      ).mockResolvedValue({ chapters: [], totalCount: 0 });
+      ).mockResolvedValue({ items: [], hasMore: false });
       const novelId = 'ed185f30-05a6-403c-bb35-f80b643e4202';
 
       const result = await uut.getChaptersConnection(novelId);
 
-      expect(result.edges).toEqual([]);
-      expect(result.totalCount).toBe(0);
+      expect(result.edges).toHaveLength(0);
       expect(result.pageInfo).toStrictEqual({
         startCursor: null,
         endCursor: null,
@@ -483,7 +522,7 @@ describe(NovelService.name, () => {
     it('should default to CHAPTER_NUMBER ASC when no orderBy is provided', async () => {
       vi.mocked(
         chapterRepository.findChaptersConnection,
-      ).mockResolvedValue({ chapters: [], totalCount: 0 });
+      ).mockResolvedValue({ items: [], hasMore: false });
       const novelId = 'cd8bce2c-922b-4b71-86fa-0b234a87e275';
 
       await uut.getChaptersConnection(novelId);

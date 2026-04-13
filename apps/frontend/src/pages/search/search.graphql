@@ -1,5 +1,5 @@
 query SearchNovels($filters: NovelFiltersInput) {
-  novels(first: 50, filters: $filters) {
+  novelsConnection(first: 50, filters: $filters) {
     edges {
       cursor
       node {

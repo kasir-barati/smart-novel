@@ -1,11 +1,11 @@
 import { NarrationStatus } from '@prisma/client';
 
-import { PaginationArgs } from '../../../shared/interfaces/index';
+import { PaginationArgs, TrimmedResult } from '../../../shared';
 import { IChapter } from './chapter.interface';
 
-export interface ChaptersConnectionResult {
-  chapters: IChapter[];
-  totalCount: number;
+export interface ChapterCountContext {
+  novelId: string;
+  filters?: ChapterConnectionFilters;
 }
 
 export interface ChapterConnectionFilters {
@@ -37,7 +37,11 @@ export interface IChapterRepository {
   ): Promise<number>;
   findChaptersConnection(
     args: FindChaptersConnectionArgs,
-  ): Promise<ChaptersConnectionResult>;
+  ): Promise<TrimmedResult<IChapter>>;
+  countChapters(
+    novelId: string,
+    filters?: ChapterConnectionFilters,
+  ): Promise<number>;
   getFirstChapter(novelId: string): Promise<IChapter | null>;
   getLastChapter(novelId: string): Promise<IChapter | null>;
 }

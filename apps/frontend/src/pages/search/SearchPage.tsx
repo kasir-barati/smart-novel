@@ -77,7 +77,8 @@ export function SearchPage() {
   };
 
   const novels =
-    searchData?.novels?.edges.map((edge) => edge.node) ?? [];
+    searchData?.novelsConnection?.edges.map((edge) => edge.node) ??
+    [];
 
   // Transform categories from lowercase to capitalized for display
   const availableCategories = (categoriesData?.categories ?? []).map(

@@ -47,8 +47,10 @@ export class NovelResolver {
   }
 
   @Public()
-  @Query(() => NovelConnection)
-  async novels(
+  @Query(() => NovelConnection, {
+    description: 'Paginated list of novels',
+  })
+  async novelsConnection(
     @Args('first', { type: () => Int, nullable: true })
     first?: number,
     @Args('last', { type: () => Int, nullable: true }) last?: number,
@@ -62,7 +64,7 @@ export class NovelResolver {
     })
     filters?: NovelFiltersInput,
   ): Promise<NovelConnection> {
-    return this.novelService.findAll(
+    return this.novelService.findNovelsConnection(
       first,
       last,
       after,

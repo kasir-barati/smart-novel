@@ -225,7 +225,7 @@ export class TtsTextService {
   }
 }
 
-/** @private helper that holds the emission state and pure formatting rules. */
+/** @internal helper that holds the emission state and pure formatting rules. */
 class TtsSerializer {
   private readonly includeLinkUrls: boolean;
   private readonly out: string[] = [];

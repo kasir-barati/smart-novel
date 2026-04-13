@@ -14,6 +14,7 @@ import {
 } from '../inputs';
 import {
   CHAPTER_REPOSITORY,
+  type FindNovelsConnectionArgs,
   type IChapterRepository,
   type INovelRepository,
   NOVEL_REPOSITORY,
@@ -46,97 +47,41 @@ export class NovelService {
     return novel;
   }
 
-  // FIXME: We are as of now only fetching all novels! Implement cursor based pagination + filtering in the repository layer.
-  // Move this into the repository layer???
-  // Should I also create a helper function for cursor based pagination?
-  async findAll(
+  async findNovelsConnection(
     first?: number,
     last?: number,
     after?: string,
     before?: string,
     filters?: NovelFiltersInput,
   ): Promise<NovelConnection> {
-    let novels = await this.novelRepository.findAll();
-
-    // Apply category filtering
-    if (filters?.category) {
-      const categoryFilter = filters.category;
-      novels = novels.filter((novel) => {
-        if (categoryFilter.in && categoryFilter.in.length > 0) {
-          const hasIncludedCategory = novel.category.some((cat) =>
-            categoryFilter.in!.includes(cat),
-          );
-          if (!hasIncludedCategory) return false;
-        }
-
-        if (categoryFilter.nin && categoryFilter.nin.length > 0) {
-          const hasExcludedCategory = novel.category.some((cat) =>
-            categoryFilter.nin!.includes(cat),
-          );
-          if (hasExcludedCategory) return false;
-        }
-
-        return true;
+    const connectionFilters: FindNovelsConnectionArgs['filters'] = {
+      categoryIn: filters?.category?.in,
+      categoryNin: filters?.category?.nin,
+    };
+    const { items: novels, hasMore } =
+      await this.novelRepository.findNovelsConnection({
+        pagination: { first, last, after, before },
+        filters: connectionFilters,
       });
-    }
-
-    // Create edges with cursors
-    const allEdges: NovelEdge[] = novels.map((novel) => ({
+    const edges: NovelEdge[] = novels.map((novel) => ({
       cursor: Buffer.from(novel.id).toString('base64'),
       node: novel,
     }));
 
-    // Handle pagination
-    let edges = allEdges;
-    let hasNextPage = false;
-    let hasPreviousPage = false;
-
-    if (after) {
-      const afterIndex = allEdges.findIndex(
-        (edge) => edge.cursor === after,
-      );
-      if (afterIndex >= 0) {
-        edges = allEdges.slice(afterIndex + 1);
-        hasPreviousPage = afterIndex > 0;
-      }
-    }
-
-    if (before) {
-      const beforeIndex = allEdges.findIndex(
-        (edge) => edge.cursor === before,
-      );
-      if (beforeIndex >= 0) {
-        edges = edges.slice(0, beforeIndex);
-        hasNextPage = beforeIndex < allEdges.length - 1;
-      }
-    }
-
-    if (first && first > 0) {
-      if (edges.length > first) {
-        hasNextPage = true;
-        edges = edges.slice(0, first);
-      }
-    }
-
-    if (last && last > 0) {
-      if (edges.length > last) {
-        hasPreviousPage = true;
-        edges = edges.slice(-last);
-      }
-    }
-
     const pageInfo: PageInfo = {
+      startCursor: edges.length > 0 ? edges[0].cursor : null,
       endCursor:
         edges.length > 0 ? edges[edges.length - 1].cursor : null,
-      hasNextPage,
-      hasPreviousPage,
-      startCursor: edges.length > 0 ? edges[0].cursor : null,
+      hasPreviousPage: !!after,
+      hasNextPage: hasMore && !!first,
     };
 
-    return {
-      edges,
-      pageInfo,
-    };
+    const connection = new NovelConnection();
+    connection.edges = edges;
+    connection.pageInfo = pageInfo;
+    connection._filterContext = connectionFilters;
+
+    return connection;
   }
 
   async getChaptersConnection(
@@ -151,24 +96,22 @@ export class NovelService {
     const orderByField =
       orderBy?.field ?? ChapterOrderField.CHAPTER_NUMBER;
     const orderByDirection = orderBy?.direction ?? OrderDirection.ASC;
-    const { chapters, totalCount } =
+    const connectionFilters = {
+      narrationStatus: filters?.narrationStatus?.eq,
+    };
+    const { items: chapters, hasMore } =
       await this.chapterRepository.findChaptersConnection({
         novelId,
         pagination: { first, last, after, before },
         orderByField,
         orderByDirection,
-        filters: {
-          narrationStatus: filters?.narrationStatus?.eq,
-        },
+        filters: connectionFilters,
       });
 
     const edges: ChapterEdge[] = chapters.map((chapter) => ({
       cursor: Buffer.from(chapter.id).toString('base64'),
       node: chapter as Chapter,
     }));
-
-    const take = first ?? last;
-    const hasMore = take ? chapters.length >= (take ?? 0) : false;
 
     const pageInfo: PageInfo = {
       startCursor: edges.length > 0 ? edges[0].cursor : null,
@@ -178,11 +121,15 @@ export class NovelService {
       hasNextPage: hasMore && !!first,
     };
 
-    return {
-      edges,
-      pageInfo,
-      totalCount,
+    const connection = new ChapterConnection();
+    connection.edges = edges;
+    connection.pageInfo = pageInfo;
+    connection._filterContext = {
+      novelId,
+      filters: connectionFilters,
     };
+
+    return connection;
   }
 
   async getChapter(

@@ -3,7 +3,7 @@ query GetNovels(
   $after: String
   $filters: NovelFiltersInput
 ) {
-  novels(first: $first, after: $after, filters: $filters) {
+  novelsConnection(first: $first, after: $after, filters: $filters) {
     edges {
       cursor
       node {

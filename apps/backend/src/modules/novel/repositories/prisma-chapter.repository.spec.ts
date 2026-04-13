@@ -266,16 +266,14 @@ describe(PrismaChapterRepository.name, () => {
         chapter,
         chapter2,
       ] as any);
-      vi.mocked(prismaService.chapter.count).mockResolvedValue(2);
 
       const result = await uut.findChaptersConnection({
         novelId: chapter.novelId,
       });
 
-      expect(result.chapters).toHaveLength(2);
-      expect(result.totalCount).toBe(2);
-      expect(result.chapters[0].id).toBe(chapter.id);
-      expect(result.chapters[1].id).toBe(chapter2.id);
+      expect(result.items).toHaveLength(2);
+      expect(result.items[0].id).toBe(chapter.id);
+      expect(result.items[1].id).toBe(chapter2.id);
       expect(prismaService.chapter.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
@@ -290,7 +288,6 @@ describe(PrismaChapterRepository.name, () => {
       vi.mocked(prismaService.chapter.findMany).mockResolvedValue(
         [] as any,
       );
-      vi.mocked(prismaService.chapter.count).mockResolvedValue(0);
 
       await uut.findChaptersConnection({
         novelId: '86537331-b426-4081-aa4e-e58daf533a97',
@@ -311,7 +308,6 @@ describe(PrismaChapterRepository.name, () => {
       vi.mocked(prismaService.chapter.findMany).mockResolvedValue(
         [] as any,
       );
-      vi.mocked(prismaService.chapter.count).mockResolvedValue(0);
 
       await uut.findChaptersConnection({
         novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
@@ -331,7 +327,6 @@ describe(PrismaChapterRepository.name, () => {
       vi.mocked(prismaService.chapter.findMany).mockResolvedValue([
         chapter2,
       ] as any);
-      vi.mocked(prismaService.chapter.count).mockResolvedValue(2);
       const afterCursor =
         'YmI1NjNhZDUtMWFjNC00NmMyLWEyNWYtNmY2MmQyNDVmNDRj'; // Base64 for 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c'
 
@@ -340,7 +335,7 @@ describe(PrismaChapterRepository.name, () => {
         pagination: { first: 10, after: afterCursor },
       });
 
-      expect(result.chapters).toHaveLength(1);
+      expect(result.items).toHaveLength(1);
       expect(prismaService.chapter.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           cursor: { id: 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c' },
@@ -357,30 +352,60 @@ describe(PrismaChapterRepository.name, () => {
         chapter2,
         chapter3,
       ] as any);
-      vi.mocked(prismaService.chapter.count).mockResolvedValue(3);
 
       const result = await uut.findChaptersConnection({
         novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
         pagination: { first: 2 },
       });
 
-      expect(result.chapters).toHaveLength(2);
-      expect(result.chapters[0].id).toBe(chapter.id);
-      expect(result.chapters[1].id).toBe(chapter2.id);
+      expect(result.items).toHaveLength(2);
+      expect(result.hasMore).toBe(true);
+      expect(result.items[0].id).toBe(chapter.id);
+      expect(result.items[1].id).toBe(chapter2.id);
     });
 
     it('should return empty result when novel has no chapters', async () => {
       vi.mocked(prismaService.chapter.findMany).mockResolvedValue(
         [] as any,
       );
-      vi.mocked(prismaService.chapter.count).mockResolvedValue(0);
 
       const result = await uut.findChaptersConnection({
         novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
       });
 
-      expect(result.chapters).toHaveLength(0);
-      expect(result.totalCount).toBe(0);
+      expect(result.items).toHaveLength(0);
+      expect(result.hasMore).toBe(false);
+    });
+  });
+
+  describe('countChapters', () => {
+    it('should return count with no filters', async () => {
+      vi.mocked(prismaService.chapter.count).mockResolvedValue(5);
+
+      const result = await uut.countChapters(
+        '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
+      );
+
+      expect(result).toBe(5);
+      expect(prismaService.chapter.count).toHaveBeenCalledWith({
+        where: { novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec' },
+      });
+    });
+
+    it('should apply narrationStatus filter', async () => {
+      vi.mocked(prismaService.chapter.count).mockResolvedValue(2);
+
+      await uut.countChapters(
+        '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
+        { narrationStatus: NarrationStatus.READY },
+      );
+
+      expect(prismaService.chapter.count).toHaveBeenCalledWith({
+        where: {
+          novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
+          narrationStatus: NarrationStatus.READY,
+        },
+      });
     });
   });
 
