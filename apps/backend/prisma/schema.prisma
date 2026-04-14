@@ -21,13 +21,14 @@ enum NovelState {
 }
 
 model Novel {
-  id          String     @id @default(uuid()) @db.Uuid
+  id      String @id @default(uuid()) @db.Uuid
+  ownerId String @map("owner_id")
+
   name        String
   author      String
   description String     @db.Text
   state       NovelState @default(ONGOING)
   coverUrl    String?    @map("cover_url")
-  ownerId     String     @map("owner_id")
   createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz
 
