@@ -463,6 +463,58 @@ describe(PrismaChapterRepository.name, () => {
     });
   });
 
+  describe('findManyBy', () => {
+    it('should return chapters by IDs', async () => {
+      const { chapter, chapter2 } = getMockedData();
+      vi.mocked(prismaService.chapter.findMany).mockResolvedValue([
+        chapter,
+        chapter2,
+      ] as any);
+      const chapterIds = [chapter.id, chapter2.id];
+
+      const result = await uut.findManyBy(chapterIds);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].id).toBe(chapter.id);
+      expect(result[1].id).toBe(chapter2.id);
+      expect(prismaService.chapter.findMany).toHaveBeenCalledWith({
+        where: { id: { in: chapterIds } },
+        select: {
+          id: true,
+          novelId: true,
+          contentId: true,
+          title: true,
+          chapterNumber: true,
+          narrationStatus: true,
+          narrationUrl: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+    });
+
+    it('should return empty array when no chapters found', async () => {
+      vi.mocked(prismaService.chapter.findMany).mockResolvedValue([]);
+      const chapterIds = ['non-existent-id'];
+
+      const result = await uut.findManyBy(chapterIds);
+
+      expect(result).toEqual([]);
+    });
+
+    it('should throw when database fails', async () => {
+      const error = new Error('Database error');
+      vi.mocked(prismaService.chapter.findMany).mockRejectedValue(
+        error,
+      );
+      const chapterIds = ['bb563ad5-1ac4-46c2-a25f-6f62d245f44c'];
+
+      const result = uut.findManyBy(chapterIds);
+
+      await expect(result).rejects.toThrowError(error);
+    });
+  });
+
   describe('getLastChapter', () => {
     it('should return the last chapter ordered by chapterNumber DESC', async () => {
       const { chapter2 } = getMockedData();

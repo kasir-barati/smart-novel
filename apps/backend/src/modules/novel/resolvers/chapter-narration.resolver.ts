@@ -6,6 +6,7 @@ import {
   Subscription,
 } from '@nestjs/graphql';
 
+import { ParseUuidPipe } from '../../../shared';
 import { Public } from '../../auth';
 import { ChapterNarrationService } from '../services';
 import {
@@ -28,7 +29,8 @@ export class ChapterNarrationResolver {
     description: 'Start generating audio narration for a chapter',
   })
   async generateChapterAudio(
-    @Args('chapterId', { type: () => ID }) chapterId: string,
+    @Args('chapterId', { type: () => ID }, ParseUuidPipe)
+    chapterId: string,
     @Args('forceRegenerate', {
       type: () => Boolean,
       nullable: true,
@@ -59,7 +61,8 @@ export class ChapterNarrationResolver {
     },
   })
   chapterNarrationUpdated(
-    @Args('chapterId', { type: () => ID }) chapterId: string,
+    @Args('chapterId', { type: () => ID }, ParseUuidPipe)
+    chapterId: string,
   ) {
     return this.narrationService.subscribeToChapterNarration(
       chapterId,

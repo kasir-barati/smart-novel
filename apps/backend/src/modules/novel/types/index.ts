@@ -1,5 +1,7 @@
 export * from './chapter-connection.type';
 export * from './chapter-narration.type';
+export * from './chapter-viewer-state.type';
 export * from './chapter.type';
+export * from './mark-chapters-read-response.type';
 export * from './novel-connection.type';
 export * from './novel.type';

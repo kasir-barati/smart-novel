@@ -156,6 +156,25 @@ export class PrismaChapterRepository implements IChapterRepository {
     return this.toChapter(chapter);
   }
 
+  async findManyBy(ids: string[]): Promise<IChapter[]> {
+    const chapters = await this.prisma.chapter.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true,
+        novelId: true,
+        contentId: true,
+        title: true,
+        chapterNumber: true,
+        narrationStatus: true,
+        narrationUrl: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return chapters.map((ch) => this.toChapter(ch));
+  }
+
   async updateChapterNarrationUrl(
     id: string,
     url: string,

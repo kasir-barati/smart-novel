@@ -1,10 +1,16 @@
 import { BadRequestException } from '@nestjs/common';
 import { Parent, ResolveField, Resolver } from '@nestjs/graphql';
+import { isNil } from 'nestjs-backend-common';
 
-import { Public } from '../../auth';
-import { ChapterContentDataLoader } from '../dataloaders';
+import type { IAuthUser } from '../../auth/interfaces';
+
+import { CurrentUserOptional, Public } from '../../auth';
+import {
+  ChapterContentDataLoader,
+  ChapterViewerStateDataLoader,
+} from '../dataloaders';
 import { NovelService } from '../services';
-import { Chapter } from '../types';
+import { Chapter, ChapterViewerState } from '../types';
 
 @Public()
 @Resolver(() => Chapter)
@@ -12,6 +18,7 @@ export class ChapterFieldResolver {
   constructor(
     private readonly novelService: NovelService,
     private readonly chapterContentDataLoader: ChapterContentDataLoader,
+    private readonly chapterViewerStateDataLoader: ChapterViewerStateDataLoader,
   ) {}
 
   @ResolveField(() => String, {
@@ -69,5 +76,24 @@ export class ChapterFieldResolver {
       chapter.novelId,
       chapter.id,
     );
+  }
+
+  @ResolveField(() => ChapterViewerState, {
+    description: 'Viewer-specific state for this chapter',
+  })
+  async viewerState(
+    @Parent() chapter: Chapter,
+    @CurrentUserOptional() user?: IAuthUser,
+  ): Promise<ChapterViewerState> {
+    if (isNil(user?.sub)) {
+      return {
+        isRead: false,
+        readAt: undefined,
+      };
+    }
+
+    this.chapterViewerStateDataLoader.setUserId(user.sub);
+
+    return this.chapterViewerStateDataLoader.load(chapter.id);
   }
 }

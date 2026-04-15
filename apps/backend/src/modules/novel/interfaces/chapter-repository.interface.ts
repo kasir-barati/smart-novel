@@ -26,6 +26,7 @@ export interface IChapterRepository {
     chapterId: string,
   ): Promise<IChapter | null>;
   findById(id: string): Promise<IChapter | null>;
+  findManyBy(ids: string[]): Promise<IChapter[]>;
   updateChapterNarrationUrl(id: string, url: string): Promise<void>;
   updateNarrationStatus(
     id: string,

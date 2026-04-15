@@ -1,6 +1,10 @@
 import { BadRequestException } from '@nestjs/common';
 
-import { ChapterContentDataLoader } from '../dataloaders';
+import { IAuthUser } from '../../auth';
+import {
+  ChapterContentDataLoader,
+  ChapterViewerStateDataLoader,
+} from '../dataloaders';
 import { IChapterContent } from '../interfaces';
 import { NovelService } from '../services';
 import { Chapter } from '../types';
@@ -10,6 +14,7 @@ describe(ChapterFieldResolver.name, () => {
   let uut: ChapterFieldResolver;
   let novelService: NovelService;
   let chapterContentDataLoader: ChapterContentDataLoader;
+  let chapterViewerStateDataLoader: ChapterViewerStateDataLoader;
 
   beforeEach(() => {
     novelService = {
@@ -19,10 +24,15 @@ describe(ChapterFieldResolver.name, () => {
     chapterContentDataLoader = {
       load: vi.fn(),
     } as any;
+    chapterViewerStateDataLoader = {
+      load: vi.fn(),
+      setUserId: vi.fn(),
+    } as any;
 
     uut = new ChapterFieldResolver(
       novelService,
       chapterContentDataLoader,
+      chapterViewerStateDataLoader,
     );
   });
 
@@ -56,6 +66,35 @@ describe(ChapterFieldResolver.name, () => {
 
       await expect(uut.content(chapter)).rejects.toThrow(
         BadRequestException,
+      );
+    });
+  });
+
+  describe('viewerState', () => {
+    it('should return false of isRead when user is not logged in', async () => {
+      const chapter = {} as Chapter;
+
+      const res = await uut.viewerState(chapter);
+
+      expect(res).toStrictEqual({
+        isRead: false,
+        readAt: undefined,
+      });
+    });
+
+    it('should load viewer state from the dataloader', async () => {
+      const chapter = {
+        id: 'abbc9ff8-fbc9-43d2-a13b-e9493f9d127b',
+      } as Chapter;
+      const user = { sub: '268103642598401' } as IAuthUser;
+
+      await uut.viewerState(chapter, user);
+
+      expect(
+        chapterViewerStateDataLoader.setUserId,
+      ).toHaveBeenCalledWith(user.sub);
+      expect(chapterViewerStateDataLoader.load).toHaveBeenCalledWith(
+        chapter.id,
       );
     });
   });

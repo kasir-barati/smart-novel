@@ -9,6 +9,7 @@ import {
 } from '@nestjs/graphql';
 import { isNil } from 'nestjs-backend-common';
 
+import { ParseUuidPipe } from '../../../shared';
 import {
   CurrentUserOptional,
   type IAuthUser,
@@ -35,10 +36,14 @@ export class NovelResolver {
   @Public()
   @Query(() => Novel, { description: 'Find a novel by its ID' })
   async novel(
-    @Args('id', {
-      type: () => ID,
-      description: 'The ID of the novel',
-    })
+    @Args(
+      'id',
+      {
+        type: () => ID,
+        description: 'The ID of the novel',
+      },
+      ParseUuidPipe,
+    )
     id: string,
   ): Promise<Novel> {
     const novel = await this.novelService.findOne(id);
@@ -144,10 +149,14 @@ export class NovelResolver {
   })
   async chapter(
     @Parent() novel: Novel,
-    @Args('id', {
-      type: () => ID,
-      description: 'The ID of the chapter',
-    })
+    @Args(
+      'id',
+      {
+        type: () => ID,
+        description: 'The ID of the chapter',
+      },
+      ParseUuidPipe,
+    )
     id: string,
   ): Promise<Chapter | null> {
     return this.novelService.getChapter(novel.id, id);

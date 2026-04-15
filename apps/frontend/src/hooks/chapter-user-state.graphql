@@ -1,0 +1,5 @@
+mutation MarkChaptersRead($chapterIds: [ID!]!) {
+  markChaptersRead(chapterIds: $chapterIds) {
+    markedCount
+  }
+}

@@ -15,6 +15,7 @@ import {
   ChapterFieldResolver,
   ChapterNarrationResolver,
   ChapterResolver,
+  ChapterUserStateResolver,
   NovelConnectionFieldResolver,
   NovelResolver,
 } from './src/modules/novel/resolvers';
@@ -36,6 +37,7 @@ async function generateSchema() {
     ChapterConnectionFieldResolver,
     ChapterFieldResolver,
     ChapterNarrationResolver,
+    ChapterUserStateResolver,
   ]);
 
   const sdl = printSchema(schema);

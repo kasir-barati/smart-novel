@@ -1,5 +1,6 @@
 import { Args, ID, Mutation, Resolver } from '@nestjs/graphql';
 
+import { ParseUuidPipe } from '../../../shared';
 import { CheckPolicy, RequireRole, Role } from '../../auth';
 import { ChapterService, TtsTextService } from '../services';
 import { Chapter } from '../types';
@@ -37,10 +38,14 @@ export class ChapterResolver {
       'Update both the content and its TTS-friendly version for a chapter.',
   })
   async updateContent(
-    @Args('id', {
-      type: () => ID,
-      description: 'Chapter ID',
-    })
+    @Args(
+      'id',
+      {
+        type: () => ID,
+        description: 'Chapter ID',
+      },
+      ParseUuidPipe,
+    )
     chapterId: string,
     @Args('content', {
       type: () => String,

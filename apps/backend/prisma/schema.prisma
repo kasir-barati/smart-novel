@@ -32,8 +32,9 @@ model Novel {
   createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz
 
-  chapters   Chapter[]
-  categories NovelCategory[]
+  chapters          Chapter[]
+  categories        NovelCategory[]
+  chapterUserStates ChapterUserState[]
 
   @@index([ownerId], name: "IDX_novels_owner")
   @@map("novels")
@@ -51,9 +52,11 @@ model Chapter {
   createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz
   updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz
 
-  novel   Novel          @relation(fields: [novelId], references: [id], onDelete: Cascade)
-  content ChapterContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  novel      Novel              @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  content    ChapterContent     @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  userStates ChapterUserState[]
 
+  @@unique([id, novelId])
   @@index([novelId], name: "IDX_chapters_novel")
   @@map("chapters")
 }
@@ -106,4 +109,21 @@ model NovelCategory {
   @@index([novelId], name: "IDX_novel_categories_novel")
   @@index([categoryId], name: "IDX_novel_categories_category")
   @@map("novel_categories")
+}
+
+model ChapterUserState {
+  userId    String @map("user_id")
+  novelId   String @map("novel_id") @db.Uuid
+  chapterId String @map("chapter_id") @db.Uuid
+
+  firstReadAt DateTime @default(now()) @map("first_read_at") @db.Timestamptz
+
+  novel   Novel   @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  chapter Chapter @relation(fields: [chapterId, novelId], references: [id, novelId], onDelete: Cascade)
+
+  @@id([userId, chapterId])
+  @@index([novelId], name: "IDX_chapter_user_states_novel")
+  @@index([userId, novelId], name: "IDX_chapter_user_states_user_novel")
+  @@index([novelId, chapterId], name: "IDX_chapter_user_states_novel_chapter")
+  @@map("chapter_user_states")
 }
