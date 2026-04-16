@@ -3,3 +3,9 @@ mutation MarkChaptersRead($chapterIds: [ID!]!) {
     markedCount
   }
 }
+
+mutation DeleteReadHistory {
+  deleteReadHistory {
+    deletedCount
+  }
+}

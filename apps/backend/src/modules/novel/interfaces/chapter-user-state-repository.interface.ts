@@ -30,4 +30,10 @@ export interface IChapterUserStateRepository {
     userId: string,
     chapterIds: string[],
   ): Promise<Map<string, IChapterUserState>>;
+
+  /**
+   * Delete all read history for a specific user (GDPR compliance)
+   * @returns Number of records deleted
+   */
+  deleteAllForUser(userId: string): Promise<number>;
 }

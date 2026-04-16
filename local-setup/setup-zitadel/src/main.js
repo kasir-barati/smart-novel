@@ -43,10 +43,8 @@ const projectId =
 Logger.log(`Writing project ID to ${config.projectIdFile}...`);
 await FileUtil.writeFile(config.projectIdFile, projectId);
 Logger.log(`Creating OIDC application: ${config.appName} ...`);
-const { clientId } = await managementV1Service.createOidcApp(
-  projectId,
-  config.appName,
-);
+const { appId, clientId, oidcConfig } =
+  await managementV1Service.createOidcApp(projectId, config.appName);
 Logger.log(`Writing client ID to ${config.clientIdFile}...`);
 await FileUtil.writeFile(config.clientIdFile, clientId);
 
@@ -57,8 +55,10 @@ Logger.log(
   `Creating confidential OIDC application: ${config.integrationTest.appName}...`,
 );
 const {
+  appId: integrationTestAppId,
   clientId: integrationTestClientId,
   clientSecret: integrationTestClientSecret,
+  oidcConfig: integrationTestOidcConfig,
 } = await managementV1Service.createOidcApp(
   projectId,
   config.integrationTest.appName,

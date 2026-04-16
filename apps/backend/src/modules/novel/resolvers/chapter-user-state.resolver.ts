@@ -5,7 +5,10 @@ import type { IAuthUser } from '../../auth/interfaces';
 import { ParseUuidPipe } from '../../../shared';
 import { CurrentUser } from '../../auth';
 import { ChapterUserStateService } from '../services';
-import { MarkChaptersReadResponse } from '../types';
+import {
+  DeleteReadHistoryResponse,
+  MarkChaptersReadResponse,
+} from '../types';
 
 @Resolver()
 export class ChapterUserStateResolver {
@@ -29,5 +32,18 @@ export class ChapterUserStateResolver {
       );
 
     return { markedCount };
+  }
+
+  @Mutation(() => DeleteReadHistoryResponse, {
+    description:
+      'Delete all read history for the authenticated user (GDPR compliance).',
+  })
+  async deleteReadHistory(
+    @CurrentUser() user: IAuthUser,
+  ): Promise<DeleteReadHistoryResponse> {
+    const deletedCount =
+      await this.chapterUserStateService.deleteReadHistory(user.sub);
+
+    return { deletedCount };
   }
 }

@@ -138,11 +138,13 @@ export default [
       '**/*-e2e/**/*.ts',
       '**/global-setup.ts',
       '**/*.fixture.ts',
+      '**/*.cy.ts',
     ],
     plugins: {
       vitest,
     },
     rules: {
+      '@typescript-eslint/no-unused-expressions': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/no-empty-function': 'off',

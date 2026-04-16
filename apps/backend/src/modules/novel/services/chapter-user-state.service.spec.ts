@@ -17,6 +17,7 @@ describe(ChapterUserStateService.name, () => {
       markChaptersRead: vi.fn(),
       findReadChapterIds: vi.fn(),
       batchLoadByChapterIds: vi.fn(),
+      deleteAllForUser: vi.fn(),
     } as any;
     chapterRepository = {
       findManyBy: vi.fn(),
@@ -227,6 +228,22 @@ describe(ChapterUserStateService.name, () => {
           novelId: '86537331-b426-4081-aa4e-e58daf533a97',
         },
       ]);
+    });
+  });
+
+  describe('deleteReadHistory', () => {
+    it('should delete all read history for a user', async () => {
+      const userId = '696847888177889345';
+      vi.mocked(
+        chapterUserStateRepository.deleteAllForUser,
+      ).mockResolvedValue(10);
+
+      const result = await uut.deleteReadHistory(userId);
+
+      expect(result).toBe(10);
+      expect(
+        chapterUserStateRepository.deleteAllForUser,
+      ).toHaveBeenCalledWith(userId);
     });
   });
 });

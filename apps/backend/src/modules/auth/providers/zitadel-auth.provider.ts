@@ -8,6 +8,7 @@ import {
 } from 'jose';
 import {
   CustomLoggerService,
+  retryAsync,
   urlBuilder,
 } from 'nestjs-backend-common';
 
@@ -27,12 +28,9 @@ import { generateUserInfoCacheKey } from '../utils';
 
 /**
  * @description
- * Validates access tokens issued by ZITADEL. Supports **two token formats**:
+ * Validates JWT access tokens issued by ZITADEL, verified locally via the JWKS discovered from the OIDC well-known endpoint.
  *
- * 1. **JWT** — verified locally via the JWKS discovered from the OIDC well-known endpoint.
- * 2. **Opaque** — validated by presenting the token to the OIDC UserInfo endpoint.
- *
- * In both cases rich claims (email, roles, metadata, org) are fetched from the UserInfo endpoint and cached in Redis.
+ * Rich claims (email, roles, metadata, org) are fetched from the UserInfo endpoint and cached in Redis.
  *
  * To switch to another IdP, create a new class implementing `IAuthProvider` and swap `useClass` in `AuthModule`.
  */
@@ -59,24 +57,6 @@ export class ZitadelAuthProvider
   }
 
   async validateToken(token: string): Promise<IAuthUser> {
-    /**
-     * Zitadel issues opaque access tokens by default.
-     * If the OIDC app is configured with accessTokenType = JWT the token
-     * will be a standard three-part JWT (header.payload.signature).
-     * We detect the format and choose the appropriate validation strategy.
-     */
-    if (this.isJwt(token)) {
-      return this.validateJwt(token);
-    }
-
-    return this.validateOpaque(token);
-  }
-
-  /**
-   * @description
-   * Validate a standard JWT using JWKS.
-   */
-  private async validateJwt(token: string): Promise<IAuthUser> {
     // Lazy-init if discovery failed at startup
     if (!this.jwks) {
       await this.discoverOidcConfig();
@@ -95,7 +75,6 @@ export class ZitadelAuthProvider
         issuer: this.issuer,
       },
     );
-
     /**
      * @description
      * The Zitadel access-token JWT only contains basic claims (sub, aud, iss…). Rich claims (email, roles, metadata, org) are available via the standard OIDC UserInfo endpoint.
@@ -108,44 +87,6 @@ export class ZitadelAuthProvider
     }
 
     return user;
-  }
-
-  /**
-   * @description
-   * Validate an opaque (non-JWT) access token by calling the UserInfo endpoint.
-   *
-   * Zitadel issues opaque tokens by default. The only way to verify them is to present the token to the UserInfo endpoint — if it returns 200 the token is valid.
-   */
-  private async validateOpaque(token: string): Promise<IAuthUser> {
-    // Lazy-init if discovery failed at startup
-    if (!this.userinfoEndpoint) {
-      await this.discoverOidcConfig();
-    }
-
-    if (!this.userinfoEndpoint) {
-      throw new Error(
-        'OIDC provider is not available. Could not discover UserInfo endpoint.',
-      );
-    }
-
-    const userInfo = await this.fetchUserInfo(token);
-    const user = this.normalizeUserInfo(userInfo.sub, userInfo);
-
-    if (user.roles.length === 0) {
-      user.roles = await this.fetchUserRoles(token);
-    }
-
-    return user;
-  }
-
-  /**
-   * @description
-   * Detect whether a token string is a JWT (three Base64url segments separated by dots) or an opaque reference token.
-   */
-  private isJwt(token: string): boolean {
-    const parts = token.split('.');
-
-    return parts.length === 3 && parts.every((p) => p.length > 0);
   }
 
   /**
@@ -249,15 +190,15 @@ export class ZitadelAuthProvider
       },
     );
 
-    try {
-      await this.redisService.set(
-        cacheKey,
-        JSON.stringify(data),
-        ZitadelAuthProvider.USERINFO_CACHE_TTL_SECONDS,
-      );
-    } catch {
-      // Redis write failure is non-fatal — the next request will retry.
-    }
+    await retryAsync(
+      () =>
+        this.redisService.set(
+          cacheKey,
+          JSON.stringify(data),
+          ZitadelAuthProvider.USERINFO_CACHE_TTL_SECONDS,
+        ),
+      { retry: 0 },
+    );
 
     return data;
   }

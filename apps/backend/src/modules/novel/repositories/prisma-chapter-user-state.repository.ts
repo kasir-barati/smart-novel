@@ -66,6 +66,16 @@ export class PrismaChapterUserStateRepository implements IChapterUserStateReposi
     return map;
   }
 
+  async deleteAllForUser(userId: string): Promise<number> {
+    const result = await this.prisma.chapterUserState.deleteMany({
+      where: {
+        userId,
+      },
+    });
+
+    return result.count;
+  }
+
   private toChapterUserState(record: any): IChapterUserState {
     return {
       userId: record.userId,

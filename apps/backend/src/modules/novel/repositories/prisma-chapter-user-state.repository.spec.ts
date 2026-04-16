@@ -10,6 +10,7 @@ describe(PrismaChapterUserStateRepository.name, () => {
       chapterUserState: {
         createMany: vi.fn(),
         findMany: vi.fn(),
+        deleteMany: vi.fn(),
       },
     } as any;
 
@@ -468,6 +469,40 @@ describe(PrismaChapterUserStateRepository.name, () => {
       const result = uut.batchLoadByChapterIds(userId, chapterIds);
 
       await expect(result).rejects.toThrowError(error);
+    });
+  });
+
+  describe('deleteAllForUser', () => {
+    it('should delete all chapter user states for a user', async () => {
+      const userId = 'a7f3e8d2-4b9c-4f1a-8e6d-2c5b3a9f1e4d';
+      vi.mocked(
+        prismaService.chapterUserState.deleteMany,
+      ).mockResolvedValue({
+        count: 5,
+      });
+
+      const result = await uut.deleteAllForUser(userId);
+
+      expect(result).toBe(5);
+      expect(
+        prismaService.chapterUserState.deleteMany,
+      ).toHaveBeenCalledWith({
+        where: {
+          userId: 'a7f3e8d2-4b9c-4f1a-8e6d-2c5b3a9f1e4d',
+        },
+      });
+    });
+
+    it('should throw when database fails', async () => {
+      const error = new Error('Database deletion failed');
+      const userId = 'a7f3e8d2-4b9c-4f1a-8e6d-2c5b3a9f1e4d';
+      vi.mocked(
+        prismaService.chapterUserState.deleteMany,
+      ).mockRejectedValue(error);
+
+      const result = uut.deleteAllForUser(userId);
+
+      await expect(result).rejects.toThrow(error);
     });
   });
 });

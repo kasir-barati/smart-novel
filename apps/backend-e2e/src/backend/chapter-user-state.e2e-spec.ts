@@ -302,4 +302,151 @@ describe('ChapterUserState (e2e)', () => {
       );
     });
   });
+
+  describe('deleteReadHistory mutation', () => {
+    it('should delete all read history for authenticated user', async () => {
+      const userAuthHeader =
+        await AuthorizationFixture.getUserAuthorizationHeader();
+      await axios.post(
+        '/graphql',
+        {
+          query: `#graphql
+            mutation MarkChaptersRead($chapterIds: [ID!]!) {
+              markChaptersRead(chapterIds: $chapterIds) {
+                markedCount
+              }
+            }
+          `,
+          variables: {
+            chapterIds: [
+              CHAPTER_ONE_ID,
+              CHAPTER_TWO_ID,
+              CHAPTER_THREE_ID,
+              CHAPTER_FOUR_ID,
+            ],
+          },
+        },
+        { headers: { Authorization: userAuthHeader } },
+      );
+
+      const res = await axios.post(
+        '/graphql',
+        {
+          query: `#graphql
+            mutation DeleteReadHistory {
+              deleteReadHistory {
+                deletedCount
+              }
+            }
+          `,
+        },
+        { headers: { Authorization: userAuthHeader } },
+      );
+
+      expect(res.status).toBe(200);
+      expect(
+        res.data.data.deleteReadHistory.deletedCount,
+      ).toBeGreaterThanOrEqual(4);
+    });
+
+    it('should return 0 when user has no read history', async () => {
+      const writerUserAuthHeader =
+        await AuthorizationFixture.getWriterAuthorizationHeader();
+
+      const res = await axios.post(
+        '/graphql',
+        {
+          query: `#graphql
+            mutation DeleteReadHistory {
+              deleteReadHistory {
+                deletedCount
+              }
+            }
+          `,
+        },
+        { headers: { Authorization: writerUserAuthHeader } },
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.data.data.deleteReadHistory.deletedCount).toBe(0);
+    });
+
+    it('should reject unauthenticated requests', async () => {
+      const res = await axios.post('/graphql', {
+        query: `#graphql
+          mutation DeleteReadHistory {
+            deleteReadHistory {
+              deletedCount
+            }
+          }
+        `,
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.data.errors).toBeArray();
+      expect(res.data.errors[0].message).toContain(
+        'Missing Bearer token in Authorization header',
+      );
+    });
+
+    it('should verify chapters are no longer marked as read after deletion', async () => {
+      const userAuthHeader =
+        await AuthorizationFixture.getUserAuthorizationHeader();
+      await axios.post(
+        '/graphql',
+        {
+          query: `#graphql
+            mutation MarkChaptersRead($chapterIds: [ID!]!) {
+              markChaptersRead(chapterIds: $chapterIds) {
+                markedCount
+              }
+            }
+          `,
+          variables: {
+            chapterIds: [CHAPTER_ONE_ID],
+          },
+        },
+        { headers: { Authorization: userAuthHeader } },
+      );
+
+      await axios.post(
+        '/graphql',
+        {
+          query: `#graphql
+            mutation DeleteReadHistory {
+              deleteReadHistory {
+                deletedCount
+              }
+            }
+          `,
+        },
+        { headers: { Authorization: userAuthHeader } },
+      );
+      const res = await axios.post(
+        '/graphql',
+        {
+          query: `#graphql
+            query GetChapterViewerState($novelId: ID!, $chapterId: ID!) {
+              novel(id: $novelId) {
+                chapter(id: $chapterId) {
+                  viewerState {
+                    isRead
+                  }
+                }
+              }
+            }
+          `,
+          variables: {
+            novelId: NOVEL_ID,
+            chapterId: CHAPTER_ONE_ID,
+          },
+        },
+        { headers: { Authorization: userAuthHeader } },
+      );
+
+      expect(
+        res.data.data.novel.chapter.viewerState.isRead,
+      ).toBeFalse();
+    });
+  });
 });

@@ -101,7 +101,7 @@ export class ZitadelManagementV1Service {
    * @param {string} projectId - Project ID
    * @param {string} appName - Application name
    * @param {'public'|'confidential'} [kind='public'] - OIDC app kind
-   * @returns {Promise<{clientId: string, clientSecret: (string|null)}>} public apps do NOT have **client secrets**; for confidential apps the secret is **ONLY** returned on creation.
+   * @returns {Promise<{appId: string, clientId: string, clientSecret: (string|null), oidcConfig: Record<string, any>}>} public apps do NOT have **client secrets**; for confidential apps the secret is returned.
    */
   async createOidcApp(projectId, appName, kind = 'public') {
     /** @type {Record<string, any>} */
@@ -121,6 +121,7 @@ export class ZitadelManagementV1Service {
             appType: 'OIDC_APP_TYPE_WEB',
             authMethodType: 'OIDC_AUTH_METHOD_TYPE_BASIC',
             devMode: true,
+            accessTokenType: 'OIDC_TOKEN_TYPE_JWT',
             accessTokenRoleAssertion: true,
             idTokenRoleAssertion: true,
           }
@@ -136,6 +137,7 @@ export class ZitadelManagementV1Service {
             appType: 'OIDC_APP_TYPE_NATIVE',
             authMethodType: 'OIDC_AUTH_METHOD_TYPE_NONE',
             devMode: true,
+            accessTokenType: 'OIDC_TOKEN_TYPE_JWT',
             accessTokenRoleAssertion: true,
             idTokenRoleAssertion: true,
           };
@@ -154,16 +156,26 @@ export class ZitadelManagementV1Service {
 
     const data = await response.json();
 
+    // Strip `name` — it's not part of the OIDC config update payload
+    const { name: _name, ...oidcConfig } = payload;
+
     if (data.clientId) {
       return {
+        appId: data.appId,
         clientId: data.clientId,
         clientSecret: data.clientSecret ?? null,
+        oidcConfig,
       };
     }
 
     if (JSON.stringify(data).toLowerCase().includes('already')) {
-      const clientId = await this.#findAppClientId(projectId);
-      return { clientId, clientSecret: null };
+      const app = await this.#findApp(projectId, appName);
+      return {
+        appId: app.id,
+        clientId: app.oidcConfig.clientId,
+        clientSecret: null,
+        oidcConfig,
+      };
     }
 
     Logger.error(
@@ -354,32 +366,47 @@ export class ZitadelManagementV1Service {
   }
 
   /**
-   * Find first app client ID in a project
+   * Find an app by name within a project.
+   *
+   * Returns the full app object so callers can read `.id`,
+   * `.oidcConfig.clientId`, or any other field they need.
+   *
    * @param {string} projectId - Project ID
-   * @returns {Promise<string>} Client ID
+   * @param {string} appName - Application name
+   * @returns {Promise<Record<string, any>>} App object
    */
-  async #findAppClientId(projectId) {
+  async #findApp(projectId, appName) {
     const response = await fetch(
       `${this.baseUrl}/management/v1/projects/${projectId}/apps/_search`,
       {
-        method: 'GET',
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${this.accessToken}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          queries: [
+            {
+              nameQuery: {
+                name: appName,
+                method: 'TEXT_QUERY_METHOD_EQUALS',
+              },
+            },
+          ],
+        }),
       },
     );
 
     const data = await response.json();
-    const clientId = data.result?.[0]?.oidcConfig?.clientId;
+    const app = data.result?.[0];
 
-    if (isEmpty(clientId)) {
+    if (isEmpty(app)) {
       Logger.error(
-        `Failed to find existing OIDC app client ID: ${JSON.stringify(data, null, 2)}`,
+        `Failed to find app '${appName}' in project: ${JSON.stringify(data, null, 2)}`,
       );
-      throw new Error('Failed to find existing OIDC app client ID');
+      throw new Error(`Failed to find app '${appName}'`);
     }
 
-    return clientId;
+    return app;
   }
 }

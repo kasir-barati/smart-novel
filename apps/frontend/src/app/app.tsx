@@ -7,6 +7,7 @@ import { HomePage } from '../pages/home/HomePage';
 import { NovelPage } from '../pages/novel/NovelPage';
 import { TtsReviewPage } from '../pages/novel/TtsReviewPage';
 import { SearchPage } from '../pages/search/SearchPage';
+import { SettingsPage } from '../pages/settings/SettingsPage';
 import { Layout } from './layout/Layout';
 
 export function App() {
@@ -29,6 +30,14 @@ export function App() {
             element={
               <Layout>
                 <SearchPage />
+              </Layout>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <Layout>
+                <SettingsPage />
               </Layout>
             }
           />

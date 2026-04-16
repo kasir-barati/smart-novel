@@ -95,6 +95,13 @@ export function Header() {
                         >
                           Manage account
                         </a>
+                        <Link
+                          to="/settings"
+                          className="block px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
+                          onClick={() => setIsDropdownOpen(false)}
+                        >
+                          Settings
+                        </Link>
                         <hr className="my-1 border-gray-200 dark:border-gray-600" />
                         <button
                           onClick={() => {
@@ -216,6 +223,13 @@ export function Header() {
                     >
                       Manage account
                     </a>
+                    <Link
+                      to="/settings"
+                      onClick={closeMenu}
+                      className="rounded-md px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600"
+                    >
+                      Settings
+                    </Link>
                     <button
                       onClick={() => {
                         closeMenu();

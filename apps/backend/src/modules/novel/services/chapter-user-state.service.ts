@@ -53,4 +53,8 @@ export class ChapterUserStateService {
       chapterData,
     );
   }
+
+  deleteReadHistory(userId: string): Promise<number> {
+    return this.chapterUserStateRepository.deleteAllForUser(userId);
+  }
 }
