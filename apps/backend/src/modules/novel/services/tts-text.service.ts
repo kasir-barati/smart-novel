@@ -70,7 +70,6 @@ export class TtsTextService {
   normalizeTtsText(text: string): string {
     let result = text;
 
-    // TODO: Use pipe operator here!
     result = this.replaceSilentDialogue(result);
     result = this.stripElongationTildes(result);
     result = this.collapseRepeatedLetters(result);
