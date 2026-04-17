@@ -100,16 +100,6 @@ export class PrismaNovelRepository implements INovelRepository {
     return this.toNovel(novel);
   }
 
-  async getChapterList(novelId: string): Promise<string[]> {
-    const chapters = await this.prisma.chapter.findMany({
-      where: { novelId },
-      select: { id: true },
-      orderBy: { chapterNumber: 'asc' },
-    });
-
-    return chapters.map((chapter) => chapter.id);
-  }
-
   async getCategories(): Promise<string[]> {
     const categories = await this.prisma.category.findMany({
       select: { name: true },

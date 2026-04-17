@@ -3,6 +3,7 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
+import depthLimit from 'graphql-depth-limit';
 import {
   CorrelationIdModule,
   LoggerModule,
@@ -65,6 +66,7 @@ import {
       autoSchemaFile: true,
       playground: false,
       plugins: [ApolloServerPluginLandingPageLocalDefault()],
+      validationRules: [depthLimit(7)],
       subscriptions: {
         'graphql-ws': true,
       },

@@ -273,56 +273,6 @@ describe(PrismaNovelRepository.name, () => {
     });
   });
 
-  describe('getChapterList', () => {
-    it('should return array of chapter IDs for a novel', async () => {
-      const mockChapters = [
-        { id: 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c' },
-        { id: '904bf826-33be-4172-b63f-665bba9007b9' },
-        { id: '041be636-8bd3-44b4-a22c-29703b2b63e5' },
-      ];
-      vi.mocked(prismaService.chapter.findMany).mockResolvedValue(
-        mockChapters as any,
-      );
-
-      const result = await uut.getChapterList(
-        '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
-      );
-
-      expect(result).toEqual([
-        'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
-        '904bf826-33be-4172-b63f-665bba9007b9',
-        '041be636-8bd3-44b4-a22c-29703b2b63e5',
-      ]);
-      expect(prismaService.chapter.findMany).toHaveBeenCalledWith({
-        where: { novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec' },
-        select: { id: true },
-        orderBy: { chapterNumber: 'asc' },
-      });
-    });
-
-    it('should return empty array when novel has no chapters', async () => {
-      vi.mocked(prismaService.chapter.findMany).mockResolvedValue([]);
-
-      const result = await uut.getChapterList(
-        '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
-      );
-
-      expect(result).toEqual([]);
-    });
-
-    it('should propagate the error when database fails', async () => {
-      vi.mocked(prismaService.chapter.findMany).mockRejectedValue(
-        new Error('Database error'),
-      );
-
-      const result = uut.getChapterList(
-        '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
-      );
-
-      await expect(result).rejects.toThrow('Database error');
-    });
-  });
-
   describe('getCategories', () => {
     it('should return lowercased category names', async () => {
       const mockCategories = [

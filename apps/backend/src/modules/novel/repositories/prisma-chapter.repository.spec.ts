@@ -30,28 +30,114 @@ describe(PrismaChapterRepository.name, () => {
     uut = new PrismaChapterRepository(prismaService);
   });
 
-  describe('findById', () => {
-    it('should return chapter by id with contentId but without content', async () => {
-      const { chapter } = getMockedData();
-      vi.mocked(prismaService.chapter.findFirst).mockResolvedValue(
-        chapter as any,
+  describe('findManyByNovelAndChapterNumbers', () => {
+    it('should return empty array when keys is empty array', async () => {
+      const result = await uut.findManyByNovelAndChapterNumbers([]);
+
+      expect(result).toStrictEqual([]);
+      expect(prismaService.chapter.findMany).not.toHaveBeenCalled();
+    });
+
+    it('should return chapters matching a single novel and chapter number', async () => {
+      const { novel1Chapter1 } = getMockedData();
+      vi.mocked(prismaService.chapter.findMany).mockResolvedValue([
+        novel1Chapter1,
+      ] as any);
+
+      const result = await uut.findManyByNovelAndChapterNumbers([
+        { novelId: novel1Chapter1.novelId, chapterNumber: 1 },
+      ]);
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toStrictEqual(
+        expect.objectContaining({
+          id: novel1Chapter1.id,
+          novelId: novel1Chapter1.novelId,
+          createdAt: novel1Chapter1.createdAt.toISOString(),
+          updatedAt: novel1Chapter1.updatedAt.toISOString(),
+        }),
+      );
+      expect(prismaService.chapter.findMany).toHaveBeenCalledWith({
+        where: {
+          OR: [
+            {
+              novelId: novel1Chapter1.novelId,
+              chapterNumber: { in: [1] },
+            },
+          ],
+        },
+      });
+    });
+
+    it('should group multiple chapter numbers under the same novel', async () => {
+      const { novel1, novel2 } = getMockedData();
+      vi.mocked(prismaService.chapter.findMany).mockResolvedValue([]);
+
+      await uut.findManyByNovelAndChapterNumbers([
+        { novelId: novel1.id, chapterNumber: 1 },
+        { novelId: novel1.id, chapterNumber: 2 },
+        { novelId: novel2.id, chapterNumber: 1 },
+      ]);
+      console.dir(
+        vi.mocked(prismaService.chapter.findMany).mock.calls,
+        { depth: null },
       );
 
-      const result = await uut.findById(chapter.id);
+      expect(prismaService.chapter.findMany).toHaveBeenCalledWith({
+        where: {
+          OR: [
+            {
+              novelId: novel1.id,
+              chapterNumber: { in: [1, 2] },
+            },
+            {
+              novelId: novel2.id,
+              chapterNumber: { in: [1] },
+            },
+          ],
+        },
+      });
+    });
 
-      expect(result).toEqual({
-        id: chapter.id,
-        novelId: chapter.novelId,
-        contentId: chapter.contentId,
-        title: chapter.title,
-        chapterNumber: chapter.chapterNumber,
-        createdAt: chapter.createdAt.toISOString(),
-        updatedAt: chapter.updatedAt.toISOString(),
-        narrationStatus: chapter.narrationStatus,
-        narrationUrl: chapter.narrationUrl,
+    it('should throw when database fails', async () => {
+      const error = new Error('Database error');
+      vi.mocked(prismaService.chapter.findMany).mockRejectedValue(
+        error,
+      );
+
+      const result = uut.findManyByNovelAndChapterNumbers([
+        {
+          novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
+          chapterNumber: 1,
+        },
+      ]);
+
+      await expect(result).rejects.toThrowError(error);
+    });
+  });
+
+  describe('findById', () => {
+    it('should return chapter by id with contentId but without content', async () => {
+      const { novel1Chapter1 } = getMockedData();
+      vi.mocked(prismaService.chapter.findFirst).mockResolvedValue(
+        novel1Chapter1 as any,
+      );
+
+      const result = await uut.findById(novel1Chapter1.id);
+
+      expect(result).toStrictEqual({
+        id: novel1Chapter1.id,
+        novelId: novel1Chapter1.novelId,
+        contentId: novel1Chapter1.contentId,
+        title: novel1Chapter1.title,
+        chapterNumber: novel1Chapter1.chapterNumber,
+        createdAt: novel1Chapter1.createdAt.toISOString(),
+        updatedAt: novel1Chapter1.updatedAt.toISOString(),
+        narrationStatus: novel1Chapter1.narrationStatus,
+        narrationUrl: novel1Chapter1.narrationUrl,
       });
       expect(prismaService.chapter.findFirst).toHaveBeenCalledWith({
-        where: { id: chapter.id },
+        where: { id: novel1Chapter1.id },
       });
     });
 
@@ -81,29 +167,32 @@ describe(PrismaChapterRepository.name, () => {
 
   describe('getChapter', () => {
     it('should return chapter by novelId and chapterId', async () => {
-      const { chapter } = getMockedData();
+      const { novel1Chapter2 } = getMockedData();
       vi.mocked(prismaService.chapter.findFirst).mockResolvedValue(
-        chapter as any,
+        novel1Chapter2 as any,
       );
-      const novelId = '248c9fee-cad0-43fc-9abb-c2ab8ff002ec';
 
-      const result = await uut.getChapter(novelId, chapter.id);
+      const result = await uut.getChapter(
+        novel1Chapter2.novelId,
+        novel1Chapter2.id,
+      );
+      console.dir(result, { depth: null });
 
-      expect(result).toEqual({
-        id: chapter.id,
-        novelId,
-        contentId: 'ccc63ad5-1ac4-46c2-a25f-6f62d245f44c',
-        title: 'Chapter 1: The Beginning',
-        chapterNumber: 1,
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-02T00:00:00.000Z',
-        narrationStatus: NarrationStatus.READY,
-        narrationUrl: 'https://example.com/narration.mp3',
+      expect(result).toStrictEqual({
+        id: novel1Chapter2.id,
+        novelId: novel1Chapter2.novelId,
+        contentId: novel1Chapter2.contentId,
+        title: novel1Chapter2.title,
+        chapterNumber: novel1Chapter2.chapterNumber,
+        createdAt: novel1Chapter2.createdAt.toISOString(),
+        updatedAt: novel1Chapter2.updatedAt.toISOString(),
+        narrationStatus: novel1Chapter2.narrationStatus,
+        narrationUrl: undefined,
       });
       expect(prismaService.chapter.findFirst).toHaveBeenCalledWith({
         where: {
-          id: chapter.id,
-          novelId,
+          id: novel1Chapter2.id,
+          novelId: novel1Chapter2.novelId,
         },
       });
     });
@@ -121,9 +210,9 @@ describe(PrismaChapterRepository.name, () => {
     });
 
     it('should handle chapter with null narrationUrl and narrationStatus', async () => {
-      const { chapter } = getMockedData();
+      const { novel1Chapter3 } = getMockedData();
       const chapterWithoutNarration = {
-        ...chapter,
+        ...novel1Chapter3,
         narrationStatus: null,
         narrationUrl: null,
       };
@@ -132,7 +221,7 @@ describe(PrismaChapterRepository.name, () => {
       );
       const novelId = '248c9fee-cad0-43fc-9abb-c2ab8ff002ec';
 
-      const result = await uut.getChapter(novelId, chapter.id);
+      const result = await uut.getChapter(novelId, novel1Chapter3.id);
 
       expect(result?.narrationStatus).toBeNull();
       expect(result?.narrationUrl).toBeUndefined();
@@ -155,20 +244,20 @@ describe(PrismaChapterRepository.name, () => {
 
   describe('updateChapterNarrationUrl', () => {
     it('should update chapter narration url', async () => {
-      const { chapter } = getMockedData();
+      const { novel1Chapter1 } = getMockedData();
       vi.mocked(prismaService.chapter.update).mockResolvedValue({
-        ...chapter,
+        ...novel1Chapter1,
         narrationUrl:
           'http://localhost:9000/smart-novel/narrations/chapter-a3987a2f-eaa5-4a05-8714-34a110511cba.mp3',
       } as any);
 
       await uut.updateChapterNarrationUrl(
-        chapter.id,
+        novel1Chapter1.id,
         'http://localhost:9000/smart-novel/narrations/chapter-a3987a2f-eaa5-4a05-8714-34a110511cba.mp3',
       );
 
       expect(prismaService.chapter.update).toHaveBeenCalledWith({
-        where: { id: chapter.id },
+        where: { id: novel1Chapter1.id },
         data: {
           narrationUrl:
             'http://localhost:9000/smart-novel/narrations/chapter-a3987a2f-eaa5-4a05-8714-34a110511cba.mp3',
@@ -179,27 +268,27 @@ describe(PrismaChapterRepository.name, () => {
 
   describe('updateNarrationStatus', () => {
     it('should update chapter narration status', async () => {
-      const { chapter } = getMockedData();
+      const { novel1Chapter1 } = getMockedData();
       vi.mocked(prismaService.chapter.update).mockResolvedValue({
-        ...chapter,
+        ...novel1Chapter1,
         narrationStatus: NarrationStatus.PROCESSING,
       } as any);
 
       await uut.updateNarrationStatus(
-        chapter.id,
+        novel1Chapter1.id,
         NarrationStatus.PROCESSING,
       );
 
       expect(prismaService.chapter.update).toHaveBeenCalledWith({
-        where: { id: chapter.id },
+        where: { id: novel1Chapter1.id },
         data: { narrationStatus: NarrationStatus.PROCESSING },
       });
     });
 
     it('should update narration status to FAILED', async () => {
-      const { chapter } = getMockedData();
+      const { novel1Chapter1 } = getMockedData();
       const mockUpdatedChapter = {
-        ...chapter,
+        ...novel1Chapter1,
         narrationStatus: NarrationStatus.FAILED,
       };
       vi.mocked(prismaService.chapter.update).mockResolvedValue(
@@ -207,12 +296,12 @@ describe(PrismaChapterRepository.name, () => {
       );
 
       await uut.updateNarrationStatus(
-        chapter.id,
+        novel1Chapter1.id,
         NarrationStatus.FAILED,
       );
 
       expect(prismaService.chapter.update).toHaveBeenCalledWith({
-        where: { id: chapter.id },
+        where: { id: novel1Chapter1.id },
         data: { narrationStatus: NarrationStatus.FAILED },
       });
     });
@@ -261,23 +350,23 @@ describe(PrismaChapterRepository.name, () => {
 
   describe('findChaptersConnection', () => {
     it('should return chapters with default ordering by chapterNumber ASC', async () => {
-      const { chapter, chapter2 } = getMockedData();
+      const { novel1Chapter1, novel1Chapter2 } = getMockedData();
       vi.mocked(prismaService.chapter.findMany).mockResolvedValue([
-        chapter,
-        chapter2,
+        novel1Chapter1,
+        novel1Chapter2,
       ] as any);
 
       const result = await uut.findChaptersConnection({
-        novelId: chapter.novelId,
+        novelId: novel1Chapter1.novelId,
       });
 
       expect(result.items).toHaveLength(2);
-      expect(result.items[0].id).toBe(chapter.id);
-      expect(result.items[1].id).toBe(chapter2.id);
+      expect(result.items[0].id).toBe(novel1Chapter1.id);
+      expect(result.items[1].id).toBe(novel1Chapter2.id);
       expect(prismaService.chapter.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
-            novelId: chapter.novelId,
+            novelId: novel1Chapter1.novelId,
           },
           orderBy: { chapterNumber: 'asc' },
         }),
@@ -323,9 +412,9 @@ describe(PrismaChapterRepository.name, () => {
     });
 
     it('should apply forward pagination with first and after', async () => {
-      const { chapter2 } = getMockedData();
+      const { novel1Chapter2 } = getMockedData();
       vi.mocked(prismaService.chapter.findMany).mockResolvedValue([
-        chapter2,
+        novel1Chapter2,
       ] as any);
       const afterCursor =
         'YmI1NjNhZDUtMWFjNC00NmMyLWEyNWYtNmY2MmQyNDVmNDRj'; // Base64 for 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c'
@@ -346,11 +435,12 @@ describe(PrismaChapterRepository.name, () => {
     });
 
     it('should trim extra record and signal hasMore when chapters exceed take', async () => {
-      const { chapter, chapter2, chapter3 } = getMockedData();
+      const { novel1Chapter1, novel1Chapter2, novel1Chapter3 } =
+        getMockedData();
       vi.mocked(prismaService.chapter.findMany).mockResolvedValue([
-        chapter,
-        chapter2,
-        chapter3,
+        novel1Chapter1,
+        novel1Chapter2,
+        novel1Chapter3,
       ] as any);
 
       const result = await uut.findChaptersConnection({
@@ -360,8 +450,8 @@ describe(PrismaChapterRepository.name, () => {
 
       expect(result.items).toHaveLength(2);
       expect(result.hasMore).toBe(true);
-      expect(result.items[0].id).toBe(chapter.id);
-      expect(result.items[1].id).toBe(chapter2.id);
+      expect(result.items[0].id).toBe(novel1Chapter1.id);
+      expect(result.items[1].id).toBe(novel1Chapter2.id);
     });
 
     it('should return empty result when novel has no chapters', async () => {
@@ -411,27 +501,29 @@ describe(PrismaChapterRepository.name, () => {
 
   describe('getFirstChapter', () => {
     it('should return the first chapter ordered by chapterNumber ASC', async () => {
-      const { chapter } = getMockedData();
+      const { novel1Chapter1 } = getMockedData();
       vi.mocked(prismaService.chapter.findFirst).mockResolvedValue(
-        chapter as any,
+        novel1Chapter1 as any,
       );
 
-      const result = await uut.getFirstChapter(chapter.novelId);
+      const result = await uut.getFirstChapter(
+        novel1Chapter1.novelId,
+      );
 
-      expect(result).toEqual({
-        id: chapter.id,
-        novelId: chapter.novelId,
-        contentId: chapter.contentId,
-        title: chapter.title,
-        chapterNumber: chapter.chapterNumber,
-        createdAt: chapter.createdAt.toISOString(),
-        updatedAt: chapter.updatedAt.toISOString(),
-        narrationStatus: chapter.narrationStatus,
+      expect(result).toStrictEqual({
+        id: novel1Chapter1.id,
+        novelId: novel1Chapter1.novelId,
+        contentId: novel1Chapter1.contentId,
+        title: novel1Chapter1.title,
+        chapterNumber: novel1Chapter1.chapterNumber,
+        createdAt: novel1Chapter1.createdAt.toISOString(),
+        updatedAt: novel1Chapter1.updatedAt.toISOString(),
+        narrationStatus: novel1Chapter1.narrationStatus,
         narrationUrl: 'https://example.com/narration.mp3',
       });
       expect(prismaService.chapter.findFirst).toHaveBeenCalledWith({
         where: {
-          novelId: chapter.novelId,
+          novelId: novel1Chapter1.novelId,
         },
         orderBy: { chapterNumber: 'asc' },
       });
@@ -465,18 +557,18 @@ describe(PrismaChapterRepository.name, () => {
 
   describe('findManyBy', () => {
     it('should return chapters by IDs', async () => {
-      const { chapter, chapter2 } = getMockedData();
+      const { novel1Chapter1, novel1Chapter2 } = getMockedData();
       vi.mocked(prismaService.chapter.findMany).mockResolvedValue([
-        chapter,
-        chapter2,
+        novel1Chapter1,
+        novel1Chapter2,
       ] as any);
-      const chapterIds = [chapter.id, chapter2.id];
+      const chapterIds = [novel1Chapter1.id, novel1Chapter2.id];
 
       const result = await uut.findManyBy(chapterIds);
 
       expect(result).toHaveLength(2);
-      expect(result[0].id).toBe(chapter.id);
-      expect(result[1].id).toBe(chapter2.id);
+      expect(result[0].id).toBe(novel1Chapter1.id);
+      expect(result[1].id).toBe(novel1Chapter2.id);
       expect(prismaService.chapter.findMany).toHaveBeenCalledWith({
         where: { id: { in: chapterIds } },
         select: {
@@ -499,7 +591,7 @@ describe(PrismaChapterRepository.name, () => {
 
       const result = await uut.findManyBy(chapterIds);
 
-      expect(result).toEqual([]);
+      expect(result).toStrictEqual([]);
     });
 
     it('should throw when database fails', async () => {
@@ -517,16 +609,16 @@ describe(PrismaChapterRepository.name, () => {
 
   describe('getLastChapter', () => {
     it('should return the last chapter ordered by chapterNumber DESC', async () => {
-      const { chapter2 } = getMockedData();
+      const { novel1Chapter2 } = getMockedData();
       vi.mocked(prismaService.chapter.findFirst).mockResolvedValue(
-        chapter2 as any,
+        novel1Chapter2 as any,
       );
 
       const result = await uut.getLastChapter(
         '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
       );
 
-      expect(result).toEqual({
+      expect(result).toStrictEqual({
         id: '904bf826-33be-4172-b63f-665bba9007b9',
         novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
         contentId: 'ddd63ad5-1ac4-46c2-a25f-6f62d245f44c',
@@ -573,7 +665,7 @@ describe(PrismaChapterRepository.name, () => {
 });
 
 function getMockedData() {
-  const novel = {
+  const novel1 = {
     id: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
     name: 'Test Novel',
     author: 'John Doe',
@@ -589,9 +681,9 @@ function getMockedData() {
       { id: '904bf826-33be-4172-b63f-665bba9007b9' },
     ],
   };
-  const chapter = {
+  const novel1Chapter1 = {
     id: 'bb563ad5-1ac4-46c2-a25f-6f62d245f44c',
-    novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
+    novelId: novel1.id,
     title: 'Chapter 1: The Beginning',
     contentId: 'ccc63ad5-1ac4-46c2-a25f-6f62d245f44c',
     chapterNumber: 1,
@@ -600,9 +692,9 @@ function getMockedData() {
     narrationStatus: 'READY',
     narrationUrl: 'https://example.com/narration.mp3',
   };
-  const chapter2 = {
+  const novel1Chapter2 = {
     id: '904bf826-33be-4172-b63f-665bba9007b9',
-    novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
+    novelId: novel1.id,
     title: 'Chapter 2: The Journey',
     contentId: 'ddd63ad5-1ac4-46c2-a25f-6f62d245f44c',
     chapterNumber: 2,
@@ -611,9 +703,9 @@ function getMockedData() {
     narrationStatus: 'PROCESSING',
     narrationUrl: null,
   };
-  const chapter3 = {
+  const novel1Chapter3 = {
     id: '041be636-8bd3-44b4-a22c-29703b2b63e5',
-    novelId: '248c9fee-cad0-43fc-9abb-c2ab8ff002ec',
+    novelId: novel1.id,
     title: 'Chapter 3: The Return',
     contentId: 'eee63ad5-1ac4-46c2-a25f-6f62d245f44c',
     chapterNumber: 3,
@@ -622,6 +714,34 @@ function getMockedData() {
     narrationStatus: null,
     narrationUrl: null,
   };
+  const novel2 = {
+    id: '860365b9-e3f2-4cf4-a363-f9198eec77f5',
+    name: 'Another Novel',
+    author: 'Jane Smith',
+    description: 'Another novel description',
+    state: 'COMPLETED',
+    coverUrl: 'https://example.com/another-cover.jpg',
+    categories: [{ category: { name: 'Sci-Fi' } }],
+    chapters: [{ id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' }],
+  };
+  const novel2Chapter1 = {
+    id: 'fcac9aec-4cdf-48a0-a66f-85c740314da6',
+    novelId: novel2.id,
+    title: 'Chapter 1: The Future',
+    contentId: 'fff63ad5-1ac4-46c2-a25f-6f62d245f44c',
+    chapterNumber: 1,
+    createdAt: new Date('2024-02-01T00:00:00Z'),
+    updatedAt: new Date('2024-02-02T00:00:00Z'),
+    narrationStatus: 'READY',
+    narrationUrl: 'https://example.com/other-narration.mp3',
+  };
 
-  return { novel, chapter, chapter2, chapter3 };
+  return {
+    novel1,
+    novel1Chapter1,
+    novel1Chapter2,
+    novel1Chapter3,
+    novel2,
+    novel2Chapter1,
+  };
 }

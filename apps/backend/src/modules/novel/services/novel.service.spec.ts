@@ -3,14 +3,13 @@ import { NarrationStatus, NovelState } from '@prisma/client';
 import { isString } from 'class-validator';
 
 import type {
-  IChapter,
   IChapterRepository,
   INovelRepository,
 } from '../interfaces';
 
 import { OrderDirection } from '../../../shared';
 import { ChapterOrderField } from '../enums';
-import { Chapter, Novel } from '../types';
+import { Novel } from '../types';
 import { NovelService } from './novel.service';
 
 describe(NovelService.name, () => {
@@ -22,12 +21,11 @@ describe(NovelService.name, () => {
     novelRepository = {
       findNovelsConnection: vi.fn(),
       findById: vi.fn(),
-      getChapterList: vi.fn(),
       getCategories: vi.fn(),
     } as any;
     chapterRepository = {
-      getChapter: vi.fn(),
       findChaptersConnection: vi.fn(),
+      getChapter: vi.fn(),
       getFirstChapter: vi.fn(),
       getLastChapter: vi.fn(),
     } as any;
@@ -245,157 +243,6 @@ describe(NovelService.name, () => {
         hasPreviousPage: false,
         hasNextPage: false,
       });
-    });
-  });
-
-  describe('getNextChapter', () => {
-    it('should return the next chapter when current chapter exists', async () => {
-      const novelId = '5b329785-2b2a-4b46-916d-015daaf8d23b';
-      const currentChapterId = 'c51a42b3-339c-443f-add6-4f71f09c90fa';
-      const nextChapter: IChapter = {
-        contentId: 'ebae2145-e14a-4876-99b4-260c68d3b7d3',
-        createdAt: new Date('2024-01-03').toISOString(),
-        chapterNumber: 2,
-        title: 'Chapter 2',
-        id: '581f1bfe-3f85-4db5-b469-9f118c2c6bff',
-        updatedAt: new Date('2024-01-04').toISOString(),
-        novelId,
-      };
-      vi.mocked(novelRepository.getChapterList).mockResolvedValue([
-        currentChapterId,
-        nextChapter.id,
-      ]);
-      vi.mocked(chapterRepository.getChapter).mockResolvedValue(
-        nextChapter,
-      );
-
-      const result = await uut.getNextChapter(
-        novelId,
-        currentChapterId,
-      );
-
-      expect(result).toStrictEqual(nextChapter);
-      expect(novelRepository.getChapterList).toHaveBeenCalledWith(
-        novelId,
-      );
-      expect(chapterRepository.getChapter).toHaveBeenCalledWith(
-        novelId,
-        nextChapter.id,
-      );
-    });
-
-    it('should return null when current chapter does not exist', async () => {
-      vi.mocked(novelRepository.getChapterList).mockResolvedValue([
-        'd82d1cc7-38d6-42a6-bc3a-900f583593e5',
-        'e2b4a4de-4e7f-4295-923f-3ebc2e27ef68',
-      ]);
-      const novelId = '4d3bea7e-bc38-4777-aa5a-058febb86375';
-
-      const result = await uut.getNextChapter(
-        novelId,
-        'missing-chapter-uuid',
-      );
-
-      expect(result).toBeNull();
-      expect(novelRepository.getChapterList).toHaveBeenCalledWith(
-        novelId,
-      );
-      expect(chapterRepository.getChapter).not.toHaveBeenCalled();
-    });
-
-    it('should return null when current chapter is the last chapter', async () => {
-      const novelId = 'e88c966e-96b3-429e-85cf-89cc42ce9203';
-      const currentChapterId = 'a3f03411-4c40-4ad7-89bf-59f5f5f297d4';
-      vi.mocked(novelRepository.getChapterList).mockResolvedValue([
-        'd82d1cc7-38d6-42a6-bc3a-900f583593e5',
-        currentChapterId,
-      ]);
-
-      const result = await uut.getNextChapter(
-        novelId,
-        currentChapterId,
-      );
-
-      expect(result).toBeNull();
-      expect(novelRepository.getChapterList).toHaveBeenCalledWith(
-        novelId,
-      );
-      expect(chapterRepository.getChapter).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('getPreviousChapter', () => {
-    it('should return the previous chapter when current chapter exists', async () => {
-      const novelId = '3cf9cacc-7740-470a-9297-124315b3266a';
-      const currentChapterId = '6035f4b5-f988-4133-9ad8-e2632fdc53ee';
-      const previousChapter: Chapter = {
-        contentId: '94fc1772-a27c-4bee-8912-6bd4d8bb5e26',
-        chapterNumber: 1,
-        createdAt: new Date('2024-01-01').toISOString(),
-        title: 'Chapter 1',
-        id: '168024ae-d9bc-456d-888c-125588bfc6ed',
-        updatedAt: new Date('2024-01-02').toISOString(),
-        novelId,
-      };
-      vi.mocked(novelRepository.getChapterList).mockResolvedValue([
-        previousChapter.id,
-        currentChapterId,
-      ]);
-      vi.mocked(chapterRepository.getChapter).mockResolvedValue(
-        previousChapter,
-      );
-
-      const result = await uut.getPreviousChapter(
-        novelId,
-        currentChapterId,
-      );
-
-      expect(result).toStrictEqual(previousChapter);
-      expect(novelRepository.getChapterList).toHaveBeenCalledWith(
-        novelId,
-      );
-      expect(chapterRepository.getChapter).toHaveBeenCalledWith(
-        novelId,
-        previousChapter.id,
-      );
-    });
-
-    it('should return null when current chapter does not exist', async () => {
-      vi.mocked(novelRepository.getChapterList).mockResolvedValue([
-        '94fc1772-a27c-4bee-8912-6bd4d8bb5e26',
-        'e2b4a4de-4e7f-4295-923f-3ebc2e27ef68',
-      ]);
-      const novelId = '138b8596-50fa-437b-87e1-4ad0d30f4de8';
-
-      const result = await uut.getPreviousChapter(
-        novelId,
-        'missing-chapter-uuid',
-      );
-
-      expect(result).toBeNull();
-      expect(novelRepository.getChapterList).toHaveBeenCalledWith(
-        novelId,
-      );
-      expect(chapterRepository.getChapter).not.toHaveBeenCalled();
-    });
-
-    it('should return null when current chapter is the first chapter', async () => {
-      vi.mocked(novelRepository.getChapterList).mockResolvedValue([
-        'f313b55b-48ba-445e-ba7e-1416da9cea3d',
-        '8a286c66-188a-4369-8a69-7d700b2cfb86',
-      ]);
-      const novelId = '3d607808-11b9-4885-a57c-962e4900f28e';
-
-      const result = await uut.getPreviousChapter(
-        novelId,
-        'f313b55b-48ba-445e-ba7e-1416da9cea3d',
-      );
-
-      expect(result).toBeNull();
-      expect(novelRepository.getChapterList).toHaveBeenCalledWith(
-        novelId,
-      );
-      expect(chapterRepository.getChapter).not.toHaveBeenCalled();
     });
   });
 

@@ -7,17 +7,17 @@ import type { IAuthUser } from '../../auth/interfaces';
 import { CurrentUserOptional, Public } from '../../auth';
 import {
   ChapterContentDataLoader,
+  ChapterNavigationDataLoader,
   ChapterViewerStateDataLoader,
 } from '../dataloaders';
-import { NovelService } from '../services';
 import { Chapter, ChapterViewerState } from '../types';
 
 @Public()
 @Resolver(() => Chapter)
 export class ChapterFieldResolver {
   constructor(
-    private readonly novelService: NovelService,
     private readonly chapterContentDataLoader: ChapterContentDataLoader,
+    private readonly chapterNavigationDataLoader: ChapterNavigationDataLoader,
     private readonly chapterViewerStateDataLoader: ChapterViewerStateDataLoader,
   ) {}
 
@@ -59,10 +59,11 @@ export class ChapterFieldResolver {
     description: 'The next chapter',
   })
   async next(@Parent() chapter: Chapter): Promise<Chapter | null> {
-    return this.novelService.getNextChapter(
-      chapter.novelId,
-      chapter.id,
-    );
+    return this.chapterNavigationDataLoader.load({
+      novelId: chapter.novelId,
+      chapterNumber: chapter.chapterNumber,
+      adjacency: 'next',
+    });
   }
 
   @ResolveField(() => Chapter, {
@@ -72,10 +73,11 @@ export class ChapterFieldResolver {
   async previous(
     @Parent() chapter: Chapter,
   ): Promise<Chapter | null> {
-    return this.novelService.getPreviousChapter(
-      chapter.novelId,
-      chapter.id,
-    );
+    return this.chapterNavigationDataLoader.load({
+      novelId: chapter.novelId,
+      chapterNumber: chapter.chapterNumber,
+      adjacency: 'previous',
+    });
   }
 
   @ResolveField(() => ChapterViewerState, {

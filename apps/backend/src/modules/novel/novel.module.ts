@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import {
   ChapterContentDataLoader,
+  ChapterNavigationDataLoader,
   ChapterViewerStateDataLoader,
 } from './dataloaders';
 import {
@@ -53,6 +54,7 @@ import {
     PrismaChapterContentRepository,
     PrismaChapterUserStateRepository,
     ChapterContentDataLoader,
+    ChapterNavigationDataLoader,
     ChapterViewerStateDataLoader,
     PubSubProvider,
     TtsTextService,

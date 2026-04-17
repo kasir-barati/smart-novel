@@ -3,25 +3,24 @@ import { BadRequestException } from '@nestjs/common';
 import { IAuthUser } from '../../auth';
 import {
   ChapterContentDataLoader,
+  ChapterNavigationDataLoader,
   ChapterViewerStateDataLoader,
 } from '../dataloaders';
 import { IChapterContent } from '../interfaces';
-import { NovelService } from '../services';
 import { Chapter } from '../types';
 import { ChapterFieldResolver } from './chapter.field-resolver';
 
 describe(ChapterFieldResolver.name, () => {
   let uut: ChapterFieldResolver;
-  let novelService: NovelService;
   let chapterContentDataLoader: ChapterContentDataLoader;
+  let chapterNavigationDataLoader: ChapterNavigationDataLoader;
   let chapterViewerStateDataLoader: ChapterViewerStateDataLoader;
 
   beforeEach(() => {
-    novelService = {
-      getNextChapter: vi.fn(),
-      getPreviousChapter: vi.fn(),
-    } as any;
     chapterContentDataLoader = {
+      load: vi.fn(),
+    } as any;
+    chapterNavigationDataLoader = {
       load: vi.fn(),
     } as any;
     chapterViewerStateDataLoader = {
@@ -30,8 +29,8 @@ describe(ChapterFieldResolver.name, () => {
     } as any;
 
     uut = new ChapterFieldResolver(
-      novelService,
       chapterContentDataLoader,
+      chapterNavigationDataLoader,
       chapterViewerStateDataLoader,
     );
   });
@@ -67,6 +66,40 @@ describe(ChapterFieldResolver.name, () => {
       await expect(uut.content(chapter)).rejects.toThrow(
         BadRequestException,
       );
+    });
+  });
+
+  describe('next', () => {
+    it('should load the next chapter via the navigation dataloader', async () => {
+      const chapter = {
+        novelId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        chapterNumber: 1,
+      } as Chapter;
+
+      await uut.next(chapter);
+
+      expect(chapterNavigationDataLoader.load).toHaveBeenCalledWith({
+        novelId: chapter.novelId,
+        chapterNumber: chapter.chapterNumber,
+        adjacency: 'next',
+      });
+    });
+  });
+
+  describe('previous', () => {
+    it('should load the previous chapter via the navigation dataloader', async () => {
+      const chapter = {
+        novelId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        chapterNumber: 3,
+      } as Chapter;
+
+      await uut.previous(chapter);
+
+      expect(chapterNavigationDataLoader.load).toHaveBeenCalledWith({
+        novelId: chapter.novelId,
+        chapterNumber: chapter.chapterNumber,
+        adjacency: 'previous',
+      });
     });
   });
 

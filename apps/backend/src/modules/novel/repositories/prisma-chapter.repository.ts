@@ -15,6 +15,7 @@ import { PrismaService } from '../../prisma';
 import { ChapterOrderField } from '../enums';
 import {
   type ChapterConnectionFilters,
+  type ChapterNovelKey,
   type FindChaptersConnectionArgs,
   type IChapter,
   type IChapterRepository,
@@ -170,6 +171,34 @@ export class PrismaChapterRepository implements IChapterRepository {
         createdAt: true,
         updatedAt: true,
       },
+    });
+
+    return chapters.map((ch) => this.toChapter(ch));
+  }
+
+  async findManyByNovelAndChapterNumbers(
+    keys: ChapterNovelKey[],
+  ): Promise<IChapter[]> {
+    if (keys.length === 0) {
+      return [];
+    }
+
+    const byNovel = new Map<string, number[]>();
+
+    for (const { novelId, chapterNumber } of keys) {
+      const numbers = byNovel.get(novelId) ?? [];
+      numbers.push(chapterNumber);
+      byNovel.set(novelId, numbers);
+    }
+
+    const where: Prisma.ChapterWhereInput = {
+      OR: [...byNovel.entries()].map(([novelId, numbers]) => ({
+        novelId,
+        chapterNumber: { in: numbers },
+      })),
+    };
+    const chapters = await this.prisma.chapter.findMany({
+      where,
     });
 
     return chapters.map((ch) => this.toChapter(ch));

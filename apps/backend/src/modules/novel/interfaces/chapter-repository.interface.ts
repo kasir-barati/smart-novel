@@ -20,6 +20,11 @@ export interface FindChaptersConnectionArgs {
   filters?: ChapterConnectionFilters;
 }
 
+export interface ChapterNovelKey {
+  novelId: string;
+  chapterNumber: number;
+}
+
 export interface IChapterRepository {
   getChapter(
     novelId: string,
@@ -27,6 +32,9 @@ export interface IChapterRepository {
   ): Promise<IChapter | null>;
   findById(id: string): Promise<IChapter | null>;
   findManyBy(ids: string[]): Promise<IChapter[]>;
+  findManyByNovelAndChapterNumbers(
+    keys: ChapterNovelKey[],
+  ): Promise<IChapter[]>;
   updateChapterNarrationUrl(id: string, url: string): Promise<void>;
   updateNarrationStatus(
     id: string,

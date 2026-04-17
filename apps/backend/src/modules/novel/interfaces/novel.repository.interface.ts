@@ -17,7 +17,6 @@ export interface INovelRepository {
   ): Promise<TrimmedResult<INovel>>;
   countNovels(filters?: NovelConnectionFilters): Promise<number>;
   findById(id: string): Promise<INovel | null>;
-  getChapterList(novelId: string): Promise<string[]>;
   getCategories(): Promise<string[]>;
 }
 
