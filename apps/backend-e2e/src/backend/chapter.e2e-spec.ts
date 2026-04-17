@@ -233,8 +233,43 @@ describe('Chapter (e2e)', () => {
     expect(data.errors[0].message).toContain('role');
   });
 
-  it.todo(
-    'should throw not authorized error when user does NOT have permission to update content & ttsFriendlyContent',
-    () => {},
+  it.each([
+    {
+      role: 'user',
+      getAuthorizationHeader:
+        AuthorizationFixture.getUserAuthorizationHeader,
+    },
+  ])(
+    'should NOT allow unauthorized errors when $role tries to update content & ttsFriendlyContent',
+    async ({ getAuthorizationHeader }) => {
+      const authorizationHeader = await getAuthorizationHeader();
+
+      const { status, data } = await axios.post(
+        '/graphql',
+        {
+          query: `#graphql
+          mutation UpdateContent($id: ID!, $content: String!, $ttsFriendlyContent: String!) {
+            updateContent(id: $id, content: $content, ttsFriendlyContent: $ttsFriendlyContent) {
+              id
+              content
+              updatedAt
+            }
+          }
+        `,
+          variables: {
+            id: CHAPTER_ONE_ID,
+            content: '# Chapter 1\n\nUpdated content',
+            ttsFriendlyContent: 'Chapter 1\n\nUpdated content',
+          },
+        },
+        { headers: { Authorization: authorizationHeader } },
+      );
+
+      expect(status).toBe(200);
+      expect(data.errors).toBeArray();
+      expect(data.errors[0].message).toContain(
+        'You do not have permission to update this chapter',
+      );
+    },
   );
 });

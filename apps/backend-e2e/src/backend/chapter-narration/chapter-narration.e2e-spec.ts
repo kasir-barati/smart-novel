@@ -55,13 +55,13 @@ describe('Chapter Narration (e2e)', () => {
       '/graphql',
       {
         query: `#graphql
-        mutation GenerateChapterAudio($chapterId: ID!) {
-          generateChapterAudio(chapterId: $chapterId, forceRegenerate: true) {
-            status
-            narrationUrl
+          mutation GenerateChapterAudio($chapterId: ID!) {
+            generateChapterAudio(chapterId: $chapterId, forceRegenerate: true) {
+              status
+              narrationUrl
+            }
           }
-        }
-      `,
+        `,
         variables: {
           chapterId: chapterId,
         },
@@ -189,14 +189,14 @@ describe('Chapter Narration (e2e)', () => {
           const unsubscribe = client.subscribe(
             {
               query: `#graphql
-              subscription ChapterNarrationUpdated($chapterId: ID!) {
-                chapterNarrationUpdated(chapterId: $chapterId) {
-                  status
-                  narrationUrl
-                  error
+                subscription ChapterNarrationUpdated($chapterId: ID!) {
+                  chapterNarrationUpdated(chapterId: $chapterId) {
+                    status
+                    narrationUrl
+                    error
+                  }
                 }
-              }
-            `,
+              `,
               variables: {
                 chapterId: CHAPTER_THREE_ID,
               },
@@ -204,7 +204,6 @@ describe('Chapter Narration (e2e)', () => {
             {
               next: (data: any) => {
                 const event = data.data?.chapterNarrationUpdated;
-
                 // NOTE: Wait for event with narrationUrl (READY status)
                 if (event?.narrationUrl) {
                   unsubscribe();
@@ -239,9 +238,4 @@ describe('Chapter Narration (e2e)', () => {
       client.dispose();
     }
   }, 35000); // 35 second timeout for this test
-
-  it.todo(
-    'should use the ttsFriendlyContent when it is available',
-    () => {},
-  );
 });
