@@ -1,7 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsEnum } from 'class-validator';
 
-import { OrderDirection } from '../../../shared'; // FIXME: https://github.com/kasir-barati/smart-novel/issues/23
+import { OrderDirection } from '../../../shared';
 import { ChapterOrderField } from '../enums';
 
 @InputType({

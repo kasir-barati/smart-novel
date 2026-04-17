@@ -2,7 +2,7 @@ import { Field, InputType } from '@nestjs/graphql';
 import { Transform, Type } from 'class-transformer';
 import { IsOptional, ValidateNested } from 'class-validator';
 
-import { ListFilterInputMixin } from '../../../shared'; // FIXME: https://github.com/kasir-barati/smart-novel/issues/23
+import { ListFilterInputMixin } from '../../../shared';
 
 @InputType()
 export class CategoryFilterInput extends ListFilterInputMixin<string>(

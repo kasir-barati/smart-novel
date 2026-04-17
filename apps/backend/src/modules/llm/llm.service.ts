@@ -17,7 +17,7 @@ import {
 import { hostname } from 'os';
 
 import { appConfigs } from '../../app/configs/app.config'; // To prevent circular dependency issues
-import { generateCacheKey } from '../../shared'; // FIXME: https://github.com/kasir-barati/smart-novel/issues/23
+import { generateCacheKey } from '../../shared';
 import { CacheService } from '../redis';
 import { ExplainWordPromptResponse } from './llm.interface';
 import { WordExplanation } from './types';

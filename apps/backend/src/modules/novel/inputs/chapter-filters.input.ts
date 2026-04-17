@@ -3,7 +3,7 @@ import { NarrationStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsOptional, ValidateNested } from 'class-validator';
 
-import { EqualityFilterInputMixin } from '../../../shared'; // FIXME: https://github.com/kasir-barati/smart-novel/issues/23
+import { EqualityFilterInputMixin } from '../../../shared';
 
 @InputType({
   description: 'Filter by narration status',

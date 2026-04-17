@@ -1,6 +1,6 @@
 import { NarrationStatus } from '@prisma/client';
 
-import { OrderDirection } from '../../../shared'; // FIXME: https://github.com/kasir-barati/smart-novel/issues/23
+import { OrderDirection } from '../../../shared';
 import { PrismaService } from '../../prisma';
 import { ChapterOrderField } from '../enums';
 import { PrismaChapterRepository } from './prisma-chapter.repository';

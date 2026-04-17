@@ -8,7 +8,7 @@ import type {
   INovelRepository,
 } from '../interfaces';
 
-import { OrderDirection } from '../../../shared'; // FIXME: https://github.com/kasir-barati/smart-novel/issues/23
+import { OrderDirection } from '../../../shared';
 import { ChapterOrderField } from '../enums';
 import { Chapter, Novel } from '../types';
 import { NovelService } from './novel.service';

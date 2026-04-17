@@ -5,7 +5,7 @@ import {
   buildCursorPaginationParams,
   trimCursorPaginationResults,
   TrimmedResult,
-} from '../../../shared'; // FIXME: https://github.com/kasir-barati/smart-novel/issues/23
+} from '../../../shared';
 import { PrismaService } from '../../prisma';
 import {
   type FindNovelsConnectionArgs,
