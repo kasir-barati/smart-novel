@@ -384,6 +384,7 @@ describe(ZitadelAuthProvider.name, () => {
         logger,
         redisService,
       );
+      vi.mocked(axios.get).mockReset();
       vi.mocked(axios.get).mockRejectedValue(
         new Error('ECONNREFUSED'),
       );
