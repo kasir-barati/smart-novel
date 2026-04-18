@@ -14,9 +14,9 @@ export default defineConfig({
     screenshotOnRunFailure: true,
     viewportWidth: 1280,
     viewportHeight: 720,
-    defaultCommandTimeout: 10000,
-    requestTimeout: 10000,
-    responseTimeout: 10000,
+    defaultCommandTimeout: 35000,
+    requestTimeout: 35000,
+    responseTimeout: 35000,
     setupNodeEvents(on) {
       mkdirSync(LOGS_DIR, { recursive: true });
 

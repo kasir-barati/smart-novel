@@ -133,7 +133,7 @@ describe('TTS Review Page', () => {
     cy.visit(TTS_REVIEW_URL);
 
     // The merge view is inside a bordered container
-    cy.get('.cm-mergeView', { timeout: 10000 }).should('exist');
+    cy.get('.cm-mergeView').should('exist');
   });
 
   it('should show Generate TTS buttons on the novel chapter list', () => {

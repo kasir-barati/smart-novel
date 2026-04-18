@@ -27,7 +27,7 @@ export class ChapterResolver {
   ): Promise<string> {
     const speechText = await this.ttsTextService.toSpeechText(text);
     const normalizedText =
-      this.ttsTextService.normalizeTtsText(speechText);
+      await this.ttsTextService.normalizeTtsText(speechText);
 
     return normalizedText;
   }

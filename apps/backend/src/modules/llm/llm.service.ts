@@ -110,7 +110,6 @@ export class LlmService {
       'api',
       'generate',
     );
-
     const prompt = `Analyze the word "${word}" in this context: "${context}".
 
 Return ONLY a valid JSON object (no markdown, no extra text) with EXACTLY these keys:

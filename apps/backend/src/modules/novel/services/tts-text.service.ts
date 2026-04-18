@@ -11,13 +11,20 @@ import type {
   ThematicBreak,
 } from 'mdast';
 
-import { Injectable } from '@nestjs/common';
-import { isArray, isNotEmptyObject, isObject } from 'class-validator';
-import { isNil } from 'nestjs-backend-common';
+import { Injectable, Optional } from '@nestjs/common';
+import {
+  isArray,
+  isNotEmpty,
+  isNotEmptyObject,
+  isObject,
+} from 'class-validator';
+import { CustomLoggerService, isNil } from 'nestjs-backend-common';
 import remarkGfm from 'remark-gfm';
 import remarkParse from 'remark-parse';
 import { unified } from 'unified';
 import { SKIP, visit } from 'unist-util-visit';
+
+import { TtsNormalizationLlmService } from './tts-normalization-llm.service';
 
 export interface TtsOptions {
   /** @description when true, append the URL after link text, e.g., "(link: https://...)" */
@@ -46,6 +53,13 @@ const MAX_REPETITIONS = 3;
  */
 @Injectable()
 export class TtsTextService {
+  constructor(
+    @Optional()
+    private readonly llmService?: TtsNormalizationLlmService,
+    @Optional()
+    private readonly logger?: CustomLoggerService,
+  ) {}
+
   async toSpeechText(
     markdown: string,
     options: TtsOptions = {},
@@ -60,23 +74,61 @@ export class TtsTextService {
   }
 
   /**
-   * @description Applies a pipeline of regex-based transformations that
-   * turn manga / web-novel markdown into text a TTS engine (Piper)
-   * can pronounce naturally.
+   * @description Hybrid normalization pipeline:
    *
-   * The transformations are applied in a deliberate order so that
-   * earlier passes simplify patterns for later ones.
+   * 1. **Regex safe pass** — applies deterministic, structural transformations that cannot change meaning (tilde stripping, letter collapsing, dot collapsing, ALL-CAPS lowercasing, bracket-skill replacement).
+   * 2. **LLM pass** — delegates semantic normalization (interjections, stutters, silent dialogue, repeated words/phrases) to Ollama.
+   * 3. **Fallback** — if the LLM is unavailable or returns bad output, the full regex pipeline is used instead.
    */
-  normalizeTtsText(text: string): string {
+  async normalizeTtsText(text: string): Promise<string> {
+    // Phase 1: deterministic structural cleanup (always runs)
+    const safeResult = this.regexSafePass(text);
+
+    // Phase 2: try LLM for semantic normalization
+    if (isNotEmpty(this.llmService)) {
+      const llmResult = await this.llmService!.normalize(safeResult);
+
+      if (llmResult) {
+        this.logger?.log('LLM TTS normalization succeeded', {
+          context: TtsTextService.name,
+        });
+
+        return llmResult;
+      }
+
+      this.logger?.warn(
+        'LLM TTS normalization returned null — falling back to regex pipeline',
+        { context: TtsTextService.name },
+      );
+    }
+
+    // Phase 3: full regex fallback (semantic transforms included)
+    return this.regexFullNormalize(safeResult);
+  }
+
+  /**
+   * @description Deterministic, structural-only regex transformations that are always safe to apply (cannot change meaning).
+   */
+  private regexSafePass(text: string): string {
     let result = text;
 
-    result = this.replaceSilentDialogue(result);
     result = this.stripElongationTildes(result);
     result = this.collapseRepeatedLetters(result);
     result = this.collapseExcessiveDots(result);
     result = this.lowercaseAllCapsWords(result);
-    result = this.expandStutters(result);
     result = this.replaceBracketedSkills(result);
+
+    return result;
+  }
+
+  /**
+   * @description Applies the remaining semantic regex transformations on top of the safe pass. Used as fallback when LLM is unavailable.
+   */
+  private regexFullNormalize(safePassResult: string): string {
+    let result = safePassResult;
+
+    result = this.replaceSilentDialogue(result);
+    result = this.expandStutters(result);
     result = this.collapseRepeatedWords(result);
     result = this.collapseRepeatedPhrases(result);
 
