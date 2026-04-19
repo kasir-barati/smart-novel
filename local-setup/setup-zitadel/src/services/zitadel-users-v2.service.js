@@ -22,11 +22,11 @@ export class ZitadelUsersV2Service {
    * @param {string} params.firstName - User first name
    * @param {string} params.lastName - User last name
    * @param {string} params.password - User password
+   * @see https://zitadel.com/docs/reference/api/user/zitadel.user.v2.UserService.AddHumanUser
    * @returns {Promise<string>} User ID or null on failure
    */
   async createHumanUser({ email, firstName, lastName, password }) {
     const username = email.split('@')[0];
-
     const response = await fetch(`${this.baseUrl}/v2/users/human`, {
       method: 'POST',
       headers: {
@@ -50,7 +50,6 @@ export class ZitadelUsersV2Service {
         },
       }),
     });
-
     const data = await response.json();
 
     if (data.userId) {
@@ -115,6 +114,7 @@ export class ZitadelUsersV2Service {
    * Create a JSON key for a machine user (service user).
    * @param {string} userId
    * @param {string} [expirationDate] https://www.rfc-editor.org/rfc/rfc3339.html
+   * @see https://could-not-find-it.com
    * @returns {Promise<{type:string,keyId:string,key?:string,userId:string}>}
    */
   async addKey(userId, expirationDate) {
@@ -145,6 +145,7 @@ export class ZitadelUsersV2Service {
   /**
    * Find a user by username
    * @param {string} username - Username
+   * @see https://zitadel.com/docs/reference/api/user/zitadel.user.v2.UserService.ListUsers
    * @returns {Promise<string>} User ID
    */
   async #findUserByUsername(username) {
@@ -179,6 +180,7 @@ export class ZitadelUsersV2Service {
   /**
    * Find a user by email address
    * @param {string} email - User email
+   * @see https://zitadel.com/docs/reference/api/user/zitadel.user.v2.UserService.ListUsers
    * @returns {Promise<string>} User ID
    */
   async #findUserByEmail(email) {

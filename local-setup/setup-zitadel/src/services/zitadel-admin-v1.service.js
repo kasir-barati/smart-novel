@@ -21,9 +21,14 @@ export class ZitadelAdminV1Service {
 
   /**
    * Update security policy to enable impersonation
+   * @see https://zitadel.com/docs/reference/api/admin/zitadel.admin.v1.AdminService.SetSecurityPolicy
    * @returns {Promise<void>}
    */
   async enableImpersonationInSecurityPolicy() {
+    /** @type {SecurityPolicyUpdate} */
+    const body = {
+      enableImpersonation: true,
+    };
     const response = await fetch(
       `${this.baseUrl}/admin/v1/policies/security`,
       {
@@ -32,9 +37,7 @@ export class ZitadelAdminV1Service {
           Authorization: `Bearer ${this.accessToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          enableImpersonation: true,
-        }),
+        body: JSON.stringify(body),
       },
     );
     const responseBody = await response.json();
@@ -53,6 +56,7 @@ export class ZitadelAdminV1Service {
    * Add a user as an IAM instance member with the specified roles.
    * @param {string} userId - User ID
    * @param {InstanceMemberRole[]} roles - IAM roles to assign
+   * @see https://could-not-find-it.com
    * @returns {Promise<void>}
    */
   async addInstanceMember(userId, roles) {
@@ -78,3 +82,10 @@ export class ZitadelAdminV1Service {
     }
   }
 }
+
+/**
+ * @typedef {Object} SecurityPolicyUpdate
+ * @property {boolean} [enableImpersonation] - Allows users to impersonate other users. The impersonator needs the appropriate *_IMPERSONATOR roles assigned as well.
+ * @property {boolean} [enableIframeEmbedding] - States if iframe embedding is enabled or disabled.
+ * @property {string[]} [allowedOrigins] - Origins allowed loading ZITADEL in an iframe if enableIframeEmbedding is true.
+ */

@@ -17,6 +17,7 @@ export class ZitadelAuthV1Service {
 
   /**
    * Get current authenticated user information
+   * @see https://zitadel.com/docs/reference/api/auth/zitadel.auth.v1.AuthService.GetMyUser
    * @returns {Promise<CurrentUserInfo>} User ID and organization ID of the accessToken
    */
   async getCurrentUser() {

@@ -15,6 +15,7 @@ export class ZitadelManagementV1Service {
   /**
    * Create a project in ZITADEL
    * @param {string} projectName - Project name
+   * @see https://zitadel.com/docs/reference/api/management/zitadel.management.v1.ManagementService.AddProject
    * @returns {Promise<string>} Project ID
    */
   async createProject(projectName) {
@@ -57,6 +58,7 @@ export class ZitadelManagementV1Service {
    * @param {string} role.group - Role group
    * @param {string} role.roleKey - Role key (e.g., 'admin', 'writer', 'user')
    * @param {string} role.displayName - Role display name
+   * @see https://zitadel.com/docs/reference/api/management/zitadel.management.v1.ManagementService.AddProjectRole
    * @returns {Promise<void>}
    */
   async createProjectRole(
@@ -78,7 +80,6 @@ export class ZitadelManagementV1Service {
         }),
       },
     );
-
     const data = await response.json();
     const responseText = JSON.stringify(data).toLowerCase();
     const success =
@@ -94,13 +95,14 @@ export class ZitadelManagementV1Service {
   }
 
   /**
-   * Create an OIDC application.
+   * @summary create an OIDC application.
    *
    * If the app already exists, this will return its clientId and `clientSecret: null`.
    *
    * @param {string} projectId - Project ID
    * @param {string} appName - Application name
    * @param {'public'|'confidential'} [kind='public'] - OIDC app kind
+   * @see https://zitadel.com/docs/reference/api/management/zitadel.management.v1.ManagementService.AddOIDCApp
    * @returns {Promise<{appId: string, clientId: string, clientSecret: (string|null), oidcConfig: Record<string, any>}>} public apps do NOT have **client secrets**; for confidential apps the secret is returned.
    */
   async createOidcApp(projectId, appName, kind = 'public') {
@@ -141,7 +143,6 @@ export class ZitadelManagementV1Service {
             accessTokenRoleAssertion: true,
             idTokenRoleAssertion: true,
           };
-
     const response = await fetch(
       `${this.baseUrl}/management/v1/projects/${projectId}/apps/oidc`,
       {
@@ -153,9 +154,7 @@ export class ZitadelManagementV1Service {
         body: JSON.stringify(payload),
       },
     );
-
     const data = await response.json();
-
     // Strip `name` — it's not part of the OIDC config update payload
     const { name: _name, ...oidcConfig } = payload;
 
@@ -263,6 +262,7 @@ export class ZitadelManagementV1Service {
   /**
    * Create a Personal Access Token for a user
    * @param {string} userId - User ID
+   * @see https://zitadel.com/docs/reference/api/management/zitadel.management.v1.ManagementService.AddPersonalAccessToken
    * @returns {Promise<string>} PAT token
    */
   async createUserPat(userId) {
@@ -294,6 +294,7 @@ export class ZitadelManagementV1Service {
   /**
    * List all grants for a specific user
    * @param {string} userId - User ID
+   * @see https://zitadel.com/docs/reference/api/management/zitadel.management.v1.ManagementService.ListUserGrants
    * @returns {Promise<Array<{projectId: string, roleKeys: string[]}>>} Array of grants
    */
   async listUserGrants(userId) {
@@ -553,6 +554,7 @@ export class ZitadelManagementV1Service {
   /**
    * Find a project by name
    * @param {string} projectName - Project name
+   * @see https://zitadel.com/docs/reference/api/management/zitadel.management.v1.ManagementService.ListProjects
    * @returns {Promise<string>} Project ID
    */
   async #findProjectByName(projectName) {
@@ -597,6 +599,7 @@ export class ZitadelManagementV1Service {
    *
    * @param {string} projectId - Project ID
    * @param {string} appName - Application name
+   * @see https://zitadel.com/docs/reference/api/management/zitadel.management.v1.ManagementService.ListApps
    * @returns {Promise<Record<string, any>>} App object
    */
   async #findApp(projectId, appName) {
@@ -620,7 +623,6 @@ export class ZitadelManagementV1Service {
         }),
       },
     );
-
     const data = await response.json();
     const app = data.result?.[0];
 
