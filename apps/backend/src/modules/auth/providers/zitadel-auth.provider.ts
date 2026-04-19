@@ -1,6 +1,5 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import axios from 'axios';
-import { arrayMinSize } from 'class-validator';
 import {
   createLocalJWKSet,
   type JSONWebKeySet,
@@ -291,10 +290,7 @@ export class ZitadelAuthProvider
 
   private getRoles(info: ZitadelUserInfoResponse): Role[] {
     const rolesObj = info['urn:zitadel:iam:org:project:roles'] ?? {};
-    const roles = arrayMinSize(Object.keys(rolesObj), 1)
-      ? Object.keys(rolesObj)
-      : (info?.roles ?? []);
 
-    return roles as Role[];
+    return Object.keys(rolesObj) as Role[];
   }
 }

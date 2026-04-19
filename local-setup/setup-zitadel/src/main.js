@@ -1,8 +1,6 @@
 // @ts-check
 
-import { readFile } from 'fs/promises';
-import { join } from 'path';
-
+import { buildPostRegistrationActionScript } from './actions/post-self-registration-to-extend-user-claims.mjs';
 import { roles, users } from './data/index.js';
 import {
   config,
@@ -103,22 +101,19 @@ Logger.section('Setting Up Auto Role Assignment Action');
 Logger.log(
   'Creating action to auto-assign "user" role to self-registered users...',
 );
-const postSelfRegistrationToExtendUserClaims = await readFile(
-  join(
-    process.cwd(),
-    'src',
-    'actions',
-    'post-self-registration-to-extend-user-claims.mjs',
-  ),
-  'utf-8',
+const actionScript = buildPostRegistrationActionScript(
+  projectId,
+  accessToken,
 );
 const actionId = await managementV1Service.createAction(
   'postSelfRegistrationToExtendUserClaims',
-  postSelfRegistrationToExtendUserClaims,
+  actionScript,
   5,
-  false, // allowedToFail: true — block registration if this fails
+  false, // allowedToFail: false — block registration if this fails
 );
-// 👇 Flow type 2 = Internal Authentication, Trigger type 4 = Post Creation
+Logger.log(
+  `Setting a post create action trigger (action ID: ${actionId})...`,
+);
 await managementV1Service.setTriggerActions('2', '4', [actionId]);
 
 Logger.section('Creating Human Users (for interactive login)');

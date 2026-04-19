@@ -189,6 +189,7 @@ export class ZitadelManagementV1Service {
    * @param {string} userId - User ID
    * @param {string} projectId - Project ID
    * @param {string} roleKey - Role key to assign
+   * @see https://zitadel.com/docs/reference/api/management/zitadel.management.v1.ManagementService.AddUserGrant
    * @returns {Promise<void>}
    */
   async assignRoleToUser(userId, projectId, roleKey) {
@@ -226,6 +227,7 @@ export class ZitadelManagementV1Service {
    * @param {string} userId - User ID to grant access to
    * @param {string} projectId - Project ID
    * @param {string[]} roleKeys - Array of role keys to grant
+   * @see https://zitadel.com/docs/reference/api/management/zitadel.management.v1.ManagementService.AddUserGrant
    */
   async grantUserProjectAccess(userId, projectId, roleKeys) {
     const response = await fetch(
@@ -499,8 +501,27 @@ export class ZitadelManagementV1Service {
   /**
    * Set trigger actions for a specific flow type and trigger type.
    *
-   * @param {string} flowType - Flow type ID
-   * @param {string} triggerType - Trigger type ID
+   * @param {'1' | '2' | '3' | '4'} flowType
+   * Flow types:
+   * - External Authentication: 1
+   * - Complement Token: 2
+   * - Internal Authentication: 3
+   * - Complement SAML Response: 4
+   * @param {'1' | '2' | '3' | '4' | '5' | '6'} triggerType
+   * Trigger types depend on the flow type:
+   * - External Authentication:
+   *   - Post Authentication: 1
+   *   - Pre Creation: 2
+   *   - Post Creation: 3
+   * - Internal Authentication:
+   *   - Post Authentication: 1
+   *   - Pre Creation: 2
+   *   - Post Creation: 3
+   * - Complement Token:
+   *   - Pre Userinfo Creation: 4
+   *   - Pre Access Token Creation: 5
+   * - Complement SAML Response:
+   *   - Pre SAML Response Creation: 6
    * @param {string[]} actionIds - Ordered list of action IDs to execute
    * @see https://zitadel.com/docs/reference/api/management/zitadel.management.v1.ManagementService.SetTriggerActions
    * @returns {Promise<void>}
