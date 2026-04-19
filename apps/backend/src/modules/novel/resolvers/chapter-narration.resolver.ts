@@ -7,14 +7,13 @@ import {
 } from '@nestjs/graphql';
 
 import { ParseUuidPipe } from '../../../shared';
-import { Public } from '../../auth';
+import { CheckPolicy, Public } from '../../auth';
 import { ChapterNarrationService } from '../services';
 import {
   ChapterNarrationEvent,
   ChapterNarrationResponse,
 } from '../types';
 
-@Public()
 @Resolver()
 export class ChapterNarrationResolver {
   constructor(
@@ -24,12 +23,17 @@ export class ChapterNarrationResolver {
   /**
    * Triggers chapter audio generation and returns immediately with status
    */
+  @CheckPolicy('chapter', 'update')
   @Mutation(() => ChapterNarrationResponse, {
     name: 'generateChapterAudio',
     description: 'Start generating audio narration for a chapter',
   })
   async generateChapterAudio(
-    @Args('chapterId', { type: () => ID }, ParseUuidPipe)
+    @Args(
+      'id',
+      { type: () => ID, description: 'The ID of the chapter' },
+      ParseUuidPipe,
+    )
     chapterId: string,
     @Args('forceRegenerate', {
       type: () => Boolean,
@@ -49,6 +53,7 @@ export class ChapterNarrationResolver {
   /**
    * Subscribe to real-time updates for chapter narration generation
    */
+  @Public()
   @Subscription(() => ChapterNarrationEvent, {
     name: 'chapterNarrationUpdated',
     description:

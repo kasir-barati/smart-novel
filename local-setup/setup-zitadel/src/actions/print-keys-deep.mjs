@@ -1,6 +1,6 @@
 // @ts-check
 
-let logger = require('zitadel/log');
+const logger = require('zitadel/log');
 
 /**
  * @example

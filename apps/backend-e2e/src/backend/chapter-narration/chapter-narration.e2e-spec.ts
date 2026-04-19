@@ -4,6 +4,7 @@ import { createClient } from 'graphql-ws';
 import { CORRELATION_ID_HEADER_NAME } from 'nestjs-backend-common';
 import { WebSocket } from 'ws';
 
+import { AuthorizationFixture } from '../../support';
 import { ChapterNarrationFixture } from './chapter-narration.fixture';
 
 describe('Chapter Narration (e2e)', () => {
@@ -21,20 +22,26 @@ describe('Chapter Narration (e2e)', () => {
 
   it('should start chapter audio generation and return PROCESSING status', async () => {
     await fixture.prepareTtsFriendlyContent(NOVEL_ID, CHAPTER_ONE_ID);
+    const authorizationHeader =
+      await AuthorizationFixture.getWriterAuthorizationHeader();
 
-    const res = await axios.post('/graphql', {
-      query: `#graphql
-        mutation GenerateChapterAudio($chapterId: ID!) {
-          generateChapterAudio(chapterId: $chapterId) {
-            status
-            narrationUrl
+    const res = await axios.post(
+      '/graphql',
+      {
+        query: `#graphql
+          mutation GenerateChapterAudio($id: ID!) {
+            generateChapterAudio(id: $id) {
+              status
+              narrationUrl
+            }
           }
-        }
-      `,
-      variables: {
-        chapterId: CHAPTER_ONE_ID,
+        `,
+        variables: {
+          id: CHAPTER_ONE_ID,
+        },
       },
-    });
+      { headers: { Authorization: authorizationHeader } },
+    );
 
     expect(res.status).toBe(200);
     expect(res.data.errors).toBeUndefined();
@@ -50,23 +57,30 @@ describe('Chapter Narration (e2e)', () => {
     await fixture.generateChapterAudio(chapterId);
     await new Promise((resolve) => setTimeout(resolve, 12_000)); // 12 seconds
     const correlationId = '23cf8ec5-17ce-4ae4-90be-baea23f9712c';
+    const authorizationHeader =
+      await AuthorizationFixture.getWriterAuthorizationHeader();
 
     const res = await axios.post(
       '/graphql',
       {
         query: `#graphql
-          mutation GenerateChapterAudio($chapterId: ID!) {
-            generateChapterAudio(chapterId: $chapterId, forceRegenerate: true) {
+          mutation GenerateChapterAudio($id: ID!) {
+            generateChapterAudio(id: $id, forceRegenerate: true) {
               status
               narrationUrl
             }
           }
         `,
         variables: {
-          chapterId: chapterId,
+          id: chapterId,
         },
       },
-      { headers: { [CORRELATION_ID_HEADER_NAME]: correlationId } },
+      {
+        headers: {
+          [CORRELATION_ID_HEADER_NAME]: correlationId,
+          Authorization: authorizationHeader,
+        },
+      },
     );
 
     expect(res.status).toBe(200);
@@ -79,23 +93,26 @@ describe('Chapter Narration (e2e)', () => {
       '10a69005-8176-4b76-ae4b-c268777699d0';
     const secondCallCorrelationId =
       '1b30a878-654d-4ee7-9d06-007c9376f29a';
+    const authorizationHeader =
+      await AuthorizationFixture.getWriterAuthorizationHeader();
     await axios.post(
       '/graphql',
       {
         query: `#graphql
-          mutation GenerateChapterAudio($chapterId: ID!) {
-            generateChapterAudio(chapterId: $chapterId) {
+          mutation GenerateChapterAudio($id: ID!) {
+            generateChapterAudio(id: $id) {
               status
             }
           }
         `,
         variables: {
-          chapterId: CHAPTER_TWO_ID,
+          id: CHAPTER_TWO_ID,
         },
       },
       {
         headers: {
           [CORRELATION_ID_HEADER_NAME]: firstCallCorrelationId,
+          Authorization: authorizationHeader,
         },
       },
     );
@@ -105,19 +122,20 @@ describe('Chapter Narration (e2e)', () => {
       '/graphql',
       {
         query: `#graphql
-          mutation GenerateChapterAudio($chapterId: ID!) {
-            generateChapterAudio(chapterId: $chapterId) {
+          mutation GenerateChapterAudio($id: ID!) {
+            generateChapterAudio(id: $id) {
               status
             }
           }
         `,
         variables: {
-          chapterId: CHAPTER_TWO_ID,
+          id: CHAPTER_TWO_ID,
         },
       },
       {
         headers: {
           [CORRELATION_ID_HEADER_NAME]: secondCallCorrelationId,
+          Authorization: authorizationHeader,
         },
       },
     );
@@ -129,19 +147,25 @@ describe('Chapter Narration (e2e)', () => {
   it('should return the narration URL', async () => {
     // Arrange & Act
     await fixture.prepareTtsFriendlyContent(NOVEL_ID, CHAPTER_ONE_ID);
-    await axios.post('/graphql', {
-      query: `#graphql
-        mutation GenerateChapterAudio($chapterId: ID!) {
-          generateChapterAudio(chapterId: $chapterId) {
-            status
-            narrationUrl
+    const authorizationHeader =
+      await AuthorizationFixture.getWriterAuthorizationHeader();
+    await axios.post(
+      '/graphql',
+      {
+        query: `#graphql
+          mutation GenerateChapterAudio($id: ID!) {
+            generateChapterAudio(id: $id) {
+              status
+              narrationUrl
+            }
           }
-        }
-      `,
-      variables: {
-        chapterId: CHAPTER_ONE_ID,
+        `,
+        variables: {
+          id: CHAPTER_ONE_ID,
+        },
       },
-    });
+      { headers: { Authorization: authorizationHeader } },
+    );
     const narrationUrl = await fixture.waitFor(
       NOVEL_ID,
       CHAPTER_ONE_ID,
@@ -156,21 +180,29 @@ describe('Chapter Narration (e2e)', () => {
   }, 35000); // 35 second timeout for this test
 
   it('should return error for non-existent chapter', async () => {
-    const res = await axios.post('/graphql', {
-      query: `#graphql
-        mutation GenerateChapterAudio($chapterId: ID!) {
-          generateChapterAudio(chapterId: $chapterId) {
-            status
+    const authorizationHeader =
+      await AuthorizationFixture.getWriterAuthorizationHeader();
+    const res = await axios.post(
+      '/graphql',
+      {
+        query: `#graphql
+          mutation GenerateChapterAudio($id: ID!) {
+            generateChapterAudio(id: $id) {
+              status
+            }
           }
-        }
-      `,
-      variables: {
-        chapterId: 'b7cd872e-bc6b-4bad-be35-72df84d100f4',
+        `,
+        variables: {
+          id: 'b7cd872e-bc6b-4bad-be35-72df84d100f4',
+        },
       },
-    });
+      { headers: { Authorization: authorizationHeader } },
+    );
 
     expect(res.data.errors).toBeDefined();
-    expect(res.data.errors[0].message).toContain('Chapter not found');
+    expect(res.data.errors[0].message).toContain(
+      'You do not have permission',
+    );
   });
 
   it('should subscribe to chapter narration updates', async () => {

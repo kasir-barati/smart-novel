@@ -69,20 +69,27 @@ export class ChapterNarrationFixture {
     throw new Error('Narration generation timed out');
   }
 
-  generateChapterAudio(chapterId: string) {
-    return axios.post('/graphql', {
-      query: `#graphql
-        mutation GenerateChapterAudio($chapterId: ID!) {
-          generateChapterAudio(chapterId: $chapterId) {
-            status
-            narrationUrl
+  async generateChapterAudio(chapterId: string) {
+    const authorizationHeader =
+      await AuthorizationFixture.getWriterAuthorizationHeader();
+
+    return axios.post(
+      '/graphql',
+      {
+        query: `#graphql
+          mutation GenerateChapterAudio($id: ID!) {
+            generateChapterAudio(id: $id) {
+              status
+              narrationUrl
+            }
           }
-        }
-      `,
-      variables: {
-        chapterId,
+        `,
+        variables: {
+          id: chapterId,
+        },
       },
-    });
+      { headers: { Authorization: authorizationHeader } },
+    );
   }
 
   /**
