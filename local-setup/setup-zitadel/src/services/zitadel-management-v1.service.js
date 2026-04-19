@@ -327,6 +327,209 @@ export class ZitadelManagementV1Service {
   }
 
   /**
+   * @summary Get the current login policy
+   * @see https://zitadel.com/docs/reference/api/management/zitadel.management.v1.ManagementService.GetLoginPolicy
+   */
+  async fetchLoginPolicies() {
+    // https://zitadel.com/docs/reference/api/management/zitadel.management.v1.ManagementService.GetLoginPolicy
+    const getResponse = await fetch(
+      `${this.baseUrl}/management/v1/policies/login`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+    const currentPolicy = await getResponse.json();
+
+    if (!getResponse.ok) {
+      Logger.error(
+        `Failed to get current login policy: ${JSON.stringify(currentPolicy, null, 2)}`,
+      );
+      throw new Error('Failed to get current login policy');
+    }
+
+    /** @type {LoginPolicy} */
+    const policy = currentPolicy.policy ?? currentPolicy;
+
+    return policy;
+  }
+
+  /**
+   * Update the custom login policy
+   * @param {CustomLoginPolicyBody} body
+   * @returns {Promise<void>}
+   * @see https://zitadel.com/docs/reference/api/management/zitadel.management.v1.ManagementService.UpdateCustomLoginPolicy
+   */
+  async updateLoginPolicies(body) {
+    const response = await fetch(
+      `${this.baseUrl}/management/v1/policies/login`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      },
+    );
+    const data = await response.json();
+
+    if (!response.ok) {
+      Logger.error(
+        `Failed to update login policy: ${JSON.stringify(data, null, 2)}`,
+      );
+      throw new Error('Failed to update login policy');
+    }
+  }
+
+  /**
+   * Create a custom login policy
+   * @param {CustomLoginPolicyBody} body
+   * @see https://zitadel.com/docs/reference/api/management/zitadel.management.v1.ManagementService.AddCustomLoginPolicy
+   */
+  async createLoginPolicy(body) {
+    const response = await fetch(
+      `${this.baseUrl}/management/v1/policies/login`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      },
+    );
+    const data = await response.json();
+
+    if (!response.ok) {
+      Logger.error(
+        `Failed to create custom login policy: ${JSON.stringify(data, null, 2)}`,
+      );
+      throw new Error('Failed to create custom login policy');
+    }
+  }
+
+  /**
+   * @returns {Promise<void>}
+   */
+  async enableSelfRegistration() {
+    const policy = await this.fetchLoginPolicies();
+    // Try to add a custom login policy with allowRegister enabled. If one already exists, update it instead.
+    /** @type {CustomLoginPolicyBody} */
+    const body = {
+      allowUsernamePassword: policy.allowUsernamePassword ?? true,
+      allowRegister: true,
+      allowExternalIdp: policy.allowExternalIdp ?? false,
+      forceMfa: policy.forceMfa ?? false,
+      passwordlessType:
+        policy.passwordlessType ?? 'PASSWORDLESS_TYPE_NOT_ALLOWED',
+      hidePasswordReset: policy.hidePasswordReset ?? false,
+      passwordCheckLifetime:
+        policy.passwordCheckLifetime ?? '864000s',
+      externalLoginCheckLifetime:
+        policy.externalLoginCheckLifetime ?? '864000s',
+      mfaInitSkipLifetime: policy.mfaInitSkipLifetime ?? '2592000s',
+      secondFactorCheckLifetime:
+        policy.secondFactorCheckLifetime ?? '64800s',
+      multiFactorCheckLifetime:
+        policy.multiFactorCheckLifetime ?? '43200s',
+      allowDomainDiscovery: policy.allowDomainDiscovery ?? false,
+      ignoreUnknownUsernames: policy.ignoreUnknownUsernames ?? false,
+      disableLoginWithEmail: policy.disableLoginWithEmail ?? false,
+      disableLoginWithPhone: policy.disableLoginWithPhone ?? false,
+      forceMfaLocalOnly: policy.forceMfaLocalOnly ?? false,
+    };
+
+    // If the policy is already a custom one (isDefault === false), update it
+    if (policy.isDefault === false) {
+      await this.updateLoginPolicies(body);
+      return;
+    }
+
+    await this.createLoginPolicy(body);
+  }
+
+  /**
+   * Create a Zitadel Action (v1) — a server-side JavaScript snippet.
+   *
+   * @param {string} name - Action name
+   * @param {string} script - JavaScript source code
+   * @param {number} [timeout=5] - Execution timeout in seconds
+   * @param {boolean} [allowedToFail=false] - Whether the action is allowed to fail without blocking the flow
+   * @see https://zitadel.com/docs/reference/api/management/zitadel.management.v1.ManagementService.CreateAction
+   * @returns {Promise<string>} Action ID
+   */
+  async createAction(
+    name,
+    script,
+    timeout = 5,
+    allowedToFail = false,
+  ) {
+    const response = await fetch(
+      `${this.baseUrl}/management/v1/actions`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          script,
+          timeout: `${timeout}s`,
+          allowedToFail,
+        }),
+      },
+    );
+    const data = await response.json();
+
+    if (data.id) {
+      return data.id;
+    }
+
+    Logger.error(
+      `Failed to create action '${name}': ${JSON.stringify(data, null, 2)}`,
+    );
+    throw new Error(`Failed to create action '${name}'`);
+  }
+
+  /**
+   * Set trigger actions for a specific flow type and trigger type.
+   *
+   * @param {string} flowType - Flow type ID
+   * @param {string} triggerType - Trigger type ID
+   * @param {string[]} actionIds - Ordered list of action IDs to execute
+   * @see https://zitadel.com/docs/reference/api/management/zitadel.management.v1.ManagementService.SetTriggerActions
+   * @returns {Promise<void>}
+   */
+  async setTriggerActions(flowType, triggerType, actionIds) {
+    const response = await fetch(
+      `${this.baseUrl}/management/v1/flows/${flowType}/trigger/${triggerType}`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          actionIds,
+        }),
+      },
+    );
+    const data = await response.json();
+
+    if (!response.ok) {
+      Logger.error(
+        `Failed to set trigger actions for flow ${flowType}, trigger ${triggerType}: ${JSON.stringify(data, null, 2)}`,
+      );
+      throw new Error('Failed to set trigger actions');
+    }
+  }
+
+  /**
    * Find a project by name
    * @param {string} projectName - Project name
    * @returns {Promise<string>} Project ID
@@ -410,3 +613,66 @@ export class ZitadelManagementV1Service {
     return app;
   }
 }
+
+/**
+ * @typedef {Object} PolicyDetails
+ * @property {number} sequence
+ * @property {string} creationDate ISO 8601 timestamp
+ * @property {string} changeDate ISO 8601 timestamp
+ * @property {string} resourceOwner
+ *
+ * @typedef {'PASSWORDLESS_TYPE_NOT_ALLOWED'} PasswordlessType
+ *
+ * @typedef {'SECOND_FACTOR_TYPE_UNSPECIFIED'} SecondFactorType
+ *
+ * @typedef {'MULTI_FACTOR_TYPE_UNSPECIFIED'} MultiFactorType
+ *
+ * @typedef {'IDP_TYPE_UNSPECIFIED'} IdpType
+ *
+ * @typedef {Object} IdentityProvider
+ * @property {string} idpId
+ * @property {string} idpName
+ * @property {IdpType} idpType
+ *
+ * @typedef {Object} CustomLoginPolicyBody
+ * @property {boolean} allowUsernamePassword
+ * @property {boolean} allowRegister
+ * @property {boolean} allowExternalIdp
+ * @property {boolean} forceMfa
+ * @property {PasswordlessType} passwordlessType
+ * @property {boolean} hidePasswordReset
+ * @property {string} passwordCheckLifetime
+ * @property {string} externalLoginCheckLifetime
+ * @property {string} mfaInitSkipLifetime
+ * @property {string} secondFactorCheckLifetime
+ * @property {string} multiFactorCheckLifetime
+ * @property {boolean} allowDomainDiscovery
+ * @property {boolean} ignoreUnknownUsernames
+ * @property {boolean} disableLoginWithEmail
+ * @property {boolean} disableLoginWithPhone
+ * @property {boolean} forceMfaLocalOnly
+ *
+ * @typedef {Object} LoginPolicy
+ * @property {PolicyDetails} details
+ * @property {boolean} allowUsernamePassword
+ * @property {boolean} allowRegister
+ * @property {boolean} allowExternalIdp
+ * @property {boolean} forceMfa
+ * @property {PasswordlessType} passwordlessType
+ * @property {boolean} isDefault
+ * @property {boolean} hidePasswordReset
+ * @property {boolean} ignoreUnknownUsernames
+ * @property {string} defaultRedirectUri
+ * @property {string} passwordCheckLifetime
+ * @property {string} externalLoginCheckLifetime
+ * @property {string} mfaInitSkipLifetime
+ * @property {string} secondFactorCheckLifetime
+ * @property {string} multiFactorCheckLifetime
+ * @property {SecondFactorType[]} secondFactors
+ * @property {MultiFactorType[]} multiFactors
+ * @property {IdentityProvider[]} idps
+ * @property {boolean} allowDomainDiscovery
+ * @property {boolean} disableLoginWithEmail
+ * @property {boolean} disableLoginWithPhone
+ * @property {boolean} forceMfaLocalOnly
+ */

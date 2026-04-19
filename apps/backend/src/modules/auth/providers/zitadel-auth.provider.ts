@@ -1,5 +1,6 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import axios from 'axios';
+import { arrayMinSize } from 'class-validator';
 import {
   createLocalJWKSet,
   type JSONWebKeySet,
@@ -17,6 +18,7 @@ import {
   type AuthModuleOptions,
   MODULE_OPTIONS_TOKEN,
 } from '../auth.module-definition';
+import { Role } from '../enums';
 import {
   type IAuthProvider,
   IAuthUser,
@@ -212,9 +214,7 @@ export class ZitadelAuthProvider
    *
    * @see https://zitadel.com/docs/reference/api/auth/zitadel.auth.v1.AuthService.ListMyUserGrants
    */
-  private async fetchUserRoles(
-    accessToken: string,
-  ): Promise<string[]> {
+  private async fetchUserRoles(accessToken: string): Promise<Role[]> {
     // Authorization v2beta (resource-based). Lists caller’s authorizations.
     // REST gateway path (HTTP/JSON) is available; exact path may vary by gateway version.
     // See v2 ListAuthorizations discussion reference.
@@ -238,11 +238,11 @@ export class ZitadelAuthProvider
       );
 
       const items = data.authorizations ?? data.result ?? [];
-      const roles = new Set<string>();
+      const roles = new Set<Role>();
 
       for (const a of items) {
         const keys = a.roleKeys ?? a.roles ?? [];
-        for (const k of keys) roles.add(k);
+        for (const k of keys) roles.add(k as Role);
       }
       return Array.from(roles);
     } catch {
@@ -263,8 +263,7 @@ export class ZitadelAuthProvider
     const email = info.email ?? '';
     const emailVerified = info.email_verified ?? false;
     const orgId = info['urn:zitadel:iam:org:id'] ?? undefined;
-    const rolesObj = info['urn:zitadel:iam:org:project:roles'] ?? {};
-    const roles = Object.keys(rolesObj);
+    const roles = this.getRoles(info);
     const rawMetadata = info['urn:zitadel:iam:user:metadata'] ?? {};
     const metadata: Record<string, string> = {};
 
@@ -288,5 +287,14 @@ export class ZitadelAuthProvider
       roles,
       metadata,
     };
+  }
+
+  private getRoles(info: ZitadelUserInfoResponse): Role[] {
+    const rolesObj = info['urn:zitadel:iam:org:project:roles'] ?? {};
+    const roles = arrayMinSize(Object.keys(rolesObj), 1)
+      ? Object.keys(rolesObj)
+      : (info?.roles ?? []);
+
+    return roles as Role[];
   }
 }

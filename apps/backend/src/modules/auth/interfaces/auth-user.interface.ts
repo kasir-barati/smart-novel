@@ -1,3 +1,5 @@
+import { Role } from '../enums';
+
 /**
  * @description Provider-agnostic authenticated user representation.
  *
@@ -31,7 +33,7 @@ export interface IAuthUser {
   /**
    * @description Roles assigned to the user (project-scoped or global)
    */
-  roles: string[];
+  roles: Role[];
   /**
    * @description Arbitrary key-value metadata from the IdP
    */

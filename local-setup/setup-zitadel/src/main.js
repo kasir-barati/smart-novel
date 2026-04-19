@@ -1,5 +1,8 @@
 // @ts-check
 
+import { readFile } from 'fs/promises';
+import { join } from 'path';
+
 import { roles, users } from './data/index.js';
 import {
   config,
@@ -91,6 +94,32 @@ for (const role of roles) {
 }
 Logger.log('Small delay for eventual consistency...');
 await sleep(2000);
+
+Logger.section('Enabling Self-Registration');
+Logger.log('Updating login policy to allow self-registration...');
+await managementV1Service.enableSelfRegistration();
+
+Logger.section('Setting Up Auto Role Assignment Action');
+Logger.log(
+  'Creating action to auto-assign "user" role to self-registered users...',
+);
+const postSelfRegistrationToExtendUserClaims = await readFile(
+  join(
+    process.cwd(),
+    'src',
+    'actions',
+    'post-self-registration-to-extend-user-claims.mjs',
+  ),
+  'utf-8',
+);
+const actionId = await managementV1Service.createAction(
+  'postSelfRegistrationToExtendUserClaims',
+  postSelfRegistrationToExtendUserClaims,
+  5,
+  false, // allowedToFail: true — block registration if this fails
+);
+// 👇 Flow type 2 = Internal Authentication, Trigger type 4 = Post Creation
+await managementV1Service.setTriggerActions('2', '4', [actionId]);
 
 Logger.section('Creating Human Users (for interactive login)');
 for (const { userInfo, role, userIdFile } of users) {

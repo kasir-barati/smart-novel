@@ -14,6 +14,7 @@ import {
   CurrentUserOptional,
   type IAuthUser,
   Public,
+  Role,
 } from '../../auth';
 import { NovelAction } from '../enums';
 import {
@@ -99,7 +100,7 @@ export class NovelResolver {
     }
 
     const isOwner = novel.ownerId === user.sub;
-    const isAdmin = user.roles.includes('admin');
+    const isAdmin = user.roles.includes(Role.admin);
 
     if (isOwner || isAdmin) {
       return [NovelAction.MANAGE_TTS];

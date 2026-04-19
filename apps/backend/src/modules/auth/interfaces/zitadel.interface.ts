@@ -1,5 +1,7 @@
 import type { JWTPayload } from 'jose';
 
+import { Role } from '../enums';
+
 export interface ZitadelOpenIdConfigurationResponse {
   issuer: string;
   jwks_uri: string;
@@ -17,6 +19,7 @@ export interface ZitadelUserInfoResponse {
   email?: string;
   email_verified?: boolean;
   name?: string;
+  roles?: Role[];
   preferred_username?: string;
   /** @description Organization / tenant the user belongs to */
   'urn:zitadel:iam:org:id'?: string;
