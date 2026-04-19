@@ -2,12 +2,21 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { act } from 'react';
 
 import { ReadChaptersStorage } from '../services/read-chapters-storage.service';
+import { logger } from '../utils/logger';
 import { useReadChapters } from './useReadChapters';
 
 // Mock dependencies
 const mockMarkChaptersReadMutation = vi.fn();
 const mockUseAuth = vi.fn();
 
+vi.mock('../utils/logger', () => ({
+  logger: {
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
 vi.mock('./useAuth', () => ({
   useAuth: () => mockUseAuth(),
 }));
@@ -234,9 +243,6 @@ describe('useReadChapters', () => {
     });
 
     it('should fallback to storage when backend mutation fails', async () => {
-      const consoleErrorSpy = vi
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
       mockMarkChaptersReadMutation.mockRejectedValueOnce(
         new Error('Network error'),
       );
@@ -260,12 +266,10 @@ describe('useReadChapters', () => {
       expect(
         result.current.isRead('91545bea-e935-4c39-8491-ad9f2e1bf125'),
       ).toBeTrue();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect(logger.error).toHaveBeenCalledWith(
         'Failed to mark chapter as read on backend:',
         expect.any(Error),
       );
-
-      consoleErrorSpy.mockRestore();
     });
 
     it('should handle multiple chapters with authenticated user', async () => {

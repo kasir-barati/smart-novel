@@ -1,4 +1,14 @@
+import { logger } from '../utils/logger';
 import { BrowserReadChaptersStorage } from './read-chapters-storage.service';
+
+vi.mock('../utils/logger', () => ({
+  logger: {
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
 
 describe('BrowserReadChaptersStorage', () => {
   let uut: BrowserReadChaptersStorage;
@@ -71,38 +81,28 @@ describe('BrowserReadChaptersStorage', () => {
     it('should handle corrupted localStorage data gracefully', () => {
       localStorageMock['smart-novel-read-chapters'] =
         'invalid-json-data';
-      const consoleErrorSpy = vi
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
 
       const result = uut.getReadChapters();
 
       expect(result).toEqual(new Set());
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect(logger.error).toHaveBeenCalledWith(
         'Failed to parse read chapters from localStorage',
         expect.any(Error),
       );
-
-      consoleErrorSpy.mockRestore();
     });
 
     it('should handle non-array localStorage data', () => {
       localStorageMock['smart-novel-read-chapters'] = JSON.stringify({
         invalid: 'data',
       });
-      const consoleErrorSpy = vi
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
 
       const result = uut.getReadChapters();
 
       expect(result).toEqual(new Set());
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect(logger.error).toHaveBeenCalledWith(
         'Failed to parse read chapters from localStorage',
         expect.any(Error),
       );
-
-      consoleErrorSpy.mockRestore();
     });
   });
 

@@ -1,4 +1,5 @@
 import { EditorView } from '@codemirror/view';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   useCallback,
   useEffect,
@@ -7,11 +8,16 @@ import {
   useState,
 } from 'react';
 import CodeMirrorMerge from 'react-codemirror-merge';
-import { useNavigate, useParams } from 'react-router-dom';
+import {
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 
 import {
   useGenerateTtsFriendlyTextMutation,
   useGetChapterForTtsReviewQuery,
+  useGetChapterQuery,
   useUpdateContentMutation,
 } from '../../generated/graphql';
 import { useTheme } from '../../hooks/useTheme';
@@ -34,11 +40,15 @@ export function TtsReviewPage() {
     chapterId: string;
   }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { theme } = useTheme();
   const editedContentRef = useRef<string>('');
   const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
   const [contentState, setContentState] =
     useState<TtsReviewState | null>(null);
+  const queryClient = useQueryClient();
+  const returnUrl =
+    searchParams.get('returnUrl') || `/novel/${novelId}`;
 
   // 1. Fetch chapter content
   const {
@@ -121,8 +131,14 @@ export function TtsReviewPage() {
       },
       {
         onSuccess: () => {
+          queryClient.invalidateQueries({
+            queryKey: useGetChapterQuery.getKey({
+              novelId: novelId ?? '',
+              chapterId: chapterId ?? '',
+            }),
+          });
           showSuccess('TTS-friendly content updated successfully');
-          navigate(`/novel/${novelId}`);
+          navigate(returnUrl);
         },
         onError: () => {
           showApiError();
@@ -132,7 +148,7 @@ export function TtsReviewPage() {
   };
 
   const handleCancel = () => {
-    navigate(`/novel/${novelId}`);
+    navigate(returnUrl);
   };
 
   const isLoading = chapterLoading || generateTtsMutation.isPending;

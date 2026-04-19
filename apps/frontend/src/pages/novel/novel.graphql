@@ -47,6 +47,9 @@ query GetChapter($novelId: ID!, $chapterId: ID!) {
       content
       createdAt
       updatedAt
+      narrationStatus
+      narrationUrl
+      ttsFriendlyContent
       next {
         id
       }
@@ -83,5 +86,12 @@ mutation UpdateContent(
     id
     content
     ttsFriendlyContent
+  }
+}
+
+mutation GenerateChapterAudio($id: ID!, $forceRegenerate: Boolean) {
+  generateChapterAudio(id: $id, forceRegenerate: $forceRegenerate) {
+    status
+    narrationUrl
   }
 }

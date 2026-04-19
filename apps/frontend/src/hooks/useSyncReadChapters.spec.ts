@@ -1,12 +1,21 @@
 import { renderHook, waitFor } from '@testing-library/react';
 
 import { ReadChaptersStorage } from '../services/read-chapters-storage.service';
+import { logger } from '../utils/logger';
 import { useSyncReadChapters } from './useSyncReadChapters';
 
 // Mock dependencies
 const mockMarkChaptersReadMutation = vi.fn();
 const mockUseAuth = vi.fn();
 
+vi.mock('../utils/logger', () => ({
+  logger: {
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
 vi.mock('./useAuth', () => ({
   useAuth: () => mockUseAuth(),
 }));
@@ -99,9 +108,6 @@ describe('useSyncReadChapters', () => {
       'd4e5f6a7-b8c9-4012-d345-ef0123456789',
       'e5f6a7b8-c9d0-4123-e456-f01234567890',
     ]);
-    const consoleLogSpy = vi
-      .spyOn(console, 'log')
-      .mockImplementation(() => {});
 
     renderHook(() => useSyncReadChapters({ storage: mockStorage }));
 
@@ -119,11 +125,9 @@ describe('useSyncReadChapters', () => {
     });
 
     expect(mockStorage.setSyncFlag).toHaveBeenCalledWith(true);
-    expect(consoleLogSpy).toHaveBeenCalledWith(
+    expect(logger.info).toHaveBeenCalledWith(
       'Successfully synced 2 chapters to backend',
     );
-
-    consoleLogSpy.mockRestore();
   });
 
   it('should batch chapters into groups of 100 for API calls', async () => {
@@ -157,9 +161,6 @@ describe('useSyncReadChapters', () => {
   });
 
   it('should handle sync failure gracefully', async () => {
-    const consoleErrorSpy = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => {});
     mockUseAuth.mockReturnValue({
       isAuthenticated: true,
       loading: false,
@@ -174,7 +175,7 @@ describe('useSyncReadChapters', () => {
     renderHook(() => useSyncReadChapters({ storage: mockStorage }));
 
     await waitFor(() => {
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect(logger.error).toHaveBeenCalledWith(
         'Failed to sync read chapters to backend:',
         expect.any(Error),
       );
@@ -185,8 +186,6 @@ describe('useSyncReadChapters', () => {
     await waitFor(() => {
       expect(mockStorage.clearReadChapters).toHaveBeenCalled();
     });
-
-    consoleErrorSpy.mockRestore();
   });
 
   it('should set sync flag even when there are no chapters to sync', async () => {
@@ -228,9 +227,6 @@ describe('useSyncReadChapters', () => {
   });
 
   it('should handle partial batch failures in sync', async () => {
-    const consoleErrorSpy = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => {});
     mockUseAuth.mockReturnValue({
       isAuthenticated: true,
       loading: false,
@@ -255,12 +251,10 @@ describe('useSyncReadChapters', () => {
 
     // Should log the error for the failed batch
     await waitFor(() => {
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect(logger.error).toHaveBeenCalledWith(
         'Failed to sync read chapters to backend:',
         expect.any(Error),
       );
     });
-
-    consoleErrorSpy.mockRestore();
   });
 });

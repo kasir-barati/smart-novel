@@ -256,6 +256,7 @@ export function NovelPage() {
                   onNext={handleNextChapter}
                   hasPrevious={!!currentChapter.previous}
                   hasNext={!!currentChapter.next}
+                  canManageTts={canManageTts}
                 />
               )}
             </div>

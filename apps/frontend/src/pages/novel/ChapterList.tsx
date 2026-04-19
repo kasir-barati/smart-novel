@@ -1,5 +1,4 @@
-import { useNavigate } from 'react-router-dom';
-
+import { GenerateTtsButton } from '../../components/GenerateTtsButton';
 import { useReadChapters } from '../../hooks/useReadChapters';
 
 interface ChapterInfo {
@@ -23,7 +22,6 @@ export function ChapterList({
   canManageTts,
   novelId,
 }: ChapterListProps) {
-  const navigate = useNavigate();
   const { isRead } = useReadChapters();
 
   const formatDate = (dateString: string) => {
@@ -74,17 +72,11 @@ export function ChapterList({
                 {formatDate(chapter.createdAt)}
               </span>
               {canManageTts && novelId && (
-                <button
-                  onClick={() =>
-                    navigate(
-                      `/novel/${novelId}/chapter/${chapter.id}/tts-review`,
-                    )
-                  }
-                  className="cursor-pointer rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 transition-colors hover:bg-amber-200 dark:bg-amber-900 dark:text-amber-200 dark:hover:bg-amber-800"
-                  title="Generate TTS-friendly content"
-                >
-                  Generate TTS
-                </button>
+                <GenerateTtsButton
+                  novelId={novelId}
+                  chapterId={chapter.id}
+                  returnUrl={`/novel/${novelId}`}
+                />
               )}
             </div>
           </div>
