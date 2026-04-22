@@ -45,6 +45,11 @@ npx prisma migrate deploy --schema=./apps/backend/prisma/schema.prisma
 
 All contributors (including AI-assisted tools) should follow the project's coding philosophy:
 
+- When you use an LLM model to developer a feature use another model to code review it with this message:
+  - Be critical.
+  - Look for corner cases and potential performance issues.
+  - Look at the code and tests, do they make sense.
+  - Do we have a better write the same code in a more readable and maintainable manner.
 - Add the prompt you fed into LLM and the follow up discussions with it in the GitHub issue (for this you can create a markdown file when we finished working on a feature). This way we know what we have done.
 - Write code at a senior engineer level.
 - Always use braces `{}` for control statements, even for single‑statement branches.
