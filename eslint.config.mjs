@@ -4,6 +4,7 @@ import nx from '@nx/eslint-plugin';
 import vitest from '@vitest/eslint-plugin';
 import importPlugin from 'eslint-plugin-import';
 import perfectionist from 'eslint-plugin-perfectionist';
+import prettierRecommended from 'eslint-plugin-prettier/recommended';
 import unusedImports from 'eslint-plugin-unused-imports';
 
 export default [
@@ -66,6 +67,7 @@ export default [
         },
       ],
       'no-console': 'error',
+      curly: ['error', 'all'],
       'no-restricted-syntax': [
         'error',
         {
@@ -160,4 +162,5 @@ export default [
       'no-console': 'off',
     },
   },
+  prettierRecommended,
 ];

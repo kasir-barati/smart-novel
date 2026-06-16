@@ -24,7 +24,9 @@ export function HomePage() {
   const novels = novelsData?.edges.map((edge) => edge.node) ?? [];
 
   const handleNext = () => {
-    if (!pageInfo?.hasNextPage) return;
+    if (!pageInfo?.hasNextPage) {
+      return;
+    }
     const nextPage = currentPage + 1;
     setPageCursors((prev) => {
       const next = new Map(prev);
@@ -36,7 +38,9 @@ export function HomePage() {
   };
 
   const handlePrevious = () => {
-    if (currentPage <= 1) return;
+    if (currentPage <= 1) {
+      return;
+    }
     setCurrentPage((prev) => prev - 1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };

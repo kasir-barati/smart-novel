@@ -241,7 +241,9 @@ export class ZitadelAuthProvider
 
       for (const a of items) {
         const keys = a.roleKeys ?? a.roles ?? [];
-        for (const k of keys) roles.add(k as Role);
+        for (const k of keys) {
+          roles.add(k as Role);
+        }
       }
       return Array.from(roles);
     } catch {

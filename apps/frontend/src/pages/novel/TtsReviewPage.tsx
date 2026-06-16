@@ -121,7 +121,9 @@ export function TtsReviewPage() {
   }, []);
 
   const handleConfirm = () => {
-    if (!chapterId || !contentState) return;
+    if (!chapterId || !contentState) {
+      return;
+    }
 
     updateContentMutation.mutate(
       {

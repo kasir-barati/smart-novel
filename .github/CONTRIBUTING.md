@@ -1,6 +1,9 @@
-# Contributing to smart-novel
+## Contributing
 
-🚀 Quick Start
+- After each change run the linter for the changed files.
+- If you are an LLM, write in chunks to not overload your write tool!
+
+## 🚀 Quick Start
 
 ```bash
 npm run init
@@ -51,7 +54,6 @@ All contributors (including AI-assisted tools) should follow the project's codin
   - Do we have a better write the same code in a more readable and maintainable manner.
 - Add the prompt you fed into LLM and the follow up discussions with it in the GitHub issue (for this you can create a markdown file when we finished working on a feature). This way we know what we have done.
 - Write code at a senior engineer level.
-- Always use braces `{}` for control statements, even for single‑statement branches.
 - Prefer early returns over nested conditionals.
 - Optimize for readability and maintainability.
 - Avoid unnecessary abstractions.

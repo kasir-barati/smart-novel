@@ -72,7 +72,9 @@ export function ChapterContent({
       });
 
       queryClient.setQueryData<GetChapterQuery>(queryKey, (old) => {
-        if (!old?.novel?.chapter) return old;
+        if (!old?.novel?.chapter) {
+          return old;
+        }
 
         return {
           ...old,
