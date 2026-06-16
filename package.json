@@ -61,7 +61,8 @@
     "lint-prepush": "nx run-many -t lint",
     "lint-staged": "lint-staged",
     "cypress:open": "cypress open --project apps/frontend-e2e",
-    "clean": "rm -rf apps/frontend-e2e/cypress apps/frontend/src/generated apps/backend/schema.gql dist Diffs.txt local-setup/client local-setup/logs local-setup/pats local-setup/user-ids"
+    "clean": "rm -rf apps/frontend-e2e/cypress apps/frontend/src/generated apps/backend/schema.gql dist Diffs.txt local-setup/client local-setup/logs local-setup/pats local-setup/user-ids",
+    "init": "npm ci && cp --update=none .env.example .env || true"
   },
   "private": true,
   "devDependencies": {

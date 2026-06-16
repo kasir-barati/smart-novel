@@ -3,8 +3,7 @@
 🚀 Quick Start
 
 ```bash
-npm ci
-cp .env.example .env
+npm run init
 npm run start:dev
 ```
 
