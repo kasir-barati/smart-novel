@@ -140,7 +140,9 @@ describe('TTS Review Page', () => {
     cy.login();
     cy.intercept('POST', '**/graphql').as('graphql');
 
-    // Navigate to a novel from the home page
+    // Navigate to the home page, then to a novel from the novel cards list
+    cy.visit('/');
+    cy.wait('@graphql');
     cy.get('a[href^="/novel/"]', { timeout: 10000 }).first().click();
     cy.url().should('include', '/novel/');
     cy.wait('@graphql');
@@ -155,7 +157,9 @@ describe('TTS Review Page', () => {
     cy.login();
     cy.intercept('POST', '**/graphql').as('graphql');
 
-    // Navigate to a novel
+    // Navigate to the home page, then to a novel
+    cy.visit('/');
+    cy.wait('@graphql');
     cy.get('a[href^="/novel/"]', { timeout: 10000 }).first().click();
     cy.url().should('include', '/novel/');
     cy.wait('@graphql');

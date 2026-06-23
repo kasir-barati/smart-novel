@@ -35,6 +35,17 @@ import { NarrationLockService } from './narration-lock.service';
 
 @Injectable()
 export class ChapterNarrationService {
+  /**
+   * @description Tracks in-flight TTS HTTP requests per chapter so a `forceRegenerate` call can cancel them. Aborting the AbortController causes the underlying HTTP request to be closed, which the piper-tts-rest-api service detects (`req.on('aborted')`) and uses to kill the piper/ffmpeg child processes.
+   *
+   * @todo ATM we don't bother sharing the abort-map across replicas because we don't need to, but it might be necessary in the future.
+   * If force-regenerate lands on a different replica, we can't abort the old TTS HTTP call (it'll keep running uselessly until it finishes), but the Redis lock + DB status check guarantee the old job can't corrupt the new narration when it eventually tries to commit its results.
+   */
+  private readonly inFlightTtsRequests = new Map<
+    string,
+    AbortController
+  >();
+
   constructor(
     private readonly s3Client: S3Client,
     private readonly logger: CustomLoggerService,
@@ -94,12 +105,10 @@ export class ChapterNarrationService {
       const oneHour = 60 * 60 * 1000;
       const lockKey = this.narrationLockService.getLockKey(chapterId);
 
-      // README: client should at least wait until the lock is released.
-      if (
-        forceRegenerate &&
-        (await this.narrationLockService.exists(lockKey))
-      ) {
-        return { status: NarrationStatus.PROCESSING };
+      // On force-regenerate: if a generation is already in flight on this replica, cancel its TTS HTTP call so the piper-tts-rest-api kills its piper/ffmpeg child processes and frees a slot in its semaphore.
+      // tryAcquire(forceRegenerate=true) below will then delete and re-take the Redis lock, so the old background job's eventual cleanup is a no-op (token mismatch on release; status-checked DB update).
+      if (forceRegenerate) {
+        this.cancelInFlightTts(chapterId, correlationId);
       }
 
       const token = await this.narrationLockService.tryAcquire(
@@ -185,6 +194,31 @@ export class ChapterNarrationService {
   }
 
   /**
+   * @summary Cancels any in-flight TTS HTTP request for this chapter (on same replica).
+   * @description When the HTTP request aborts, piper-tts-rest-api's `req.on('aborted')` handler kills the piper/ffmpeg child processes, freeing its semaphore.
+   */
+  private cancelInFlightTts(
+    chapterId: string,
+    correlationId: string,
+  ): void {
+    const controller = this.inFlightTtsRequests.get(chapterId);
+
+    if (isNil(controller)) {
+      return;
+    }
+
+    this.logger.debug(
+      `Force-regenerate: canceling in-flight TTS for chapter ${chapterId}`,
+      { context: ChapterNarrationService.name, correlationId },
+    );
+
+    controller.abort(
+      new Error('Force-regenerate: canceling previous TTS request'),
+    );
+    this.inFlightTtsRequests.delete(chapterId);
+  }
+
+  /**
    * Background job: Generate TTS, upload to S3, update DB
    * Fire-and-forget (not awaited by mutation)
    */
@@ -197,6 +231,8 @@ export class ChapterNarrationService {
   ): void {
     // Wrap in async immediately-invoked function
     (async () => {
+      let intentionallyCancelled = false;
+
       try {
         // Step 1: Call TTS service
         this.logger.log(
@@ -209,9 +245,6 @@ export class ChapterNarrationService {
           chapterId,
           correlationId,
         );
-        if (!ttsResponse) {
-          throw new Error('Failed to initiate TTS request');
-        }
 
         // Step 2: Stream to S3
         this.logger.log(
@@ -256,6 +289,21 @@ export class ChapterNarrationService {
           { context: ChapterNarrationService.name, correlationId },
         );
       } catch (error) {
+        // Check if this error is from a force-regenerate cancellation
+        if (
+          error instanceof Error &&
+          error.message?.includes('Force-regenerate')
+        ) {
+          intentionallyCancelled = true;
+
+          this.logger.debug(
+            `TTS generation for chapter ${chapterId} was intentionally cancelled (force-regenerate takeover)`,
+            { context: ChapterNarrationService.name, correlationId },
+          );
+
+          return; // Don't mark as FAILED; new generation is taking over
+        }
+
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         this.logger.error(
@@ -285,6 +333,11 @@ export class ChapterNarrationService {
           },
         );
       } finally {
+        // Clean up in-flight tracking (only if not cancelled; cancellation
+        // already deleted it)
+        if (!intentionallyCancelled) {
+          this.inFlightTtsRequests.delete(chapterId);
+        }
         // Always release lock
         await this.narrationLockService.release(lockKey, token);
       }
@@ -292,14 +345,14 @@ export class ChapterNarrationService {
   }
 
   /**
-   * Call TTS service and return stream
-   * Returns null if initial request fails
+   * @summary Call TTS service and return stream
+   * @throws error (including intentional cancellation)
    */
   private async callTtsService(
     content: string,
     chapterId: string,
     correlationId: string,
-  ): Promise<Readable | null> {
+  ): Promise<Readable> {
     /** @description Time to First Byte/headers (30 seconds) */
     const TTFB_TIMEOUT_MS = 30_000;
     /** @description No data received for this long (30 seconds) */
@@ -307,6 +360,10 @@ export class ChapterNarrationService {
     /** @description Absolute max duration (15 minutes) */
     const HARD_CAP_MS = 15 * 60_000;
     const controller = new AbortController();
+
+    // Register controller so force-regenerate can cancel this request
+    this.inFlightTtsRequests.set(chapterId, controller);
+
     const hardCapTimer = setTimeout(
       () => controller.abort(new Error('Hard cap exceeded')),
       HARD_CAP_MS,
@@ -371,6 +428,9 @@ export class ChapterNarrationService {
 
       return stream;
     } catch (error) {
+      // Clean up registration on error
+      this.inFlightTtsRequests.delete(chapterId);
+
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       this.logger.error(
@@ -381,7 +441,8 @@ export class ChapterNarrationService {
           correlationId,
         },
       );
-      return null;
+
+      throw error;
     }
   }
 

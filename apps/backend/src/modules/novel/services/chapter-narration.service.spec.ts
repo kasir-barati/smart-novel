@@ -180,7 +180,7 @@ describe(ChapterNarrationService.name, () => {
       expect(narrationLockService.tryAcquire).toHaveBeenCalled();
     });
 
-    it('should wait for the lock to be released before you can reprocess with forceRegenerate', async () => {
+    it('should cancel in-flight TTS and regenerate when forceRegenerate=true', async () => {
       // Arrange
       vi.mocked(prisma.$transaction).mockImplementation(
         async (callback: any) => {
@@ -193,16 +193,37 @@ describe(ChapterNarrationService.name, () => {
                   content: 'Chapter content',
                   contentHash:
                     'bbb5c978731fabeea7f228aa482143f59734a1419c728e1a30ab3a53e96199e0',
+                  ttsFriendlyContent: 'Chapter content',
                 },
                 narrationUrl: mockNarrationUrl,
                 narrationStatus: 'READY',
+              }),
+              update: vi.fn().mockResolvedValue({
+                id: mockChapterId,
+                content: {
+                  id: '69f8cc7c-0974-433b-9bfc-135b39164246',
+                  content: 'Chapter content',
+                  contentHash:
+                    'bbb5c978731fabeea7f228aa482143f59734a1419c728e1a30ab3a53e96199e0',
+                  ttsFriendlyContent: 'Chapter content',
+                },
+                narrationUrl: null,
+                narrationStatus: 'PROCESSING',
               }),
             },
           });
         },
       );
       vi.mocked(narrationLockService.tryAcquire).mockResolvedValue(
-        null,
+        'new-token',
+      );
+
+      // Simulate an in-flight controller
+      const mockController = new AbortController();
+      const abortSpy = vi.spyOn(mockController, 'abort');
+      (uut as any).inFlightTtsRequests.set(
+        mockChapterId,
+        mockController,
       );
 
       // Act
@@ -210,7 +231,16 @@ describe(ChapterNarrationService.name, () => {
 
       // Assert
       expect(result).toEqual({ status: NarrationStatus.PROCESSING });
-      expect(narrationLockService.tryAcquire).toHaveBeenCalled();
+      expect(abortSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining('Force-regenerate'),
+        }),
+      );
+      expect(narrationLockService.tryAcquire).toHaveBeenCalledWith(
+        expect.any(String),
+        3600000,
+        true,
+      );
     });
 
     it('should throw BadRequestException if chapter not found', async () => {
