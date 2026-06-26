@@ -2,6 +2,8 @@
 
 This Node.js ESM application initializes ZITADEL with test users, projects, and OIDC applications for local development.
 
+https://dev.to/kasir-barati/auto-assigning-a-role-to-self-registered-users-in-zitadel-with-a-zitadel-action-4imi
+
 > [!TIP]
 >
 > If you change something related to how ZITADEL generates access tokens/JWT tokens you might wanna first cleanup your UI's local storage so it is using the new token generated with the latest changes. I grappled with this exact issue when I changed my app to generate JWT tokens instead of opaque access tokens.
