@@ -8,7 +8,6 @@ import {
 import axios from 'axios';
 import ms from 'ms';
 import {
-  CorrelationIdService,
   CustomLoggerService,
   isNil,
   retryAsync,
@@ -28,7 +27,6 @@ export class LlmService {
     @Inject(appConfigs.KEY)
     private readonly appConfig: ConfigType<typeof appConfigs>,
     private readonly logger: CustomLoggerService,
-    private readonly correlationIdService: CorrelationIdService,
     private readonly cacheService: CacheService<ExplainWordPromptResponse>,
   ) {}
 
@@ -51,7 +49,6 @@ export class LlmService {
     // Log LLM observability
     this.logger.log(`LLM call completed for word "${word}"`, {
       context: LlmService.name,
-      correlationId: this.correlationIdService.correlationId,
       cacheKey,
       word,
       instanceId: hostname(),
@@ -88,11 +85,7 @@ export class LlmService {
     if (error) {
       this.logger.error(
         `All retry attempts exhausted for word "${word}"`,
-        {
-          context: LlmService.name,
-          correlationId: this.correlationIdService.correlationId,
-          error,
-        },
+        { context: LlmService.name, error },
       );
       throw error;
     }
@@ -146,10 +139,7 @@ Rules:
       if (isNil(parsed)) {
         this.logger.error(
           `Failed to parse JSON response: ${generatedText}`,
-          {
-            context: LlmService.name,
-            correlationId: this.correlationIdService.correlationId,
-          },
+          { context: LlmService.name },
         );
         throw new InternalServerErrorException(
           '6639cf09-2b91-481e-824a-9f8f6d22d362',
@@ -182,7 +172,6 @@ Rules:
 
       this.logger.error(
         `Error calling Ollama: ${JSON.stringify(error)}`,
-        { correlationId: this.correlationIdService.correlationId },
       );
 
       throw new InternalServerErrorException(

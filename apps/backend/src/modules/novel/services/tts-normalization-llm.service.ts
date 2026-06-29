@@ -5,7 +5,6 @@ import axios from 'axios';
 import { isNotEmpty, isObject, isString } from 'class-validator';
 import ms from 'ms';
 import {
-  CorrelationIdService,
   CustomLoggerService,
   isNil,
   retry,
@@ -39,7 +38,6 @@ export class TtsNormalizationLlmService {
     @Inject(appConfigs.KEY)
     private readonly appConfig: ConfigType<typeof appConfigs>,
     private readonly logger: CustomLoggerService,
-    private readonly correlationIdService: CorrelationIdService,
   ) {}
 
   /**
@@ -63,7 +61,6 @@ export class TtsNormalizationLlmService {
         {
           error,
           context: TtsNormalizationLlmService.name,
-          correlationId: this.correlationIdService.correlationId,
         },
       );
 
@@ -78,7 +75,6 @@ export class TtsNormalizationLlmService {
         {
           rawResponse: raw.slice(0, 500),
           context: TtsNormalizationLlmService.name,
-          correlationId: this.correlationIdService.correlationId,
         },
       );
 
@@ -91,7 +87,6 @@ export class TtsNormalizationLlmService {
         {
           inputLength: text.length,
           context: TtsNormalizationLlmService.name,
-          correlationId: this.correlationIdService.correlationId,
           outputLength: parsed.normalizedText.length,
         },
       );
@@ -130,10 +125,7 @@ export class TtsNormalizationLlmService {
     if (isNil(generatedText)) {
       this.logger.warn(
         'Ollama returned empty response for TTS normalization',
-        {
-          context: TtsNormalizationLlmService.name,
-          correlationId: this.correlationIdService.correlationId,
-        },
+        { context: TtsNormalizationLlmService.name },
       );
 
       return null;

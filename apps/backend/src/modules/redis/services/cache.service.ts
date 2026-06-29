@@ -1,8 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  CorrelationIdService,
-  CustomLoggerService,
-} from 'nestjs-backend-common';
+import { CustomLoggerService } from 'nestjs-backend-common';
 import { hostname } from 'os';
 
 import { CachedValue, CacheResult } from '../redis.interface';
@@ -26,7 +23,6 @@ export class CacheService<T> {
   constructor(
     private readonly redisService: RedisService,
     private readonly logger: CustomLoggerService,
-    private readonly correlationIdService: CorrelationIdService,
   ) {}
 
   /**
@@ -85,11 +81,7 @@ export class CacheService<T> {
       .catch((error) => {
         this.logger.error(
           `Failed to compute/cache value for "${key}"`,
-          {
-            context: CacheService.name,
-            correlationId: this.correlationIdService.correlationId,
-            error,
-          },
+          { context: CacheService.name, error },
         );
         this.inFlightRequests.delete(key);
         throw error;
@@ -125,10 +117,7 @@ export class CacheService<T> {
     } catch {
       this.logger.error(
         `Failed to get/parse cache for key "${key}"`,
-        {
-          context: CacheService.name,
-          correlationId: this.correlationIdService.correlationId,
-        },
+        { context: CacheService.name },
       );
       // Ignore cache errors
     }

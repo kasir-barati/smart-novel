@@ -46,7 +46,6 @@ export function graphqlFetcher<TResult, TVariables>(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'correlation-id': crypto.randomUUID(),
         ...(accessToken
           ? { Authorization: `Bearer ${accessToken}` }
           : {}),

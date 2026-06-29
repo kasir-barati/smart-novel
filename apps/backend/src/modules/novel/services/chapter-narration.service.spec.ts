@@ -3,12 +3,10 @@ import { BadRequestException } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { NarrationStatus } from '@prisma/client';
 import { PubSubEngine } from 'graphql-subscriptions';
-import {
-  CorrelationIdService,
-  CustomLoggerService,
-} from 'nestjs-backend-common';
+import { CustomLoggerService } from 'nestjs-backend-common';
 
 import { appConfigs } from '../../../app';
+import { BackgroundRunnerService } from '../../background-runner';
 import { PrismaService } from '../../prisma';
 import { IChapterRepository } from '../interfaces';
 import { chapterNarrationUpdateSubscriptionKey } from '../utils';
@@ -36,14 +34,13 @@ describe(ChapterNarrationService.name, () => {
   let uut: ChapterNarrationService;
   let s3Client: S3Client;
   let logger: CustomLoggerService;
-  let correlationIdService: CorrelationIdService;
   let narrationLockService: NarrationLockService;
   let prisma: PrismaService;
+  let backgroundRunner: BackgroundRunnerService;
   let pubSub: PubSubEngine;
   let chapterRepository: IChapterRepository;
   let appConfig: ConfigType<typeof appConfigs>;
   const mockChapterId = 'e8cec22d-a2c2-4f68-ac1c-6a3cdbbfef33';
-  const mockCorrelationId = 'dfd61433-2558-47f5-8fbb-95bb8164d303';
   const mockNarrationUrl =
     'http://localhost:9000/smart-novel/narrations/chapter-e8cec22d-a2c2-4f68-ac1c-6a3cdbbfef33.mp3';
 
@@ -55,9 +52,6 @@ describe(ChapterNarrationService.name, () => {
       log: vi.fn(),
       warn: vi.fn(),
       error: vi.fn(),
-    } as any;
-    correlationIdService = {
-      correlationId: mockCorrelationId,
     } as any;
     narrationLockService = {
       tryAcquire: vi.fn(),
@@ -71,6 +65,11 @@ describe(ChapterNarrationService.name, () => {
         findUnique: vi.fn(),
         update: vi.fn(),
       },
+    } as any;
+    backgroundRunner = {
+      run: vi.fn((fn: () => Promise<void>) => {
+        void fn();
+      }),
     } as any;
     pubSub = {
       publish: vi.fn(),
@@ -87,9 +86,9 @@ describe(ChapterNarrationService.name, () => {
     uut = new ChapterNarrationService(
       s3Client,
       logger,
-      correlationIdService,
       narrationLockService,
       prisma,
+      backgroundRunner,
       pubSub,
       chapterRepository,
       appConfig,

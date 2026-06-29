@@ -12,11 +12,7 @@ import { InternalServerErrorException } from '@nestjs/common';
 import assert from 'assert';
 import { isNotEmpty } from 'class-validator';
 import mime from 'mime';
-import {
-  CorrelationIdService,
-  CustomLoggerService,
-  isNil,
-} from 'nestjs-backend-common';
+import { CustomLoggerService, isNil } from 'nestjs-backend-common';
 
 import { appendUint8Array } from '../utils';
 
@@ -32,7 +28,6 @@ export class UploaderService {
     private readonly objectKey: string,
     private readonly bucketName: string,
     private readonly logger: CustomLoggerService,
-    private readonly correlationIdService: CorrelationIdService,
     private readonly checksumAlgorithm?: ChecksumAlgorithm,
   ) {}
 
@@ -114,10 +109,7 @@ export class UploaderService {
   private async createMultipartUpload() {
     this.logger.verbose(
       `Initiate multipart upload (bucket: ${this.bucketName}, key: ${this.objectKey}, filename: ${this.filename})!`,
-      {
-        context: UploaderService.name,
-        correlationId: this.correlationIdService.correlationId,
-      },
+      { context: UploaderService.name },
     );
 
     const contentType = mime.getType(this.filename);
@@ -146,10 +138,7 @@ export class UploaderService {
 
     this.logger.verbose(
       `Upload part #${partNumber} (upload ID: ${this.uploadId})`,
-      {
-        context: UploaderService.name,
-        correlationId: this.correlationIdService.correlationId,
-      },
+      { context: UploaderService.name },
     );
 
     const command = new UploadPartCommand({

@@ -199,15 +199,21 @@ describe('Greet (e2e)', () => {
   });
 
   it('should start chapter audio generation and return PROCESSING status', async () => {
-    const res = await axios.post('/graphql', {
-      query: `#graphql
+    const { traceparent, traceId } =
+      ChapterNarrationFixture.generateTraceparent();
+    const res = await axios.post(
+      '/graphql',
+      {
+        query: `#graphql
         mutation {
           greet
         }
       `,
-    });
+      },
+      { headers: { traceparent } },
+    );
 
-    await fixture.thenTtsCalledOnceWith(correlationId);
+    await fixture.thenTtsCalledOnceWith(traceId);
   });
 });
 ```

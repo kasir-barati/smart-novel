@@ -11,7 +11,6 @@ import axios from 'axios';
 import { isEmpty } from 'class-validator';
 import { PubSubEngine } from 'graphql-subscriptions';
 import {
-  CorrelationIdService,
   CustomLoggerService,
   isNil,
   urlBuilder,
@@ -19,6 +18,7 @@ import {
 import { Readable } from 'node:stream';
 
 import { appConfigs } from '../../../app/configs/app.config';
+import { BackgroundRunnerService } from '../../background-runner';
 import {
   createChecksum,
   UploaderService,
@@ -49,9 +49,9 @@ export class ChapterNarrationService {
   constructor(
     private readonly s3Client: S3Client,
     private readonly logger: CustomLoggerService,
-    private readonly correlationIdService: CorrelationIdService,
     private readonly narrationLockService: NarrationLockService,
     private readonly prisma: PrismaService,
+    private readonly backgroundRunner: BackgroundRunnerService,
     @Inject(PUBSUB_TOKEN)
     private readonly pubSub: PubSubEngine,
     @Inject(CHAPTER_REPOSITORY)
@@ -67,15 +67,10 @@ export class ChapterNarrationService {
     chapterId: string,
     forceRegenerate = false,
   ): Promise<ChapterNarrationResponse> {
-    const correlationId = this.correlationIdService.correlationId;
-
     return this.prisma.$transaction(async (tx) => {
       this.logger.debug(
         `Attempting to start narration generation for chapter ID (force generate: ${forceRegenerate}): ${chapterId}`,
-        {
-          context: ChapterNarrationService.name,
-          correlationId,
-        },
+        { context: ChapterNarrationService.name },
       );
 
       const chapter = await tx.chapter.findUnique({
@@ -90,10 +85,7 @@ export class ChapterNarrationService {
       if (!forceRegenerate && this.doesNarrationExist(chapter)) {
         this.logger.debug(
           `Narration already exists for chapter ID: ${chapterId}`,
-          {
-            context: ChapterNarrationService.name,
-            correlationId,
-          },
+          { context: ChapterNarrationService.name },
         );
 
         return {
@@ -108,7 +100,7 @@ export class ChapterNarrationService {
       // On force-regenerate: if a generation is already in flight on this replica, cancel its TTS HTTP call so the piper-tts-rest-api kills its piper/ffmpeg child processes and frees a slot in its semaphore.
       // tryAcquire(forceRegenerate=true) below will then delete and re-take the Redis lock, so the old background job's eventual cleanup is a no-op (token mismatch on release; status-checked DB update).
       if (forceRegenerate) {
-        this.cancelInFlightTts(chapterId, correlationId);
+        this.cancelInFlightTts(chapterId);
       }
 
       const token = await this.narrationLockService.tryAcquire(
@@ -173,7 +165,6 @@ export class ChapterNarrationService {
         chapter.content.ttsFriendlyContent!,
         lockKey,
         token,
-        correlationId,
       );
 
       return { status: NarrationStatus.PROCESSING };
@@ -197,10 +188,7 @@ export class ChapterNarrationService {
    * @summary Cancels any in-flight TTS HTTP request for this chapter (on same replica).
    * @description When the HTTP request aborts, piper-tts-rest-api's `req.on('aborted')` handler kills the piper/ffmpeg child processes, freeing its semaphore.
    */
-  private cancelInFlightTts(
-    chapterId: string,
-    correlationId: string,
-  ): void {
+  private cancelInFlightTts(chapterId: string): void {
     const controller = this.inFlightTtsRequests.get(chapterId);
 
     if (isNil(controller)) {
@@ -209,7 +197,7 @@ export class ChapterNarrationService {
 
     this.logger.debug(
       `Force-regenerate: canceling in-flight TTS for chapter ${chapterId}`,
-      { context: ChapterNarrationService.name, correlationId },
+      { context: ChapterNarrationService.name },
     );
 
     controller.abort(
@@ -227,29 +215,26 @@ export class ChapterNarrationService {
     content: string,
     lockKey: string,
     token: string,
-    correlationId: string,
   ): void {
-    // Wrap in async immediately-invoked function
-    (async () => {
+    this.backgroundRunner.run(async () => {
       let intentionallyCancelled = false;
 
       try {
         // Step 1: Call TTS service
         this.logger.log(
           `Starting TTS generation for chapter ${chapterId}`,
-          { context: ChapterNarrationService.name, correlationId },
+          { context: ChapterNarrationService.name },
         );
 
         const ttsResponse = await this.callTtsService(
           content,
           chapterId,
-          correlationId,
         );
 
         // Step 2: Stream to S3
         this.logger.log(
           `Uploading narration to S3 for chapter ${chapterId}`,
-          { context: ChapterNarrationService.name, correlationId },
+          { context: ChapterNarrationService.name },
         );
 
         const publicUrl = await this.uploadToObjectStorage(
@@ -267,7 +252,7 @@ export class ChapterNarrationService {
         if (updated === 0) {
           this.logger.warn(
             `Chapter ${chapterId} was modified during processing, skipping update`,
-            { context: ChapterNarrationService.name, correlationId },
+            { context: ChapterNarrationService.name },
           );
           return;
         }
@@ -286,7 +271,7 @@ export class ChapterNarrationService {
 
         this.logger.log(
           `Successfully generated narration for chapter ${chapterId}`,
-          { context: ChapterNarrationService.name, correlationId },
+          { context: ChapterNarrationService.name },
         );
       } catch (error) {
         // Check if this error is from a force-regenerate cancellation
@@ -298,7 +283,7 @@ export class ChapterNarrationService {
 
           this.logger.debug(
             `TTS generation for chapter ${chapterId} was intentionally cancelled (force-regenerate takeover)`,
-            { context: ChapterNarrationService.name, correlationId },
+            { context: ChapterNarrationService.name },
           );
 
           return; // Don't mark as FAILED; new generation is taking over
@@ -308,11 +293,7 @@ export class ChapterNarrationService {
           error instanceof Error ? error.message : String(error);
         this.logger.error(
           `Failed to generate narration for chapter ${chapterId}: ${errorMessage}`,
-          {
-            context: ChapterNarrationService.name,
-            error,
-            correlationId,
-          },
+          { context: ChapterNarrationService.name, error },
         );
 
         // Mark as failed in DB
@@ -341,7 +322,7 @@ export class ChapterNarrationService {
         // Always release lock
         await this.narrationLockService.release(lockKey, token);
       }
-    })();
+    });
   }
 
   /**
@@ -351,7 +332,6 @@ export class ChapterNarrationService {
   private async callTtsService(
     content: string,
     chapterId: string,
-    correlationId: string,
   ): Promise<Readable> {
     /** @description Time to First Byte/headers (30 seconds) */
     const TTFB_TIMEOUT_MS = 30_000;
@@ -379,7 +359,6 @@ export class ChapterNarrationService {
         this.appConfig.TTS_ENDPOINT,
         { text: content },
         {
-          headers: { 'correlation-id': correlationId },
           responseType: 'stream',
           timeout: 0,
           signal: controller.signal,
@@ -423,7 +402,7 @@ export class ChapterNarrationService {
 
       this.logger.log(
         `TTS request initiated for chapter ${chapterId}`,
-        { context: ChapterNarrationService.name, correlationId },
+        { context: ChapterNarrationService.name },
       );
 
       return stream;
@@ -435,11 +414,7 @@ export class ChapterNarrationService {
         error instanceof Error ? error.message : String(error);
       this.logger.error(
         `Failed to call TTS service for chapter ${chapterId}: ${errorMessage}`,
-        {
-          context: ChapterNarrationService.name,
-          error,
-          correlationId,
-        },
+        { context: ChapterNarrationService.name, error },
       );
 
       throw error;
@@ -461,7 +436,6 @@ export class ChapterNarrationService {
       objectKey,
       this.appConfig.OBJECT_STORAGE_BUCKET,
       this.logger,
-      this.correlationIdService,
       ChecksumAlgorithm.CRC32,
     );
 

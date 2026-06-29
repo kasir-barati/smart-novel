@@ -1,7 +1,4 @@
-import {
-  CorrelationIdService,
-  CustomLoggerService,
-} from 'nestjs-backend-common';
+import { CustomLoggerService } from 'nestjs-backend-common';
 
 import { CacheService } from './cache.service';
 import { RedisService } from './redis.service';
@@ -10,18 +7,12 @@ describe(CacheService.name, () => {
   let uut: CacheService<string>;
   let redisService: RedisService;
   let logger: CustomLoggerService;
-  let correlationIdService: CorrelationIdService;
 
   beforeEach(() => {
     redisService = { get: vi.fn() } as any;
     logger = { log: vi.fn() } as any;
-    correlationIdService = {} as CorrelationIdService;
 
-    uut = new CacheService(
-      redisService,
-      logger,
-      correlationIdService,
-    );
+    uut = new CacheService(redisService, logger);
   });
 
   it('should invalidate the cache key', async () => {

@@ -413,12 +413,13 @@ services:
       start_period: 45s
 
   tts:
-    image: 9109679196/piper-tts-rest-api:2.3.1
+    image: 9109679196/piper-tts-rest-api:3.0.0
     user: "1000:1000"
     environment:
       PIPER_MODEL: /app/models/en_US-lessac-medium.onnx
       PORT: 3000
       LOGGING_MODE: "JSON"
+      NODE_ENV: "production"
       OTEL_ENABLED: ${OTEL_ENABLED}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
       SERVICE_NAME: piper-tts-rest-api

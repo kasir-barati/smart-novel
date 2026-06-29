@@ -10,7 +10,6 @@ describe(LlmService.name, () => {
   let uut: LlmService;
   let appConfigs: AppConfig;
   let logger: any;
-  let correlationIdService: any;
   let cacheService: CacheService<ExplainWordPromptResponse>;
 
   beforeEach(() => {
@@ -26,9 +25,6 @@ describe(LlmService.name, () => {
       log: vi.fn(),
       warn: vi.fn(),
     };
-    correlationIdService = {
-      correlationId: 'fd2914ad-4789-4ac2-a7a5-d97c7806294f',
-    };
     cacheService = {
       getOrCompute: vi.fn(
         async (_cacheKey: string, compute: () => Promise<any>) => {
@@ -42,12 +38,7 @@ describe(LlmService.name, () => {
       ),
     } as any;
 
-    uut = new LlmService(
-      appConfigs,
-      logger,
-      correlationIdService,
-      cacheService,
-    );
+    uut = new LlmService(appConfigs, logger, cacheService);
   });
 
   it('should throw an error when it cannot parse the response', async () => {

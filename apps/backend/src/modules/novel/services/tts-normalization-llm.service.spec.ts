@@ -1,8 +1,5 @@
 import type { ConfigType } from '@nestjs/config';
-import type {
-  CorrelationIdService,
-  CustomLoggerService,
-} from 'nestjs-backend-common';
+import type { CustomLoggerService } from 'nestjs-backend-common';
 
 import axios from 'axios';
 
@@ -16,7 +13,6 @@ describe(TtsNormalizationLlmService.name, () => {
   let uut: TtsNormalizationLlmService;
   let appConfig: ConfigType<typeof appConfigs>;
   let logger: CustomLoggerService;
-  let correlationIdService: CorrelationIdService;
 
   beforeEach(() => {
     appConfig = {
@@ -29,15 +25,8 @@ describe(TtsNormalizationLlmService.name, () => {
       warn: vi.fn(),
       error: vi.fn(),
     } as any;
-    correlationIdService = {
-      correlationId: 'test-correlation-id',
-    } as any;
 
-    uut = new TtsNormalizationLlmService(
-      appConfig,
-      logger,
-      correlationIdService,
-    );
+    uut = new TtsNormalizationLlmService(appConfig, logger);
   });
 
   afterEach(() => {

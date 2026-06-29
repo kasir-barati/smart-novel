@@ -5,15 +5,13 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { GraphQLModule } from '@nestjs/graphql';
 import depthLimit from 'graphql-depth-limit';
-import {
-  CorrelationIdModule,
-  LoggerModule,
-} from 'nestjs-backend-common';
+import { LoggerModule } from 'nestjs-backend-common';
 import { ClsModule } from 'nestjs-cls';
 import { OpenTelemetryModule } from 'nestjs-otel';
 
 import {
   AuthModule,
+  BackgroundRunnerModule,
   LlmModule,
   NovelModule,
   ObjectStorageModule,
@@ -38,9 +36,6 @@ import {
     ClsModule.forRoot({
       global: true,
       middleware: { mount: true },
-    }),
-    CorrelationIdModule.forRoot({
-      global: true,
     }),
     ConfigModule.forRoot({
       isGlobal: true,
@@ -68,6 +63,7 @@ import {
     }),
     PrismaModule,
     OpenTelemetryModule.forRoot(),
+    BackgroundRunnerModule,
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: true,

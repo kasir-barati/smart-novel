@@ -1,7 +1,6 @@
 import { NarrationStatus } from '@prisma/client';
 import axios from 'axios';
 import { createClient } from 'graphql-ws';
-import { CORRELATION_ID_HEADER_NAME } from 'nestjs-backend-common';
 import { WebSocket } from 'ws';
 
 import { AuthorizationFixture } from '../../support';
@@ -56,7 +55,8 @@ describe('Chapter Narration (e2e)', () => {
     await fixture.prepareTtsFriendlyContent(NOVEL_ID, chapterId);
     await fixture.generateChapterAudio(chapterId);
     await new Promise((resolve) => setTimeout(resolve, 12_000)); // 12 seconds
-    const correlationId = '23cf8ec5-17ce-4ae4-90be-baea23f9712c';
+    const { traceparent, traceId } =
+      ChapterNarrationFixture.generateTraceparent();
     const authorizationHeader =
       await AuthorizationFixture.getWriterAuthorizationHeader();
 
@@ -77,22 +77,20 @@ describe('Chapter Narration (e2e)', () => {
       },
       {
         headers: {
-          [CORRELATION_ID_HEADER_NAME]: correlationId,
+          traceparent,
           Authorization: authorizationHeader,
         },
       },
     );
 
     expect(res.status).toBe(200);
-    await fixture.thenTtsCalledOnceWith(correlationId);
+    await fixture.thenTtsCalledOnceWith(traceId);
   }, 180_000);
 
   it('should NOT call TTS service twice for the same chapter', async () => {
     await fixture.prepareTtsFriendlyContent(NOVEL_ID, CHAPTER_TWO_ID);
-    const firstCallCorrelationId =
-      '10a69005-8176-4b76-ae4b-c268777699d0';
-    const secondCallCorrelationId =
-      '1b30a878-654d-4ee7-9d06-007c9376f29a';
+    const firstCall = ChapterNarrationFixture.generateTraceparent();
+    const secondCall = ChapterNarrationFixture.generateTraceparent();
     const authorizationHeader =
       await AuthorizationFixture.getWriterAuthorizationHeader();
     await axios.post(
@@ -111,13 +109,13 @@ describe('Chapter Narration (e2e)', () => {
       },
       {
         headers: {
-          [CORRELATION_ID_HEADER_NAME]: firstCallCorrelationId,
+          traceparent: firstCall.traceparent,
           Authorization: authorizationHeader,
         },
       },
     );
 
-    // Act: Query chapter status with second correlation ID
+    // Act: Query chapter status with a different trace
     await axios.post(
       '/graphql',
       {
@@ -134,14 +132,14 @@ describe('Chapter Narration (e2e)', () => {
       },
       {
         headers: {
-          [CORRELATION_ID_HEADER_NAME]: secondCallCorrelationId,
+          traceparent: secondCall.traceparent,
           Authorization: authorizationHeader,
         },
       },
     );
 
-    await fixture.thenTtsCalledOnceWith(firstCallCorrelationId);
-    await fixture.thenTtsNotCalledWith(secondCallCorrelationId);
+    await fixture.thenTtsCalledOnceWith(firstCall.traceId);
+    await fixture.thenTtsNotCalledWith(secondCall.traceId);
   }, 150_000);
 
   it('should return the narration URL', async () => {

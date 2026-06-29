@@ -14,9 +14,6 @@ describe(UploaderService.name, () => {
   const filename = 'file.txt';
   const objectKey = 'path/file.txt';
   const bucketName = 'bucket';
-  const correlationIdService = {
-    correlationId: '5903cba5-7066-4ff4-a619-4b5c84d77dff',
-  } as any;
   const logger = { verbose: vi.fn() } as any;
 
   beforeEach(() => {
@@ -33,7 +30,6 @@ describe(UploaderService.name, () => {
       objectKey,
       bucketName,
       logger,
-      correlationIdService,
       undefined, // checksumAlgorithm not set
     );
 
@@ -74,7 +70,6 @@ describe(UploaderService.name, () => {
       objectKey,
       bucketName,
       logger,
-      correlationIdService,
       checksumAlgorithm,
     );
     const data = new Uint8Array([9, 9, 9]);
@@ -118,7 +113,6 @@ describe(UploaderService.name, () => {
       objectKey,
       bucketName,
       logger,
-      correlationIdService,
       undefined, // <= IMPORTANT: no checksumAlgorithm
     );
     const bigChunk = new Uint8Array(5 * 1024 * 1024 + 1);
@@ -218,7 +212,6 @@ describe(UploaderService.name, () => {
       objectKey,
       bucketName,
       logger,
-      correlationIdService,
       checksumAlgorithm,
     );
     const bigChunk = new Uint8Array(5 * 1024 * 1024 + 1);
@@ -301,7 +294,6 @@ describe(UploaderService.name, () => {
       objectKey,
       bucketName,
       logger,
-      correlationIdService,
     );
 
     await uut.abortUpload();
@@ -322,7 +314,6 @@ describe(UploaderService.name, () => {
       objectKey,
       bucketName,
       logger,
-      correlationIdService,
     );
     const big = new Uint8Array(5 * 1024 * 1024 + 1);
     await uut.upload(big, false); // not last, but big enough => create + uploadPart
@@ -353,7 +344,6 @@ describe(UploaderService.name, () => {
       objectKey,
       bucketName,
       logger,
-      correlationIdService,
     );
     const big = new Uint8Array(5 * 1024 * 1024 + 1);
 

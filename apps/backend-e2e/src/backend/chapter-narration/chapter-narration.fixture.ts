@@ -2,6 +2,7 @@ import { NarrationStatus } from '@prisma/client';
 import axios from 'axios';
 import { retryAsync } from 'nestjs-backend-common';
 import { execSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 
 import { AuthorizationFixture } from '../../support';
@@ -12,11 +13,14 @@ interface TtsLogEntry {
   service: string;
   message: string;
   context: string;
-  correlationId?: string;
   method?: string;
   url?: string;
   statusCode?: number;
   duration?: number;
+  headers?: {
+    traceparent?: string;
+    [key: string]: string | undefined;
+  };
 }
 
 export class ChapterNarrationFixture {
@@ -175,17 +179,33 @@ export class ChapterNarrationFixture {
   }
 
   /**
-   * Asserts that a correlation ID appears exactly once in TTS logs
+   * Generates a W3C `traceparent` header value with a fresh trace_id and span_id (version `00`, sampled flag set).
+   *
+   * Use the returned `traceId` to assert which TTS calls were triggered by this request.
    */
-  async thenTtsCalledOnceWith(correlationId: string) {
+  static generateTraceparent(): {
+    traceparent: string;
+    traceId: string;
+  } {
+    const traceId = randomBytes(16).toString('hex');
+    const spanId = randomBytes(8).toString('hex');
+    const traceparent = `00-${traceId}-${spanId}-01`;
+
+    return { traceparent, traceId };
+  }
+
+  /**
+   * Asserts that a trace ID appears exactly once in TTS logs.
+   */
+  async thenTtsCalledOnceWith(traceId: string) {
     const maxAttempts = 10;
     const delayMs = 500;
     let count = 0;
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const logs = await this.getTtsLogs();
-      const counts = await this.getCorrelationIdCounts(logs);
-      count = counts.get(correlationId) || 0;
+      const counts = this.getTraceIdCounts(logs);
+      count = counts.get(traceId) || 0;
 
       if (count === 1) {
         break; // 👈 found it — short-circuit to keep tests fast on the happy path
@@ -202,23 +222,21 @@ export class ChapterNarrationFixture {
   }
 
   /**
-   * Asserts that a correlation ID does NOT appear in TTS logs
+   * Asserts that a trace ID does NOT appear in TTS logs.
    */
-  async thenTtsNotCalledWith(correlationId: string) {
+  async thenTtsNotCalledWith(traceId: string) {
     const logs = await this.getTtsLogs();
-    const counts = await this.getCorrelationIdCounts(logs);
-    const count = counts.get(correlationId) || 0;
+    const counts = this.getTraceIdCounts(logs);
+    const count = counts.get(traceId) || 0;
 
     expect(count).toBe(0);
   }
 
-  private async getCorrelationIdCounts(
-    logs: TtsLogEntry[],
-  ): Promise<Map<string, number>> {
-    const correlationIds = this.extractCorrelationIds(logs);
+  private getTraceIdCounts(logs: TtsLogEntry[]): Map<string, number> {
+    const traceIds = this.extractTraceIds(logs);
     const counts = new Map<string, number>();
 
-    for (const id of correlationIds) {
+    for (const id of traceIds) {
       counts.set(id, (counts.get(id) || 0) + 1);
     }
 
@@ -226,17 +244,37 @@ export class ChapterNarrationFixture {
   }
 
   /**
-   * Extract correlation IDs from TTS request logs
+   * Extract trace IDs from TTS request logs by parsing the `traceparent` header on each `Incoming POST /speak` entry.
    */
-  private extractCorrelationIds(entries: TtsLogEntry[]): string[] {
+  private extractTraceIds(entries: TtsLogEntry[]): string[] {
     return entries
       .filter(
         (entry) =>
-          entry.correlationId &&
+          entry.headers?.traceparent &&
           entry.message?.includes('Incoming POST') &&
           entry.url === '/speak',
       )
-      .map((entry) => entry.correlationId as string);
+      .map((entry) =>
+        ChapterNarrationFixture.traceIdFromTraceparent(
+          entry.headers!.traceparent!,
+        ),
+      )
+      .filter((id): id is string => id !== null);
+  }
+
+  /**
+   * Parses the trace_id (middle segment) out of a W3C traceparent header.
+   */
+  private static traceIdFromTraceparent(
+    traceparent: string,
+  ): string | null {
+    const parts = traceparent.split('-');
+
+    if (parts.length !== 4 || parts[1].length !== 32) {
+      return null;
+    }
+
+    return parts[1];
   }
 
   /**
