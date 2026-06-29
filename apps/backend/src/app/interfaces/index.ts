@@ -100,4 +100,44 @@ export interface AppConfig {
    * @default 3600
    */
   SESSION_DURATION: number;
+  /**
+   * @description Service name.
+   */
+  SERVICE_NAME: string;
+  /**
+   * @description Toggle OpenTelemetry. When `'false'` the SDK is never started
+   * and the app runs with zero OTel overhead. Default in dev: `'true'`.
+   */
+  OTEL_ENABLED?: 'true' | 'false';
+  /**
+   * @description OTLP HTTP endpoint of the OpenTelemetry Collector.
+   * @example `http://otel-collector:4318`
+   */
+  OTEL_EXPORTER_OTLP_ENDPOINT?: string;
+  /**
+   * @description Head sampler name. See OTel spec.
+   * @example `parentbased_traceidratio`
+   */
+  OTEL_TRACES_SAMPLER?: string;
+  /**
+   * @description Argument for the head sampler — for ratio samplers this is the keep-ratio between 0 and 1.
+   * @example `'1.0'` in dev, `'0.05'` in prod.
+   */
+  OTEL_TRACES_SAMPLER_ARG?: string;
+  /**
+   * @description Max spans held in the in-memory queue waiting to be exported. Spans beyond this cap are dropped (with a diag warning) — acts as a back-pressure safety valve if the collector is slow/unreachable.
+   */
+  OTEL_BATCH_MAX_PENDING_SPANS?: string;
+  /**
+   * @description Max spans sent in a single export request. The processor flushes immediately once the queue reaches this size, regardless of the scheduled delay. Smaller = more frequent, smaller payloads.
+   */
+  OTEL_BATCH_SPANS_PER_EXPORT?: string;
+  /**
+   * @description Interval at which the processor wakes up and flushes whatever is currently queued, even if `maxExportBatchSize` hasn't been reached. Trade-off: lower = fresher data in the backend, higher = fewer HTTP round-trips.
+   */
+  OTEL_BATCH_FLUSH_INTERVAL_MS?: string;
+  /**
+   * @description Hard deadline for a single export call to the OTLP endpoint. If the collector doesn't respond within this window the export is aborted and the spans in that batch are dropped (not retried).
+   */
+  OTEL_BATCH_EXPORT_TIMEOUT_MS?: string;
 }

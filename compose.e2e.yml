@@ -16,6 +16,8 @@ services:
       args:
         PORT: $BACKEND_PORT
         DATABASE_URL: ${DATABASE_URL}
+    environment:
+      OLLAMA_RETRY_COUNT: 1
     volumes:
       - zitadel-pat:/zitadel-pat:ro
 

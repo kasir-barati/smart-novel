@@ -178,9 +178,25 @@ export class ChapterNarrationFixture {
    * Asserts that a correlation ID appears exactly once in TTS logs
    */
   async thenTtsCalledOnceWith(correlationId: string) {
-    const logs = await this.getTtsLogs();
-    const counts = await this.getCorrelationIdCounts(logs);
-    const count = counts.get(correlationId) || 0;
+    const maxAttempts = 10;
+    const delayMs = 500;
+    let count = 0;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const logs = await this.getTtsLogs();
+      const counts = await this.getCorrelationIdCounts(logs);
+      count = counts.get(correlationId) || 0;
+
+      if (count === 1) {
+        break; // 👈 found it — short-circuit to keep tests fast on the happy path
+      }
+
+      if (count > 1) {
+        break; // 👈 already over — no point waiting; let expect() fail with a useful diff
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
 
     expect(count).toBe(1);
   }
@@ -232,7 +248,7 @@ export class ChapterNarrationFixture {
     const [error, rawLogs] = await retryAsync(
       async () =>
         execSync(
-          `docker compose logs tts --since ${sinceTime} --no-log-prefix`,
+          `docker compose --profile backend-e2e logs tts --since ${sinceTime} --no-log-prefix`,
           {
             cwd: this.workspaceRoot,
             encoding: 'utf-8',

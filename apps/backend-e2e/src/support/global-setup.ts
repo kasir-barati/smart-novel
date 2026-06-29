@@ -1,4 +1,4 @@
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { DockerFixture } from './docker.fixture';
@@ -11,6 +11,8 @@ const workspaceRoot = resolve(__dirname, '../../../../');
 
 export default async function setup() {
   Logger.section('Setting up Vitest globally');
+  Logger.log('Cleaning up previous logs...');
+  rmSync('local-setup/logs', { recursive: true, force: true });
   Logger.log('Starting Docker Compose services...');
   DockerFixture.startCompose(workspaceRoot, 'backend-e2e');
   await import('./config.helper.js');
@@ -40,6 +42,11 @@ export default async function setup() {
       workspaceRoot,
       'backend-e2e',
       'local-setup/logs/backend.log',
+    );
+    DockerFixture.persistLogs(
+      workspaceRoot,
+      'tts',
+      'local-setup/logs/tts.log',
     );
     DockerFixture.stopCompose(workspaceRoot);
     DockerFixture.cleanup();

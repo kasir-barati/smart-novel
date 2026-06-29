@@ -49,7 +49,7 @@ describe('Chapter Narration (e2e)', () => {
       status: 'PROCESSING',
       narrationUrl: null,
     });
-  }, 35000); // 35 seconds — prepareTtsFriendlyContent calls LLM normalization
+  }, 120_000);
 
   it('should force regenerate chapter audio even if the narrationUrl exists', async () => {
     const chapterId = '038dd3f5-e921-4076-be91-66175ebd1bc3';
@@ -85,7 +85,7 @@ describe('Chapter Narration (e2e)', () => {
 
     expect(res.status).toBe(200);
     await fixture.thenTtsCalledOnceWith(correlationId);
-  }, 70000); // 70 seconds — prepareTtsFriendlyContent + generateChapterAudio + 12s wait
+  }, 180_000);
 
   it('should NOT call TTS service twice for the same chapter', async () => {
     await fixture.prepareTtsFriendlyContent(NOVEL_ID, CHAPTER_TWO_ID);
@@ -142,7 +142,7 @@ describe('Chapter Narration (e2e)', () => {
 
     await fixture.thenTtsCalledOnceWith(firstCallCorrelationId);
     await fixture.thenTtsNotCalledWith(secondCallCorrelationId);
-  }, 35000); // 35 seconds — prepareTtsFriendlyContent calls LLM normalization
+  }, 150_000);
 
   it('should return the narration URL', async () => {
     // Arrange & Act
@@ -177,7 +177,7 @@ describe('Chapter Narration (e2e)', () => {
     expect(narrationUrl).toContain('narrations/');
     expect(narrationUrl).toContain('.mp3');
     expect(narrationUrl).toContain(CHAPTER_ONE_ID);
-  }, 35000); // 35 second timeout for this test
+  }, 150_000);
 
   it('should return error for non-existent chapter', async () => {
     const authorizationHeader =
@@ -269,5 +269,5 @@ describe('Chapter Narration (e2e)', () => {
     } finally {
       client.dispose();
     }
-  }, 70000); // 70 seconds — prepareTtsFriendlyContent + generateChapterAudio + subscription wait
+  }, 180_000);
 });

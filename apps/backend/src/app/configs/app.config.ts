@@ -64,13 +64,13 @@ class EnvironmentVariables implements AppConfig {
   LOG_MODE: LogMode;
 
   @IsIn([
-    'debug',
-    'error',
-    'http',
-    'info',
-    'silly',
-    'verbose',
-    'warn',
+    'error', // 0
+    'warn', // 1
+    'info', // 2
+    'http', // 3
+    'verbose', // 4
+    'debug', // 5
+    'silly', // 6
   ])
   LOG_LEVEL: LogLevel;
 
@@ -181,4 +181,39 @@ class EnvironmentVariables implements AppConfig {
 
   @IsInt()
   SESSION_DURATION: number;
+
+  @IsString()
+  SERVICE_NAME = 'smart-novel-backend';
+
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  OTEL_ENABLED?: 'true' | 'false';
+
+  @IsOptional()
+  @IsString()
+  OTEL_EXPORTER_OTLP_ENDPOINT?: string;
+
+  @IsOptional()
+  @IsString()
+  OTEL_TRACES_SAMPLER?: string;
+
+  @IsOptional()
+  @IsString()
+  OTEL_TRACES_SAMPLER_ARG?: string;
+
+  @IsOptional()
+  @IsString()
+  OTEL_BATCH_EXPORT_TIMEOUT_MS?: string;
+
+  @IsOptional()
+  @IsString()
+  OTEL_BATCH_FLUSH_INTERVAL_MS?: string;
+
+  @IsOptional()
+  @IsString()
+  OTEL_BATCH_SPANS_PER_EXPORT?: string;
+
+  @IsOptional()
+  @IsString()
+  OTEL_BATCH_MAX_PENDING_SPANS?: string;
 }

@@ -2,6 +2,7 @@ import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { GraphQLModule } from '@nestjs/graphql';
 import depthLimit from 'graphql-depth-limit';
 import {
@@ -9,6 +10,7 @@ import {
   LoggerModule,
 } from 'nestjs-backend-common';
 import { ClsModule } from 'nestjs-cls';
+import { OpenTelemetryModule } from 'nestjs-otel';
 
 import {
   AuthModule,
@@ -18,6 +20,10 @@ import {
   PrismaModule,
   RedisModule,
 } from '../modules';
+import {
+  graphqlSpanRenamePlugin,
+  TraceIdInterceptor,
+} from '../shared';
 import { AppResolver } from './app.resolver';
 import {
   appConfigs,
@@ -61,11 +67,15 @@ import {
       useClass: AuthModuleConfig,
     }),
     PrismaModule,
+    OpenTelemetryModule.forRoot(),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: true,
       playground: false,
-      plugins: [ApolloServerPluginLandingPageLocalDefault()],
+      plugins: [
+        ApolloServerPluginLandingPageLocalDefault(),
+        graphqlSpanRenamePlugin(),
+      ],
       validationRules: [depthLimit(7)],
       subscriptions: {
         'graphql-ws': true,
@@ -74,6 +84,9 @@ import {
     NovelModule,
     LlmModule,
   ],
-  providers: [AppResolver],
+  providers: [
+    AppResolver,
+    { provide: APP_INTERCEPTOR, useClass: TraceIdInterceptor },
+  ],
 })
 export class AppModule {}

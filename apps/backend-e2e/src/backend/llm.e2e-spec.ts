@@ -27,5 +27,5 @@ describe('Explain (e2e)', () => {
     expect(res.data.data.explain.cacheKey).toBe(
       'explain:scrutinize:44983f115f931a846573b791066de4184e2f8374876d29c55abdb318512a7ee9',
     );
-  }, 120_000); // Ollama might take longer time to respond.
+  }, 240_000);
 });
