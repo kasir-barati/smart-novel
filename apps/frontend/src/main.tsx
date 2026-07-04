@@ -1,3 +1,5 @@
+import './instrumentation';
+
 import {
   QueryClient,
   QueryClientProvider,

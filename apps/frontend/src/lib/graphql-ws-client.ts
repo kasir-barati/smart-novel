@@ -1,3 +1,4 @@
+import { context, propagation } from '@opentelemetry/api';
 import { createClient } from 'graphql-ws';
 
 function getWsUrl(): string {
@@ -23,4 +24,12 @@ export const wsClient = createClient({
   lazy: true,
   // Auto-reconnect on connection loss
   retryAttempts: 5,
+  // `connectionParams` is evaluated on every connection attempt, so the W3C `traceparent`/`baggage` headers are injected from the currently-active OTel context. The server-side `graphql-ws` plugin reads them out of `connectionParams` and continues the trace.
+  connectionParams: () => {
+    const carrier: Record<string, string> = {};
+
+    propagation.inject(context.active(), carrier);
+
+    return carrier;
+  },
 });

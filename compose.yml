@@ -99,11 +99,17 @@ services:
       args:
         FRONTEND_PORT: $FRONTEND_PORT
         VITE_SERVICE_URL: $VITE_SERVICE_URL
+        VITE_OTLP_ENDPOINT: $VITE_OTLP_ENDPOINT
+        VITE_SERVICE_NAME: $VITE_SERVICE_NAME
+        VITE_SERVICE_VERSION: $VITE_SERVICE_VERSION
     environment:
       VITE_OIDC_SCOPE: ${VITE_OIDC_SCOPE}
       VITE_SERVICE_URL: ${VITE_SERVICE_URL}
       VITE_OIDC_AUTHORITY: ${VITE_OIDC_AUTHORITY}
       VITE_OIDC_REDIRECT_URI: ${VITE_OIDC_REDIRECT_URI}
+      VITE_OTLP_ENDPOINT: ${VITE_OTLP_ENDPOINT}
+      VITE_SERVICE_NAME: ${VITE_SERVICE_NAME}
+      VITE_SERVICE_VERSION: ${VITE_SERVICE_VERSION}
       VITE_EXPLAIN_CONTEXT_CHAR_SIZE: ${EXPLAIN_CONTEXT_CHAR_SIZE}
       VITE_EXPLAIN_RATE_CAPACITY: 12
       VITE_EXPLAIN_CACHE_MAX_ENTRIES: 12
@@ -448,6 +454,18 @@ services:
     ports:
       - 4318:4318 # OTLP HTTP -- Apps point OTEL_EXPORTER_OTLP_ENDPOINT here
       - 4317:4317 # OTLP gRPC -- Apps push traces via gRPC to this port
+    networks:
+      - proxy
+      - default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.services.otel-collector.loadbalancer.server.port=4318
+      # Browser-originated OTLP/HTTP exports — same-origin (port 8080) so no CORS preflight is needed.
+      - traefik.http.routers.otel-collector-web.rule=PathPrefix(`/v1/traces`)
+      - traefik.http.routers.otel-collector-web.entrypoints=web
+      - traefik.http.routers.otel-collector-web.service=otel-collector
+      - traefik.http.routers.otel-collector-web.priority=300
 
   otel-healthcheck:
     image: busybox:1.37
