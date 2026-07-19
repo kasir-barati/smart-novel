@@ -11,53 +11,26 @@ import type {
   ThematicBreak,
 } from 'mdast';
 
-import { Injectable, Optional } from '@nestjs/common';
-import {
-  isArray,
-  isNotEmpty,
-  isNotEmptyObject,
-  isObject,
-} from 'class-validator';
+import { Injectable } from '@nestjs/common';
+import { isArray, isNotEmptyObject, isObject } from 'class-validator';
 import { CustomLoggerService, isNil } from 'nestjs-backend-common';
 import remarkGfm from 'remark-gfm';
 import remarkParse from 'remark-parse';
 import { unified } from 'unified';
 import { SKIP, visit } from 'unist-util-visit';
 
-import { TtsNormalizationLlmService } from './tts-normalization-llm.service';
+import { LlmClient } from '../../llm';
 
-export interface TtsOptions {
+interface TtsOptions {
   /** @description when true, append the URL after link text, e.g., "(link: https://...)" */
   includeLinkUrls?: boolean;
 }
 
-/**
- * @description Maximum number of identical consecutive letters before
- * the excess is trimmed (e.g. "ahhhhhh" → "ahh").
- */
-const MAX_CONSECUTIVE_LETTERS = 2;
-
-/**
- * @description When a word or phrase repeats more than this many times
- * in a row, the surplus repetitions are collapsed.
- */
-const MAX_REPETITIONS = 3;
-
-/**
- * @description Converts any text into TTS-friendly plain text for Piper (or similar).
- *
- * Provides two main capabilities:
- * 1. {@link toSpeechText} — parses Markdown AST and emits plain text.
- * 2. {@link normalizeTtsText} — applies regex-based normalizations
- *    for manga / web-novel prose (stutters, onomatopoeia, etc.).
- */
 @Injectable()
 export class TtsTextService {
   constructor(
-    @Optional()
-    private readonly llmService?: TtsNormalizationLlmService,
-    @Optional()
-    private readonly logger?: CustomLoggerService,
+    private readonly llmClient: LlmClient,
+    private readonly logger: CustomLoggerService,
   ) {}
 
   async toSpeechText(
@@ -74,36 +47,21 @@ export class TtsTextService {
   }
 
   /**
-   * @description Hybrid normalization pipeline:
+   * @description Normalization pipeline:
    *
-   * 1. **Regex safe pass** — applies deterministic, structural transformations that cannot change meaning (tilde stripping, letter collapsing, dot collapsing, ALL-CAPS lowercasing, bracket-skill replacement).
-   * 2. **LLM pass** — delegates semantic normalization (interjections, stutters, silent dialogue, repeated words/phrases) to Ollama.
-   * 3. **Fallback** — if the LLM is unavailable or returns bad output, the full regex pipeline is used instead.
+   * Applies a deterministic structural regex pass first (safe transforms that cannot change meaning), then delegates the remaining semantic normalization to Beatrice.
    */
   async normalizeTtsText(text: string): Promise<string> {
-    // Phase 1: deterministic structural cleanup (always runs)
     const safeResult = this.regexSafePass(text);
 
-    // Phase 2: try LLM for semantic normalization
-    if (isNotEmpty(this.llmService)) {
-      const llmResult = await this.llmService!.normalize(safeResult);
+    const { normalizeTextForTts } =
+      await this.llmClient.normalizeTextForTts(safeResult);
 
-      if (llmResult) {
-        this.logger?.log('LLM TTS normalization succeeded', {
-          context: TtsTextService.name,
-        });
+    this.logger.log('LLM TTS normalization succeeded', {
+      context: TtsTextService.name,
+    });
 
-        return llmResult;
-      }
-
-      this.logger?.warn(
-        'LLM TTS normalization returned null — falling back to regex pipeline',
-        { context: TtsTextService.name },
-      );
-    }
-
-    // Phase 3: full regex fallback (semantic transforms included)
-    return this.regexFullNormalize(safeResult);
+    return normalizeTextForTts;
   }
 
   /**
@@ -122,47 +80,23 @@ export class TtsTextService {
   }
 
   /**
-   * @description Applies the remaining semantic regex transformations on top of the safe pass. Used as fallback when LLM is unavailable.
-   */
-  private regexFullNormalize(safePassResult: string): string {
-    let result = safePassResult;
-
-    result = this.replaceSilentDialogue(result);
-    result = this.expandStutters(result);
-    result = this.collapseRepeatedWords(result);
-    result = this.collapseRepeatedPhrases(result);
-
-    return result;
-  }
-
-  /**
-   * @description Converts silent / confused dialogue in quotes.
-   * `"....."` → `...`  and  `"...?"` → `hmm?`
-   */
-  private replaceSilentDialogue(text: string): string {
-    return text.replace(
-      /"(\.{2,})(\?+)?"/g,
-      (_match, _dots: string, questions: string | undefined) => {
-        return questions ? 'hmm?' : '...';
-      },
-    );
-  }
-
-  /**
-   * @description Removes tildes used as elongation markers after word
-   * characters — common in manga / light novels.
-   * `"ahhh~"` → `"ahhh"`,  `"oooh~!"` → `"oooh!"`
+   * @description Removes tildes used as elongation markers after word characters.
+   * @example `"ahhh~"` → `"ahhh"`,  `"oooh~!"` → `"oooh!"`
    */
   private stripElongationTildes(text: string): string {
     return text.replace(/(\w)~(?=\s|[!?.,;:'")\]]|$)/g, '$1');
   }
 
   /**
-   * @description Collapses 3 or more identical consecutive letters
-   * down to {@link MAX_CONSECUTIVE_LETTERS}.
-   * `"ahhhhhh"` → `"ahh"`,  `"CRAAAACK"` → `"CRAACK"`
+   * @description Collapses 3 or more identical consecutive letters down to 2
+   * @example `"ahhhhhh"` → `"ahh"`,  `"CRAAAACK"` → `"CRAACK"`
    */
   private collapseRepeatedLetters(text: string): string {
+    /**
+     * @description Maximum number of identical consecutive letters before the excess is trimmed (e.g. "ahhhhhh" → "ahh").
+     */
+    const MAX_CONSECUTIVE_LETTERS = 2 as const;
+
     return text.replace(
       /([a-zA-Z])\1{2,}/g,
       (_match, letter: string) => {
@@ -173,16 +107,15 @@ export class TtsTextService {
 
   /**
    * @description Collapses 4 or more consecutive dots down to `"..."`.
-   * `"......"` → `"..."`
+   * @example `"......"` → `"..."`
    */
   private collapseExcessiveDots(text: string): string {
     return text.replace(/\.{4,}/g, '...');
   }
 
   /**
-   * @description Converts fully-uppercase words (2+ chars) to
-   * lowercase so TTS reads them naturally instead of spelling them.
-   * `"CRACK"` → `"crack"`,  single-char `"I"` is left alone.
+   * @description Converts fully-uppercase words (2+ chars) to lowercase so TTS reads them naturally instead of spelling them, single-char `"I"` is left alone.
+   * @example `"CRACK"` → `"crack"`
    */
   private lowercaseAllCapsWords(text: string): string {
     return text.replace(/\b([A-Z]{2,})\b/g, (_match, word: string) =>
@@ -191,88 +124,14 @@ export class TtsTextService {
   }
 
   /**
-   * @description Converts stutter / hesitation patterns into a
-   * natural spoken form. The prefix before the hyphen must be a
-   * case-insensitive prefix of the word that follows — this
-   * distinguishes stutters from compound words like "well-known".
-   * `"W-What"` → `"wh... what"`,  `"well-known"` → unchanged
-   */
-  private expandStutters(text: string): string {
-    return text.replace(
-      /\b([A-Za-z]{1,3})-([A-Za-z]{2,})\b/g,
-      (_match, prefix: string, word: string) => {
-        if (!word.toLowerCase().startsWith(prefix.toLowerCase())) {
-          return _match;
-        }
-
-        return `${prefix.toLowerCase()}... ${word.toLowerCase()}`;
-      },
-    );
-  }
-
-  /**
-   * @description Replaces square-bracket and fullwidth-bracket skill
-   * / ability markers with commas so TTS reads them as a spoken pause.
-   * `"[Boost]"` → `", Boost,"`,  `"【Fireball】"` → `", Fireball,"`
+   * @description Replaces square-bracket and fullwidth-bracket markers with commas so TTS reads them as a spoken pause.
+   * @example `"[Boost]"` → `", Boost,"`,  `"【Fireball】"` → `", Fireball,"`
    */
   private replaceBracketedSkills(text: string): string {
     return text.replace(
       /[[\u3010]([^\]\u3011]+)[\]\u3011]/g,
       ', $1,',
     );
-  }
-
-  /**
-   * @description Collapses 4 or more consecutive identical single
-   * words down to {@link MAX_REPETITIONS} separated by commas.
-   * `"run run run run run run"` → `"run, run, run"`
-   */
-  private collapseRepeatedWords(text: string): string {
-    return text.replace(
-      /\b(\w+)((?:\s+\1){3,})\b/gi,
-      (_match, word: string) => {
-        return Array.from({ length: MAX_REPETITIONS })
-          .fill(word)
-          .join(', ');
-      },
-    );
-  }
-
-  /**
-   * @description Collapses 4 or more consecutive identical multi-word
-   * phrases (2–8 words) down to {@link MAX_REPETITIONS} separated by commas.
-   * Longer phrases are tried first (greedy).
-   */
-  private collapseRepeatedPhrases(text: string): string {
-    let result = text;
-
-    for (let phraseLen = 8; phraseLen >= 2; phraseLen--) {
-      const wordGroup = '(\\S+)';
-      const phrasePattern = Array.from({ length: phraseLen })
-        .fill(wordGroup)
-        .join('\\s+');
-      const backRefs = Array.from({ length: phraseLen })
-        .map((_, i) => `\\${i + 1}`)
-        .join('\\s+');
-      const repetitionPattern = `(?:\\s+${backRefs}){3,}`;
-
-      const regex = new RegExp(
-        `\\b${phrasePattern}${repetitionPattern}\\b`,
-        'gi',
-      );
-
-      result = result.replace(regex, (...args) => {
-        const words = args
-          .slice(1, phraseLen + 1)
-          .join(' ') as string;
-
-        return Array.from({ length: MAX_REPETITIONS })
-          .fill(words)
-          .join(', ');
-      });
-    }
-
-    return result;
   }
 }
 

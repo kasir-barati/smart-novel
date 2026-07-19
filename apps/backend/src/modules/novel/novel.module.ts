@@ -33,7 +33,6 @@ import {
   ChapterUserStateService,
   NarrationLockService,
   NovelService,
-  TtsNormalizationLlmService,
   TtsTextService,
 } from './services';
 
@@ -58,7 +57,6 @@ import {
     ChapterNavigationDataLoader,
     ChapterViewerStateDataLoader,
     PubSubProvider,
-    TtsNormalizationLlmService,
     TtsTextService,
     {
       provide: NOVEL_REPOSITORY,

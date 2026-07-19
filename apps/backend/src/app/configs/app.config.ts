@@ -76,26 +76,15 @@ class EnvironmentVariables implements AppConfig {
 
   @IsNotEmpty()
   @IsString()
-  OLLAMA_BASE_URL: string;
+  BEATRICE_URL: string;
 
   @IsNotEmpty()
   @IsString()
-  OLLAMA_MODEL: string;
+  BEATRICE_TIMEOUT: StringValue;
 
   @IsNotEmpty()
   @IsString()
-  OLLAMA_TIMEOUT: StringValue;
-
-  @IsNotEmpty()
-  @IsString()
-  OLLAMA_CACHE_TTL: StringValue;
-
-  @IsInt()
-  OLLAMA_RETRY_COUNT: number;
-
-  @IsNotEmpty()
-  @IsString()
-  OLLAMA_RETRY_DELAY: StringValue;
+  LLM_CACHE_TTL: StringValue;
 
   @IsNotEmpty()
   @IsString()

@@ -11,6 +11,13 @@
     }
   ],
   "compilerOptions": {
-    "strictPropertyInitialization": false
+    "strictPropertyInitialization": false,
+    "plugins": [
+      {
+        "name": "gql.tada/ts-plugin",
+        "schema": "./src/shared/beatrice/schema.graphql",
+        "tadaOutputLocation": "./src/shared/beatrice/graphql-env.d.ts"
+      }
+    ]
   }
 }

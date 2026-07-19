@@ -1,10 +1,26 @@
+import { CustomLoggerService } from 'nestjs-backend-common';
+
+import { LlmClient } from '../../llm';
 import { TtsTextService } from './tts-text.service';
 
 describe(TtsTextService.name, () => {
   let uut: TtsTextService;
+  let llmClient: LlmClient;
+  let logger: CustomLoggerService;
 
   beforeEach(async () => {
-    uut = new TtsTextService();
+    llmClient = {
+      normalizeTextForTts: vi
+        .fn()
+        .mockImplementation(async (text: string) => ({
+          normalizeTextForTts: text,
+        })),
+    } as any;
+    logger = {
+      log: vi.fn(),
+    } as any;
+
+    uut = new TtsTextService(llmClient, logger);
   });
 
   describe('toSpeechText', () => {
@@ -351,8 +367,7 @@ Visit [our website](https://example.com) for more.`;
 
         const result = await uut.toSpeechText(markdown);
 
-        // Markdown treats double space + newline as hard break, which becomes <br> in HTML
-        // The service renders it differently - it's actually a single paragraph with hard breaks
+        // Markdown treats double space + newline as hard break, which becomes <br> in HTML. The service renders it differently - it's actually a single paragraph with hard breaks
         expect(result).not.toMatch(/[ \t]+\n/);
       });
 
@@ -391,8 +406,7 @@ Visit [our website](https://example.com) for more.`;
 
         const result = await uut.toSpeechText(markdown);
 
-        // Tables are not explicitly handled by the service, so they render as empty
-        // This is expected behavior - the service focuses on narrative content
+        // Tables are NOT explicitly handled by the service, so they render as empty. This is expected behavior - the service focuses on narrative content
         expect(result).toBe('\n');
       });
 
@@ -473,405 +487,167 @@ Visit [our website](https://example.com) for more.`;
   });
 
   describe('normalizeTtsText', () => {
-    describe('silent dialogue', () => {
-      it('should convert "......" to "..."', async () => {
-        const result = await uut.normalizeTtsText('"......"');
+    it('should forward the safe-pass result to the LLM client', async () => {
+      await uut.normalizeTtsText('ahhh~ CRAAAACK [Boost]');
 
-        expect(result).toBe('...');
-      });
-
-      it('should convert "..." to "..."', async () => {
-        const result = await uut.normalizeTtsText('"..."');
-
-        expect(result).toBe('...');
-      });
-
-      it('should convert "....??" to "hmm?"', async () => {
-        const result = await uut.normalizeTtsText('"....??"');
-
-        expect(result).toBe('hmm?');
-      });
-
-      it('should convert "...?" to "hmm?"', async () => {
-        const result = await uut.normalizeTtsText('"...?"');
-
-        expect(result).toBe('hmm?');
-      });
-
-      it('should handle name before silent dialogue', async () => {
-        const result = await uut.normalizeTtsText('Alex "......"');
-
-        expect(result).toBe('Alex ...');
-      });
-
-      it('should handle name before confused dialogue', async () => {
-        const result = await uut.normalizeTtsText('Alex "....??"');
-
-        expect(result).toBe('Alex hmm?');
-      });
+      expect(llmClient.normalizeTextForTts).toHaveBeenCalledWith(
+        'ahh craack , Boost,',
+      );
     });
 
-    describe('tilde removal', () => {
-      it('should remove tilde after elongated word', async () => {
-        const result = await uut.normalizeTtsText('ahhh~');
-
-        expect(result).toBe('ahh');
+    it('should return the value produced by the LLM', async () => {
+      llmClient.normalizeTextForTts = vi.fn().mockResolvedValue({
+        normalizeTextForTts: 'polished output',
       });
 
-      it('should remove tilde before punctuation', async () => {
-        const result = await uut.normalizeTtsText('oooh~!');
+      const result = await uut.normalizeTtsText('raw input');
 
-        expect(result).toBe('ooh!');
-      });
-
-      it('should remove tilde before space', async () => {
-        const result = await uut.normalizeTtsText('ahhh~ yes');
-
-        expect(result).toBe('ahh yes');
-      });
-
-      it('should not remove tilde in the middle of text like path~name', async () => {
-        const result = await uut.normalizeTtsText('path~name');
-
-        expect(result).toBe('path~name');
-      });
+      expect(result).toBe('polished output');
     });
 
-    describe('repeated letter collapsing', () => {
-      it('should collapse "ahhhhhhhh" to "ahh"', async () => {
-        const result = await uut.normalizeTtsText('ahhhhhhhh');
+    it('should propagate errors from the LLM client', async () => {
+      llmClient.normalizeTextForTts = vi
+        .fn()
+        .mockRejectedValue(new Error('Beatrice down'));
 
-        expect(result).toBe('ahh');
-      });
-
-      it('should collapse "CRAAAACK" to "craack"', async () => {
-        const result = await uut.normalizeTtsText('CRAAAACK');
-
-        expect(result).toBe('craack');
-      });
-
-      it('should collapse "WHOOOOOSH!" to "whoosh!"', async () => {
-        const result = await uut.normalizeTtsText('WHOOOOOSH!');
-
-        expect(result).toBe('whoosh!');
-      });
-
-      it('should collapse "FWOOOOSH" to "fwoosh"', async () => {
-        const result = await uut.normalizeTtsText('FWOOOOSH');
-
-        expect(result).toBe('fwoosh');
-      });
-
-      it('should collapse "BOOOOOOM" to "boom"', async () => {
-        const result = await uut.normalizeTtsText('BOOOOOOM');
-
-        expect(result).toBe('boom');
-      });
-
-      it('should collapse "CRAAAACCKKKK" to "craacckk"', async () => {
-        const result = await uut.normalizeTtsText('CRAAAACCKKKK');
-
-        expect(result).toBe('craacckk');
-      });
-
-      it('should collapse "SLAAAAAAM" to "slaam"', async () => {
-        const result = await uut.normalizeTtsText('SLAAAAAAM');
-
-        expect(result).toBe('slaam');
-      });
-
-      it('should not collapse normal double letters like "book"', async () => {
-        const result = await uut.normalizeTtsText('book');
-
-        expect(result).toBe('book');
-      });
-
-      it('should not collapse normal double letters like "feel"', async () => {
-        const result = await uut.normalizeTtsText('feel');
-
-        expect(result).toBe('feel');
-      });
-
-      it('should collapse "whattttt" to "whatt"', async () => {
-        const result = await uut.normalizeTtsText('whattttt');
-
-        expect(result).toBe('whatt');
-      });
+      await expect(uut.normalizeTtsText('anything')).rejects.toThrow(
+        'Beatrice down',
+      );
     });
 
-    describe('excessive dots collapsing', () => {
-      it('should collapse "ahhh......" to "ahh..."', async () => {
-        const result = await uut.normalizeTtsText('ahhh......');
+    it('should log after a successful LLM call', async () => {
+      await uut.normalizeTtsText('hello');
 
-        expect(result).toBe('ahh...');
-      });
-
-      it('should leave "..." as-is', async () => {
-        const result = await uut.normalizeTtsText('wait...');
-
-        expect(result).toBe('wait...');
-      });
-
-      it('should collapse "........" to "..."', async () => {
-        const result = await uut.normalizeTtsText('hmm........');
-
-        expect(result).toBe('hmm...');
-      });
+      expect(logger.log).toHaveBeenCalledWith(
+        'LLM TTS normalization succeeded',
+        { context: TtsTextService.name },
+      );
     });
 
-    describe('ALL CAPS lowercasing', () => {
-      it('should lowercase "CRACK" to "crack"', async () => {
-        const result = await uut.normalizeTtsText('CRACK');
+    describe('safe-pass transformations', () => {
+      it.each([
+        ['ahhh~', 'ahh'],
+        ['oooh~!', 'ooh!'],
+        ['ahhh~ yes', 'ahh yes'],
+      ])(
+        'should strip elongation tildes (%s → %s)',
+        async (input, expected) => {
+          await uut.normalizeTtsText(input);
 
-        expect(result).toBe('crack');
-      });
+          expect(llmClient.normalizeTextForTts).toHaveBeenCalledWith(
+            expected,
+          );
+        },
+      );
 
-      it('should lowercase "BOOM" to "boom"', async () => {
-        const result = await uut.normalizeTtsText('BOOM');
+      it('should preserve tildes NOT used as elongation markers', async () => {
+        await uut.normalizeTtsText('path~name');
 
-        expect(result).toBe('boom');
-      });
-
-      it('should lowercase "BOOM!" to "boom!"', async () => {
-        const result = await uut.normalizeTtsText('BOOM!');
-
-        expect(result).toBe('boom!');
-      });
-
-      it('should not lowercase single letter "I"', async () => {
-        const result = await uut.normalizeTtsText('I am fine');
-
-        expect(result).toBe('I am fine');
-      });
-
-      it('should not lowercase mixed case "Hello"', async () => {
-        const result = await uut.normalizeTtsText('Hello');
-
-        expect(result).toBe('Hello');
-      });
-
-      it('should lowercase multiple ALL CAPS words', async () => {
-        const result = await uut.normalizeTtsText('THE BIG BOOM');
-
-        expect(result).toBe('the big boom');
-      });
-
-      it('should lowercase ALL CAPS in context', async () => {
-        const result = await uut.normalizeTtsText(
-          'He heard a CRACK and ran',
-        );
-
-        expect(result).toBe('He heard a crack and ran');
-      });
-    });
-
-    describe('stutter / hesitation patterns', () => {
-      it('should convert "Wh-What" to "wh... what"', async () => {
-        const result = await uut.normalizeTtsText('Wh-What');
-
-        expect(result).toBe('wh... what');
-      });
-
-      it('should convert "W-What" to "w... what"', async () => {
-        const result = await uut.normalizeTtsText('W-What');
-
-        expect(result).toBe('w... what');
-      });
-
-      it('should convert "N-No" to "n... no"', async () => {
-        const result = await uut.normalizeTtsText('N-No');
-
-        expect(result).toBe('n... no');
-      });
-
-      it('should leave "I-I" unchanged (second part is only 1 char)', async () => {
-        const result = await uut.normalizeTtsText('I-I am OK');
-
-        expect(result).toBe('I-I am ok');
-      });
-
-      it('should not convert "well-known" (not a stutter)', async () => {
-        const result = await uut.normalizeTtsText('well-known');
-
-        expect(result).toBe('well-known');
-      });
-
-      it('should not convert "twenty-one" (not a stutter)', async () => {
-        const result = await uut.normalizeTtsText('twenty-one');
-
-        expect(result).toBe('twenty-one');
-      });
-
-      it('should convert "Th-That" to "th... that"', async () => {
-        const result = await uut.normalizeTtsText('Th-That');
-
-        expect(result).toBe('th... that');
-      });
-
-      it('should convert "S-Stop it" to "s... stop it"', async () => {
-        const result = await uut.normalizeTtsText('S-Stop it');
-
-        expect(result).toBe('s... stop it');
-      });
-    });
-
-    describe('square brackets (skill/ability markers)', () => {
-      it('should replace "[Boost]" with ", Boost,"', async () => {
-        const result = await uut.normalizeTtsText(
-          'She activated [Boost]',
-        );
-
-        expect(result).toBe('She activated , Boost,');
-      });
-
-      it('should replace "【Fireball】" with ", Fireball,"', async () => {
-        const result = await uut.normalizeTtsText(
-          'He cast 【Fireball】',
-        );
-
-        expect(result).toBe('He cast , Fireball,');
-      });
-
-      it('should replace "[DIVINE SHIELD]" and lowercase the caps', async () => {
-        const result = await uut.normalizeTtsText('[DIVINE SHIELD]');
-
-        expect(result).toBe(', divine shield,');
-      });
-
-      it('should handle multiple bracket skills', async () => {
-        const result = await uut.normalizeTtsText(
-          'Used [Boost] and [Shield]',
-        );
-
-        expect(result).toBe('Used , Boost, and , Shield,');
-      });
-    });
-
-    describe('repeated single words', () => {
-      it('should collapse "run run run run run run" to "run, run, run"', async () => {
-        const result = await uut.normalizeTtsText(
-          'run run run run run run',
-        );
-
-        expect(result).toBe('run, run, run');
-      });
-
-      it('should collapse "no no no no no no" to "no, no, no"', async () => {
-        const result = await uut.normalizeTtsText(
-          'no no no no no no',
-        );
-
-        expect(result).toBe('no, no, no');
-      });
-
-      it('should not collapse "no no" (only 2 repetitions)', async () => {
-        const result = await uut.normalizeTtsText('no no');
-
-        expect(result).toBe('no no');
-      });
-
-      it('should not collapse "no no no" (only 3 repetitions)', async () => {
-        const result = await uut.normalizeTtsText('no no no');
-
-        expect(result).toBe('no no no');
-      });
-
-      it('should collapse 4 repetitions', async () => {
-        const result = await uut.normalizeTtsText('run run run run');
-
-        expect(result).toBe('run, run, run');
-      });
-
-      it('should collapse ALL CAPS repeated words and lowercase them', async () => {
-        const result = await uut.normalizeTtsText(
-          'RUN RUN RUN RUN RUN',
-        );
-
-        expect(result).toBe('run, run, run');
-      });
-    });
-
-    describe('repeated multi-word phrases', () => {
-      it('should collapse repeated 5-word phrases', async () => {
-        const result = await uut.normalizeTtsText(
-          'I do not wanna die I do not wanna die I do not wanna die I do not wanna die I do not wanna die',
-        );
-
-        expect(result).toBe(
-          'I do not wanna die, I do not wanna die, I do not wanna die',
+        expect(llmClient.normalizeTextForTts).toHaveBeenCalledWith(
+          'path~name',
         );
       });
 
-      it('should collapse repeated 2-word phrases', async () => {
-        const result = await uut.normalizeTtsText(
-          'help me help me help me help me help me',
+      it.each([
+        ['ahhhhhhhh', 'ahh'],
+        ['CRAAAACK', 'craack'],
+        ['WHOOOOOSH!', 'whoosh!'],
+        ['BOOOOOOM', 'boom'],
+        ['SLAAAAAAM', 'slaam'],
+        ['whattttt', 'whatt'],
+      ])(
+        'should collapse repeated letters (%s → %s)',
+        async (input, expected) => {
+          await uut.normalizeTtsText(input);
+
+          expect(llmClient.normalizeTextForTts).toHaveBeenCalledWith(
+            expected,
+          );
+        },
+      );
+
+      it.each(['book', 'feel'])(
+        'should NOT collapse normal double letters (%s)',
+        async (input) => {
+          await uut.normalizeTtsText(input);
+
+          expect(llmClient.normalizeTextForTts).toHaveBeenCalledWith(
+            input,
+          );
+        },
+      );
+
+      it.each([
+        ['ahhh......', 'ahh...'],
+        ['hmm........', 'hmm...'],
+      ])(
+        'should collapse excessive dots (%s → %s)',
+        async (input, expected) => {
+          await uut.normalizeTtsText(input);
+
+          expect(llmClient.normalizeTextForTts).toHaveBeenCalledWith(
+            expected,
+          );
+        },
+      );
+
+      it('should preserve "..." as-is', async () => {
+        await uut.normalizeTtsText('wait...');
+
+        expect(llmClient.normalizeTextForTts).toHaveBeenCalledWith(
+          'wait...',
         );
-
-        expect(result).toBe('help me, help me, help me');
       });
 
-      it('should not collapse 3 repetitions of a phrase', async () => {
-        const result = await uut.normalizeTtsText(
-          'help me help me help me',
+      it.each([
+        ['CRACK', 'crack'],
+        ['BOOM!', 'boom!'],
+        ['THE BIG BOOM', 'the big boom'],
+        ['He heard a CRACK and ran', 'He heard a crack and ran'],
+      ])(
+        'should lowercase ALL CAPS words (%s → %s)',
+        async (input, expected) => {
+          await uut.normalizeTtsText(input);
+
+          expect(llmClient.normalizeTextForTts).toHaveBeenCalledWith(
+            expected,
+          );
+        },
+      );
+
+      it.each(['I am fine', 'Hello'])(
+        'should NOT lowercase non-all-caps words (%s)',
+        async (input) => {
+          await uut.normalizeTtsText(input);
+
+          expect(llmClient.normalizeTextForTts).toHaveBeenCalledWith(
+            input,
+          );
+        },
+      );
+
+      it.each([
+        ['She activated [Boost]', 'She activated , Boost,'],
+        ['He cast 【Fireball】', 'He cast , Fireball,'],
+        ['[DIVINE SHIELD]', ', divine shield,'],
+        ['Used [Boost] and [Shield]', 'Used , Boost, and , Shield,'],
+      ])(
+        'should replace bracketed skill markers (%s → %s)',
+        async (input, expected) => {
+          await uut.normalizeTtsText(input);
+
+          expect(llmClient.normalizeTextForTts).toHaveBeenCalledWith(
+            expected,
+          );
+        },
+      );
+
+      it('should apply multiple safe-pass transformations together', async () => {
+        await uut.normalizeTtsText('CRAAAACCKKKK!');
+
+        expect(llmClient.normalizeTextForTts).toHaveBeenCalledWith(
+          'craacckk!',
         );
-
-        expect(result).toBe('help me help me help me');
-      });
-    });
-
-    describe('combined transformations', () => {
-      it('should handle tilde + repeated letters', async () => {
-        const result = await uut.normalizeTtsText('ahhh~');
-
-        expect(result).toBe('ahh');
-      });
-
-      it('should handle elongated ALL CAPS onomatopoeia with punctuation', async () => {
-        const result = await uut.normalizeTtsText('CRAAAACCKKKK!');
-
-        expect(result).toBe('craacckk!');
-      });
-
-      it('should handle multiple transformations in a sentence', async () => {
-        const result = await uut.normalizeTtsText(
-          'W-What was that?! BOOM! The [Fireball] exploded!',
-        );
-
-        expect(result).toContain('w... what');
-        expect(result).toContain('boom!');
-        expect(result).toContain(', Fireball,');
-      });
-
-      it('should handle complex manga dialogue', async () => {
-        const result = await uut.normalizeTtsText(
-          'Alex "...?" N-No way... CRAAAACK!',
-        );
-
-        expect(result).toContain('hmm?');
-        expect(result).toContain('n... no');
-        expect(result).toContain('craack!');
-      });
-
-      it('should handle ahhh... pattern', async () => {
-        const result = await uut.normalizeTtsText('ahhh...');
-
-        expect(result).toBe('ahh...');
-      });
-
-      it('should not alter normal prose', async () => {
-        const input = 'Elena walked through the forest carefully.';
-
-        const result = await uut.normalizeTtsText(input);
-
-        expect(result).toBe(input);
-      });
-
-      it('should preserve normal sentences with standard punctuation', async () => {
-        const input = 'He said, "I will be back." She nodded.';
-
-        const result = await uut.normalizeTtsText(input);
-
-        expect(result).toBe(input);
       });
     });
   });

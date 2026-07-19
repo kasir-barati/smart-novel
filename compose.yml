@@ -45,7 +45,7 @@ services:
         condition: service_completed_successfully
       postgres:
         condition: service_healthy
-      ollama:
+      beatrice:
         condition: service_healthy
       s3:
         condition: service_healthy
@@ -441,6 +441,25 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+
+  beatrice:
+    image: 9109679196/smart-novel-beatrice:1.0.1
+    environment:
+      PORT: 3000
+      SERVICE_NAME: beatrice
+      LLM__BASE_URL: http://ollama:11434/v1
+      LLM__API_KEY: ollama
+      LLM__MODEL: ${OLLAMA_MODEL}
+      LOGGING__MODE: JSON
+      LOGGING__LEVEL: info
+      OTEL__ENABLED: ${OTEL_ENABLED}
+      OTEL__EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+      OTEL__TRACES_SAMPLER: ${OTEL_TRACES_SAMPLER}
+    depends_on:
+      ollama:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.110.0

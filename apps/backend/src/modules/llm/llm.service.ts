@@ -1,25 +1,19 @@
 import type { ConfigType } from '@nestjs/config';
 
-import {
-  Inject,
-  Injectable,
-  InternalServerErrorException,
-} from '@nestjs/common';
-import axios from 'axios';
+import { Inject, Injectable } from '@nestjs/common';
 import ms from 'ms';
-import {
-  CustomLoggerService,
-  isNil,
-  retryAsync,
-  urlBuilder,
-} from 'nestjs-backend-common';
+import { CustomLoggerService } from 'nestjs-backend-common';
 import { hostname } from 'os';
 
-import { appConfigs } from '../../app/configs/app.config'; // To prevent circular dependency issues
+import { appConfigs } from '../../app/configs/app.config';
 import { generateCacheKey } from '../../shared';
 import { CacheService } from '../redis';
-import { ExplainWordPromptResponse } from './llm.interface';
+import { LlmClient } from './llm.client';
 import { WordExplanation } from './types';
+
+export type ExplainWordPayload = Awaited<
+  ReturnType<LlmClient['explainWord']>
+>['explainWord'];
 
 @Injectable()
 export class LlmService {
@@ -27,7 +21,8 @@ export class LlmService {
     @Inject(appConfigs.KEY)
     private readonly appConfig: ConfigType<typeof appConfigs>,
     private readonly logger: CustomLoggerService,
-    private readonly cacheService: CacheService<ExplainWordPromptResponse>,
+    private readonly cacheService: CacheService<ExplainWordPayload>,
+    private readonly llmClient: LlmClient,
   ) {}
 
   async explainWord(
@@ -36,12 +31,17 @@ export class LlmService {
   ): Promise<WordExplanation> {
     const startTime = Date.now();
     const cacheKey = generateCacheKey(word, context);
-    const cacheTtlMs = ms(this.appConfig.OLLAMA_CACHE_TTL);
-
+    const cacheTtlMs = ms(this.appConfig.LLM_CACHE_TTL);
     const { data, cacheHit, coalesced } =
       await this.cacheService.getOrCompute(
         cacheKey,
-        () => this.callOllamaWithRetry(word, context),
+        async () => {
+          const { explainWord } = await this.llmClient.explainWord(
+            word,
+            context,
+          );
+          return explainWord;
+        },
         cacheTtlMs,
       );
     const totalLatency = Date.now() - startTime;
@@ -62,165 +62,5 @@ export class LlmService {
       ...data,
       cacheKey,
     };
-  }
-
-  private async callOllamaWithRetry(
-    word: string,
-    context: string,
-  ): Promise<ExplainWordPromptResponse> {
-    const [error, result] =
-      await retryAsync<ExplainWordPromptResponse>(
-        () =>
-          this.callOllama(
-            word,
-            context,
-            ms(this.appConfig.OLLAMA_TIMEOUT),
-          ),
-        {
-          retry: this.appConfig.OLLAMA_RETRY_COUNT,
-          delay: ms(this.appConfig.OLLAMA_RETRY_DELAY),
-        },
-      );
-
-    if (error) {
-      this.logger.error(
-        `All retry attempts exhausted for word "${word}"`,
-        { context: LlmService.name, error },
-      );
-      throw error;
-    }
-
-    return result;
-  }
-
-  private async callOllama(
-    word: string,
-    context: string,
-    timeoutMs: number,
-  ): Promise<ExplainWordPromptResponse> {
-    const url = urlBuilder(
-      this.appConfig.OLLAMA_BASE_URL,
-      'api',
-      'generate',
-    );
-    const prompt = `Analyze the word "${word}" in this context: "${context}".
-
-Return ONLY a valid JSON object (no markdown, no extra text) with EXACTLY these keys:
-- "meaning": string (brief definition in this context)
-- "synonyms": string[] (3-5 items)
-- "antonyms": string[] (3-5 items)
-- "simplifiedExplanation": string (simple explanation)
-
-Rules:
-- Use double quotes for all keys and string values.
-- Do not include trailing commas.
-- Ensure the JSON is complete and ends with a closing curly brace.\n`;
-
-    try {
-      const { data } = await axios.post(
-        url,
-        {
-          model: this.appConfig.OLLAMA_MODEL,
-          format: 'json',
-          prompt,
-          stream: false,
-        },
-        {
-          timeout: timeoutMs,
-        },
-      );
-
-      const generatedText: string = data.response;
-      const parsed =
-        this.parseJsonObject<ExplainWordPromptResponse>(
-          generatedText,
-        );
-
-      if (isNil(parsed)) {
-        this.logger.error(
-          `Failed to parse JSON response: ${generatedText}`,
-          { context: LlmService.name },
-        );
-        throw new InternalServerErrorException(
-          '6639cf09-2b91-481e-824a-9f8f6d22d362',
-        );
-      }
-
-      const meaning =
-        typeof parsed.meaning === 'string'
-          ? parsed.meaning
-          : 'No meaning available';
-      const simplifiedExplanation =
-        typeof parsed.simplifiedExplanation === 'string'
-          ? parsed.simplifiedExplanation
-          : 'No explanation available';
-
-      return {
-        antonyms: Array.isArray(parsed.antonyms)
-          ? parsed.antonyms
-          : [],
-        meaning,
-        simplifiedExplanation,
-        synonyms: Array.isArray(parsed.synonyms)
-          ? parsed.synonyms
-          : [],
-      };
-    } catch (error) {
-      if (error instanceof InternalServerErrorException) {
-        throw error;
-      }
-
-      this.logger.error(
-        `Error calling Ollama: ${JSON.stringify(error)}`,
-      );
-
-      throw new InternalServerErrorException(
-        'd1c8b2e5-9f3a-4c5e-8a1b-7f4e5d6c8a9b',
-      );
-    }
-  }
-
-  private parseJsonObject<T>(text: string): T | null {
-    const tryParse = (value: string) => {
-      try {
-        return JSON.parse(value) as T;
-      } catch {
-        return null;
-      }
-    };
-
-    // 1) Best case: the model returned raw JSON.
-    const direct = tryParse(text.trim());
-
-    if (direct) {
-      return direct;
-    }
-
-    // 2) Extract first JSON object-like block.
-    const jsonStart = text.indexOf('{');
-
-    if (jsonStart === -1) {
-      return null;
-    }
-
-    const sliced = text.slice(jsonStart).trim();
-    const extracted = tryParse(sliced);
-
-    if (extracted) {
-      return extracted;
-    }
-
-    // 3) Recover common truncation issue: missing one or more closing braces.
-    const openBraces = (sliced.match(/\{/g) || []).length;
-    const closeBraces = (sliced.match(/\}/g) || []).length;
-    const missingClosures = openBraces - closeBraces;
-
-    if (missingClosures > 0) {
-      const repaired = `${sliced}${'}'.repeat(missingClosures)}`;
-
-      return tryParse(repaired);
-    }
-
-    return null;
   }
 }

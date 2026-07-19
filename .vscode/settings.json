@@ -61,5 +61,7 @@
   // Working directories for monorepo - helps ESLint find configs in subdirectories
   "eslint.workingDirectories": [{ "mode": "auto" }],
   // Optional: Show ESLint status in the status bar
-  "eslint.alwaysShowStatus": true
+  "eslint.alwaysShowStatus": true,
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
+  "js/ts.tsdk.promptToUseWorkspaceVersion": true
 }

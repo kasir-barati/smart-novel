@@ -1,0 +1,69 @@
+import type { ConfigType } from '@nestjs/config';
+import type { TadaDocumentNode } from 'gql.tada';
+
+import {
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
+import ms from 'ms';
+import { CustomLoggerService } from 'nestjs-backend-common';
+
+import { appConfigs } from '../../app/configs/app.config';
+import { graphql, runOperation } from '../../shared';
+
+const EXPLAIN_WORD_MUTATION = graphql(`
+  mutation ExplainWord(
+    $word: NonEmptyTrimmedString!
+    $context: NonEmptyTrimmedString!
+  ) {
+    explainWord(word: $word, context: $context) {
+      meaning
+      simplifiedExplanation
+      synonyms
+      antonyms
+    }
+  }
+`);
+const NORMALIZE_TEXT_FOR_TTS_MUTATION = graphql(`
+  mutation NormalizeTextForTts($text: NonEmptyTrimmedString!) {
+    normalizeTextForTts(text: $text)
+  }
+`);
+
+/**
+ * @description Thin, typed wrapper around Beatrice's GraphQL API.
+ */
+@Injectable()
+export class LlmClient {
+  constructor(
+    @Inject(appConfigs.KEY)
+    private readonly appConfig: ConfigType<typeof appConfigs>,
+    private readonly logger: CustomLoggerService,
+  ) {}
+
+  explainWord(word: string, context: string) {
+    return this.run(EXPLAIN_WORD_MUTATION, { word, context });
+  }
+
+  normalizeTextForTts(text: string) {
+    return this.run(NORMALIZE_TEXT_FOR_TTS_MUTATION, { text });
+  }
+
+  private async run<TResult, TVariables>(
+    document: TadaDocumentNode<TResult, TVariables>,
+    variables: TVariables,
+  ): Promise<TResult> {
+    return await runOperation(document, variables, {
+      url: this.appConfig.BEATRICE_URL,
+      timeoutMs: ms(this.appConfig.BEATRICE_TIMEOUT),
+    }).catch((error) => {
+      this.logger.error('Beatrice GraphQL call failed', {
+        context: LlmClient.name,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      throw new InternalServerErrorException();
+    });
+  }
+}

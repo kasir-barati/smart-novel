@@ -5,8 +5,22 @@
   "projectType": "application",
   "tags": [],
   "targets": {
+    "beatrice:codegen": {
+      "executor": "nx:run-commands",
+      "description": "Regenerate Beatrice's gql.tada introspection output from schema.graphql",
+      "cache": true,
+      "inputs": ["{projectRoot}/src/shared/beatrice/schema.graphql"],
+      "outputs": [
+        "{projectRoot}/src/shared/beatrice/graphql-env.d.ts"
+      ],
+      "options": {
+        "command": "npx gql.tada generate-output --tsconfig tsconfig.json",
+        "cwd": "{projectRoot}"
+      }
+    },
     "build": {
       "executor": "nx:run-commands",
+      "dependsOn": ["beatrice:codegen"],
       "options": {
         "command": "webpack-cli build",
         "args": ["--node-env=production"],
@@ -66,6 +80,7 @@
     },
     "test": {
       "executor": "@nx/vitest:test",
+      "dependsOn": ["beatrice:codegen"],
       "options": {
         "config": "{projectRoot}/vitest.config.ts",
         "reportsDirectory": "../../coverage/apps/backend",
@@ -107,7 +122,7 @@
     },
     "gen-graphql-schema": {
       "executor": "nx:run-commands",
-      "dependsOn": ["prisma:generate"],
+      "dependsOn": ["prisma:generate", "beatrice:codegen"],
       "description": "Generate the GraphQL SDL schema file on the host",
       "options": {
         "command": "npx ts-node --project tsconfig.app.json gen-graphql-schema.ts",

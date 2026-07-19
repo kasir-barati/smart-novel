@@ -1,6 +1,6 @@
 import { Args, ID, Mutation, Resolver } from '@nestjs/graphql';
 
-import { ParseUuidPipe } from '../../../shared';
+import { ParseUuidPipe, RequiredStringPipe } from '../../../shared';
 import { CheckPolicy, RequireRole, Role } from '../../auth';
 import { ChapterService, TtsTextService } from '../services';
 import { Chapter } from '../types';
@@ -18,11 +18,15 @@ export class ChapterResolver {
       'Convert markdown content into TTS-friendly text and return the result for preview',
   })
   async generateTtsFriendlyText(
-    @Args('text', {
-      type: () => String,
-      description:
-        'Markdown content to convert into TTS-friendly text',
-    })
+    @Args(
+      'text',
+      {
+        type: () => String,
+        description:
+          'Markdown content to convert into TTS-friendly text',
+      },
+      RequiredStringPipe,
+    )
     text: string,
   ): Promise<string> {
     const speechText = await this.ttsTextService.toSpeechText(text);
@@ -47,15 +51,23 @@ export class ChapterResolver {
       ParseUuidPipe,
     )
     chapterId: string,
-    @Args('content', {
-      type: () => String,
-      description: 'Chapter content in markdown format',
-    })
+    @Args(
+      'content',
+      {
+        type: () => String,
+        description: 'Chapter content in markdown format',
+      },
+      RequiredStringPipe,
+    )
     content: string,
-    @Args('ttsFriendlyContent', {
-      type: () => String,
-      description: 'Content in a TTS friendly format',
-    })
+    @Args(
+      'ttsFriendlyContent',
+      {
+        type: () => String,
+        description: 'Content in a TTS friendly format',
+      },
+      RequiredStringPipe,
+    )
     ttsFriendlyContent: string,
   ) {
     return this.chapterService.updateContent(

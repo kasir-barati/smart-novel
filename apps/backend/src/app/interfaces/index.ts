@@ -8,21 +8,21 @@ export interface AppConfig {
   NODE_ENV: 'development' | 'production' | 'test';
   LOG_MODE: LogMode;
   LOG_LEVEL: LogLevel;
-  OLLAMA_BASE_URL: string;
-  OLLAMA_MODEL: string;
   /**
-   * @description follows https://www.npmjs.com/package/ms
+   * @description Base URL of the smart-novel-beatrice GraphQL endpoint.
+   * @example `http://beatrice:3000/graphql`
    */
-  OLLAMA_TIMEOUT: StringValue;
+  BEATRICE_URL: string;
   /**
-   * @description follows https://www.npmjs.com/package/ms
+   * @description Per-request timeout for calls to Beatrice.
+   * Use https://www.npmjs.com/package/ms for human-readable duration
    */
-  OLLAMA_CACHE_TTL: StringValue;
-  OLLAMA_RETRY_COUNT: number;
+  BEATRICE_TIMEOUT: StringValue;
   /**
-   * @description follows https://www.npmjs.com/package/ms
+   * @description TTL for the backend-side cache of `explainWord` responses, keyed on the (word, context) pair.
+   * Use https://www.npmjs.com/package/ms for human-readable duration
    */
-  OLLAMA_RETRY_DELAY: StringValue;
+  LLM_CACHE_TTL: StringValue;
   REDIS_URL: string;
   REDIS_PASSWORD?: string;
   DATABASE_URL: string;

@@ -1,95 +1,85 @@
-import { InternalServerErrorException } from '@nestjs/common';
-import axios from 'axios';
+import { ConfigType } from '@nestjs/config';
+import { CustomLoggerService } from 'nestjs-backend-common';
 
-import { AppConfig } from '../../app';
+import { appConfigs } from '../../app';
 import { CacheService } from '../redis';
-import { ExplainWordPromptResponse } from './llm.interface';
-import { LlmService } from './llm.service';
+import { LlmClient } from './llm.client';
+import { ExplainWordPayload, LlmService } from './llm.service';
 
 describe(LlmService.name, () => {
   let uut: LlmService;
-  let appConfigs: AppConfig;
-  let logger: any;
-  let cacheService: CacheService<ExplainWordPromptResponse>;
+  let appConfig: ConfigType<typeof appConfigs>;
+  let logger: CustomLoggerService;
+  let cacheService: CacheService<ExplainWordPayload>;
+  let llmClient: LlmClient;
 
   beforeEach(() => {
-    appConfigs = {
-      OLLAMA_BASE_URL: 'http://ollama',
-      OLLAMA_TIMEOUT: '5s',
-      OLLAMA_RETRY_COUNT: 3,
-      OLLAMA_RETRY_DELAY: '100ms',
-      OLLAMA_CACHE_TTL: '1h',
+    const explainedWord: ExplainWordPayload = {
+      meaning: 'lasting for a very short time',
+      simplifiedExplanation:
+        'Something that is ephemeral lasts for a very short time.',
+      synonyms: ['transient'],
+      antonyms: ['permanent'],
+    };
+    appConfig = {
+      LLM_CACHE_TTL: '1h',
     } as any;
     logger = {
-      error: vi.fn(),
       log: vi.fn(),
-      warn: vi.fn(),
-    };
+    } as any;
     cacheService = {
-      getOrCompute: vi.fn(
-        async (_cacheKey: string, compute: () => Promise<any>) => {
-          const data = await compute();
-          return {
-            data,
-            cacheHit: false,
-            coalesced: false,
-          };
-        },
-      ),
+      getOrCompute: vi.fn().mockResolvedValue({
+        data: explainedWord,
+        cacheHit: false,
+        coalesced: false,
+      }),
+      invalidate: vi.fn(),
+    } as any;
+    llmClient = {
+      explainWord: vi.fn().mockResolvedValue({
+        explainWord: explainedWord,
+      }),
+      normalizeTextForTts: vi.fn(),
     } as any;
 
-    uut = new LlmService(appConfigs, logger, cacheService);
+    uut = new LlmService(appConfig, logger, cacheService, llmClient);
   });
 
-  it('should throw an error when it cannot parse the response', async () => {
-    const word = 'scrutinize';
-    const context = 'I need to scrutinize the data carefully.';
-    axios.post = vi.fn().mockResolvedValue({
+  it('should explain a word', async () => {
+    const res = await uut.explainWord(
+      'ephemeral',
+      'Fame in the world of rock and pop is largely ephemeral.',
+    );
+
+    expect(res).toStrictEqual({
+      meaning: 'lasting for a very short time',
+      simplifiedExplanation:
+        'Something that is ephemeral lasts for a very short time.',
+      synonyms: ['transient'],
+      antonyms: ['permanent'],
+      cacheKey: expect.any(String),
+    });
+  });
+
+  it('should explain a word and hit the cache', async () => {
+    vi.mocked(cacheService.getOrCompute).mockResolvedValueOnce({
       data: {
-        response: 'This is not a valid JSON',
+        meaning: 'lasting for a very short time',
+        simplifiedExplanation:
+          'Something that is ephemeral lasts for a very short time.',
+        synonyms: ['transient'],
+        antonyms: ['permanent'],
       },
+      cacheHit: true,
+      coalesced: false,
     });
 
-    const result = uut.explainWord(word, context);
-
-    await expect(result).rejects.toThrow(
-      new InternalServerErrorException(
-        '6639cf09-2b91-481e-824a-9f8f6d22d362',
-      ),
+    const res = await uut.explainWord(
+      'ephemeral',
+      'Fame in the world of rock and pop is largely ephemeral.',
     );
-  });
 
-  it('should retry 3 times', async () => {
-    const word = 'scrutinize';
-    const context = 'I need to scrutinize the data carefully.';
-    axios.post = vi.fn().mockResolvedValue({
-      data: {
-        response: 'This is not a valid JSON',
-      },
-    });
-
-    try {
-      await uut.explainWord(word, context).catch();
-    } catch {
-      // ignore
-    }
-
-    expect(axios.post).toHaveBeenCalledTimes(4); // initial try + 3 retries
-  });
-
-  it('should throw an error if the API request fails', async () => {
-    const word = 'scrutinize';
-    const context = 'I need to scrutinize the data carefully.';
-    axios.post = vi
-      .fn()
-      .mockRejectedValue(new Error('API request failed'));
-
-    const result = uut.explainWord(word, context);
-
-    await expect(result).rejects.toThrow(
-      new InternalServerErrorException(
-        'd1c8b2e5-9f3a-4c5e-8a1b-7f4e5d6c8a9b',
-      ),
-    );
+    expect(res).toBeObject();
+    expect(cacheService.getOrCompute).toHaveBeenCalledTimes(1);
   });
 });
