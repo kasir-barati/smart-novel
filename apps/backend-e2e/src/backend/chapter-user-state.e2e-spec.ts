@@ -223,8 +223,6 @@ describe('ChapterUserState (e2e)', () => {
         { headers: { Authorization: authorizationHeader } },
       );
 
-      console.dir(res.data, { depth: null });
-
       expect(res.status).toBe(200);
       expect(res.data.data.markChaptersRead.markedCount).toBe(1);
     });

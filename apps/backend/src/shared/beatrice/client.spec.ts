@@ -1,15 +1,17 @@
 import axios from 'axios';
+import { parse } from 'graphql';
 
 import { runOperation } from './client';
 
 vi.mock('axios');
 
 describe(runOperation.name, () => {
+  const mockMutation = parse(
+    'mutation Foo($foo: String!) { foo(foo: $foo) { bar } }',
+  ) as any;
+  const mockVariables = { foo: 'bar' };
+
   it('should return the data payload when the request is successful', async () => {
-    const mockDocument = {
-      toString: () => 'mock query',
-    } as any;
-    const mockVariables = { foo: 'bar' };
     vi.mocked(axios.post).mockResolvedValueOnce({
       data: {
         data: {
@@ -18,7 +20,7 @@ describe(runOperation.name, () => {
       },
     });
 
-    const result = await runOperation(mockDocument, mockVariables, {
+    const result = await runOperation(mockMutation, mockVariables, {
       url: 'http://mock-url',
       timeoutMs: 1000,
     });
@@ -28,11 +30,26 @@ describe(runOperation.name, () => {
     });
   });
 
+  it('should serialize the AST document to a GraphQL query string', async () => {
+    vi.mocked(axios.post).mockResolvedValueOnce({
+      data: { data: {} },
+    });
+
+    await runOperation(mockMutation, mockVariables, {
+      url: 'http://mock-url',
+      timeoutMs: 1000,
+    });
+
+    const [, body] = vi.mocked(axios.post).mock.calls[0];
+    expect(body).toMatchObject({
+      variables: mockVariables,
+    });
+    expect((body as { query: string }).query).toContain(
+      'mutation Foo',
+    );
+  });
+
   it('should throw BeatriceRequestError when the request returns errors', async () => {
-    const mockDocument = {
-      toString: () => 'mock query',
-    } as any;
-    const mockVariables = { foo: 'bar' };
     vi.mocked(axios.post).mockResolvedValueOnce({
       data: {
         errors: [{ message: 'Error 1' }, { message: 'Error 2' }],
@@ -40,7 +57,7 @@ describe(runOperation.name, () => {
     });
 
     await expect(
-      runOperation(mockDocument, mockVariables, {
+      runOperation(mockMutation, mockVariables, {
         url: 'http://mock-url',
         timeoutMs: 1000,
       }),

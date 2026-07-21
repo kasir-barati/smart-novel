@@ -34,8 +34,6 @@ const tokenEndpoint = urlBuilder(
   'token',
 );
 
-extractConfigFromDocker();
-
 Logger.section('Read Values From Files');
 Logger.log('Reading integration test client ID from config file...');
 const integrationTestClientId = readFileSync(
@@ -138,7 +136,10 @@ interface DecodedKeyContent {
   expirationDate: string;
 }
 
-function extractConfigFromDocker() {
+/**
+ * @description Extract credentials produced by `setup-zitadel` from the shared Docker volume onto the host.
+ */
+export function extractZitadelConfigFromDocker() {
   Logger.section('Extracting Config Files From Docker Volume');
 
   const hostDirectories = ['pats', 'client', 'user-ids'];
@@ -189,7 +190,6 @@ function extractConfigFromDocker() {
       workspaceRoot,
       containerPath,
       hostFilePath,
-      'backend-e2e',
     );
   }
 }

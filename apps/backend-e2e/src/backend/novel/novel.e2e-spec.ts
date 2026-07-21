@@ -118,7 +118,7 @@ describe('Novel (e2e)', () => {
 
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toBe('image/png');
-  });
+  }, 120_000);
 
   it('should return all categories', async () => {
     const res = await axios.post('/graphql', {

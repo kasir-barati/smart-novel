@@ -200,7 +200,7 @@ describe('Chapter (e2e)', () => {
       expect(data.errors).toBeUndefined();
       expect(data.data.generateTtsFriendlyText).toBeString();
     },
-    120_000,
+    200_000,
   );
 
   it('should deny a regular user from generating TTS-friendly text', async () => {

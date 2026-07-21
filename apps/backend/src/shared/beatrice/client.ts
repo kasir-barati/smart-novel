@@ -1,6 +1,7 @@
 import type { TadaDocumentNode } from 'gql.tada';
 
 import axios from 'axios';
+import { print } from 'graphql';
 
 export interface BeatriceGraphQLError {
   message: string;
@@ -46,7 +47,7 @@ export async function runOperation<TResult, TVariables>(
   >(
     url,
     {
-      query: document.toString(),
+      query: print(document),
       variables,
     },
     {

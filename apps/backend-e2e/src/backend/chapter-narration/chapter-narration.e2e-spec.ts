@@ -267,5 +267,5 @@ describe('Chapter Narration (e2e)', () => {
     } finally {
       client.dispose();
     }
-  }, 180_000);
+  }, 280_000);
 });

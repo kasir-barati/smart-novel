@@ -148,7 +148,6 @@ export class ChapterNarrationFixture {
       },
       { headers },
     );
-
     const ttsFriendlyContent =
       ttsRes.data.data.generateTtsFriendlyText;
 

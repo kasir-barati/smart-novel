@@ -450,6 +450,7 @@ services:
       LLM__BASE_URL: http://ollama:11434/v1
       LLM__API_KEY: ollama
       LLM__MODEL: ${OLLAMA_MODEL}
+      LLM__TIMEOUT_MS: 150000
       LOGGING__MODE: JSON
       LOGGING__LEVEL: info
       OTEL__ENABLED: ${OTEL_ENABLED}
